@@ -3982,6 +3982,12 @@ public class FormController implements IForm, ListSelectionListener, TableModelL
 				isFormVisible = true;
 				return false;
 			}
+			else
+			{
+				//if the focus owner becomes invalid after hiding the form, the focus needs to be changed
+				getFormUI().changeFocusIfInvalid(invokeLaterRunnables);
+			}
+
 			application.getFoundSetManager().getEditRecordList().removePrepareForSave(this);
 
 			// if form is destroyed in onHide or editRecordStopped..

@@ -77,6 +77,7 @@ public class WebClientSession extends WebSession
 
 	private final boolean blockInput;
 
+
 	private transient ICrypt crypt;
 
 	public static WebClientSession get()

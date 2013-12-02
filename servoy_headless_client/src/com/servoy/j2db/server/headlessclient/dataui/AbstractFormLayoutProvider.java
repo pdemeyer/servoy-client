@@ -40,6 +40,7 @@ import com.servoy.j2db.util.OrientationApplier;
 import com.servoy.j2db.util.Pair;
 import com.servoy.j2db.util.PersistHelper;
 import com.servoy.j2db.util.ServoyStyleSheet;
+import com.servoy.j2db.util.Settings;
 import com.servoy.j2db.util.Utils;
 
 /**
@@ -238,7 +239,10 @@ public abstract class AbstractFormLayoutProvider implements IFormLayoutProvider
 		html.append(partID);//Part.getDisplayName(part.getPartType()));		
 		html.append("' id='"); //$NON-NLS-1$ 
 		html.append(partID);
-		html.append("' class='formpart'>\n"); //$NON-NLS-1$ 
+		String userDefinedClass = "";
+		if ("true".equals(Settings.getInstance().getProperty("servoy.webclient.pushClassToHTMLElement", "false"))) userDefinedClass = (part.getStyleClass() == null
+			? "" : part.getStyleClass());
+		html.append("' class='formpart " + userDefinedClass + "'>\n"); //$NON-NLS-1$ 
 
 		TextualStyle partStyle = css.addStyle('#' + partID);
 		fillPartStyle(partStyle, part);

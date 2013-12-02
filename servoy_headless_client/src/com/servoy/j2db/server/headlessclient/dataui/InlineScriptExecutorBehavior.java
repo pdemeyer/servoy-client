@@ -16,6 +16,8 @@
  */
 package com.servoy.j2db.server.headlessclient.dataui;
 
+import java.util.ArrayList;
+
 import org.apache.wicket.Application;
 import org.apache.wicket.Component;
 import org.apache.wicket.Page;
@@ -26,6 +28,7 @@ import org.apache.wicket.util.crypt.ICrypt;
 import com.servoy.j2db.ExitScriptException;
 import com.servoy.j2db.server.headlessclient.WebForm;
 import com.servoy.j2db.util.Debug;
+import com.servoy.j2db.util.Utils;
 
 /**
  * The behavior used by components that want to eval a specific scriptname on the current form.
@@ -37,6 +40,8 @@ import com.servoy.j2db.util.Debug;
  */
 public final class InlineScriptExecutorBehavior extends AbstractServoyDefaultAjaxBehavior
 {
+	static final String BROWSER_PARAM = "browser:";
+
 	/**
 	 * 
 	 */
@@ -56,16 +61,30 @@ public final class InlineScriptExecutorBehavior extends AbstractServoyDefaultAja
 	protected void respond(AjaxRequestTarget target)
 	{
 		Page page = component.getPage();
-		String scriptName = RequestCycle.get().getRequest().getParameter("sn");
-		if (scriptName == null)
+		String scriptName = RequestCycle.get().getRequest().getParameter("snenc");
+
+		ICrypt urlCrypt = Application.get().getSecuritySettings().getCryptFactory().newCrypt();
+		scriptName = urlCrypt.decryptUrlSafe(scriptName);
+
+		String argValue;
+		for (String browserArgument : getBrowserArguments(scriptName))
 		{
-			scriptName = RequestCycle.get().getRequest().getParameter("snenc");
-			if (scriptName != null)
+			argValue = RequestCycle.get().getRequest().getParameter(browserArgument);
+			if (argValue == null) argValue = "";
+			boolean isString = true;
+			try
 			{
-				ICrypt urlCrypt = Application.get().getSecuritySettings().getCryptFactory().newCrypt();
-				scriptName = urlCrypt.decryptUrlSafe(scriptName);
+				Double.parseDouble(argValue);
+				isString = false;
 			}
+			catch (NumberFormatException ex)
+			{
+			}
+			if (isString && ("true".equals(argValue) || "false".equals(argValue))) isString = false;
+
+			scriptName = scriptName.replace(BROWSER_PARAM + browserArgument, isString ? "'" + argValue + "'" : argValue);
 		}
+
 		WebForm wf = component.findParent(WebForm.class);
 		if (wf != null)
 		{
@@ -82,6 +101,72 @@ public final class InlineScriptExecutorBehavior extends AbstractServoyDefaultAja
 			}
 			WebEventExecutor.generateResponse(target, page);
 		}
-		target.appendJavascript("clearDoubleClickId('" + component.getMarkupId() + "')"); //$NON-NLS-1$ //$NON-NLS-2$
+		target.appendJavascript("clearDoubleClickId('" + component.getMarkupId() + "')"); //$NON-NLS-1$ //$NON-NLS-2$		
+	}
+
+	ArrayList<String> getBrowserArguments(String s)
+	{
+		ArrayList<String> browserArguments = new ArrayList<String>();
+
+		String escapedScriptName = Utils.stringReplace(Utils.stringReplace(s, "\'", "\\\'"), "\"", "&quot;");
+		int browserVariableIndex = escapedScriptName.indexOf(BROWSER_PARAM);
+		if (browserVariableIndex != -1)
+		{
+			while (browserVariableIndex != -1)
+			{
+				// is there a next variable
+				int index = searchEndVariable(escapedScriptName, browserVariableIndex + 8);
+				if (index == -1)
+				{
+					Debug.error("illegal script name encountered with browser arguments: " + escapedScriptName);
+					break;
+				}
+				else
+				{
+					browserArguments.add(escapedScriptName.substring(browserVariableIndex + 8, index));
+					browserVariableIndex = escapedScriptName.indexOf(BROWSER_PARAM, index);
+				}
+			}
+		}
+
+		return browserArguments;
+	}
+
+	/**
+	 * @param escapedScriptName
+	 * @param i
+	 * @return
+	 */
+	private int searchEndVariable(String script, int start)
+	{
+		int counter = start;
+		int brace = 0;
+		while (counter < script.length())
+		{
+			switch (script.charAt(counter))
+			{
+				case '\\' :
+					if (brace == 0) return counter;
+					break;
+				case '&' :
+					if (brace == 0) return counter;
+					break;
+				case '\'' :
+					if (brace == 0) return counter;
+					break;
+				case ',' :
+					if (brace == 0) return counter;
+					break;
+				case '(' :
+					brace++;
+					break;
+				case ')' :
+					if (brace == 0) return counter;
+					brace--;
+					break;
+			}
+			counter++;
+		}
+		return 0;
 	}
 }

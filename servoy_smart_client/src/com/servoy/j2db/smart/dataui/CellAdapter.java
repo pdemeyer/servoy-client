@@ -1391,7 +1391,7 @@ public class CellAdapter extends TableColumn implements TableCellEditor, TableCe
 			if (editor instanceof IDisplayData)
 			{
 				IDisplayData displayData = (IDisplayData)editor;
-				obj = displayData.getValueObject();
+				obj = Utils.removeJavascripLinkFromDisplay(displayData, null);
 
 				if (!findMode)
 				{

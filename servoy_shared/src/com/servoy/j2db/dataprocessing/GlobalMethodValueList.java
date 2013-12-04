@@ -92,7 +92,7 @@ public class GlobalMethodValueList extends CustomValueList
 
 	public void fill(IRecordInternal state, String filter, Object real)
 	{
-		String display = filter.toLowerCase();
+		String display = (filter != null) ? filter.toLowerCase() : null;
 		if (filling)
 		{
 			return;

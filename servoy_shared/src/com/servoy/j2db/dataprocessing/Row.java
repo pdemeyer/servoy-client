@@ -597,6 +597,8 @@ public class Row
 				fire = true;
 			}
 		}
+		// maybe is new record, just clear exception
+		lastException = null;
 		if (fire)
 		{
 			parent.fireDependingCalcs(getPKHashKey(), null, null);

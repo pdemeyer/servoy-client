@@ -33,6 +33,7 @@ import com.servoy.j2db.persistence.IRepository;
 import com.servoy.j2db.persistence.RepositoryException;
 import com.servoy.j2db.persistence.Solution;
 import com.servoy.j2db.persistence.SolutionMetaData;
+import com.servoy.j2db.server.ngclient.endpoint.NGClientEndpoint;
 import com.servoy.j2db.server.ngclient.property.types.Types;
 import com.servoy.j2db.server.ngclient.template.FormTemplateGenerator;
 import com.servoy.j2db.server.ngclient.template.FormWithInlineLayoutGenerator;
@@ -55,6 +56,11 @@ public class NGClientEntryFilter extends WebEntry
 	public static final String FORMS_PATH = "forms/";
 
 	private String[] locations;
+
+	public NGClientEntryFilter()
+	{
+		super(NGClientEndpoint.NGCLIENT_ENDPOINT);
+	}
 
 	@Override
 	public void init(final FilterConfig fc) throws ServletException
@@ -165,7 +171,7 @@ public class NGClientEntryFilter extends WebEntry
 					INGClientWebsocketSession wsSession = null;
 					if (clientUUID != null)
 					{
-						wsSession = (INGClientWebsocketSession)WebsocketSessionManager.getSession(WebsocketSessionFactory.CLIENT_ENDPOINT, clientUUID);
+						wsSession = (INGClientWebsocketSession)WebsocketSessionManager.getSession(NGClientEndpoint.NGCLIENT_ENDPOINT, clientUUID);
 					}
 
 					FlattenedSolution fs = getOrCreateFlattendSolution(solutionName, wsSession);

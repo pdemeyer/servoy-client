@@ -28,8 +28,6 @@ import org.sablo.websocket.IWebsocketSessionFactory;
  */
 public class WebsocketSessionFactory implements IWebsocketSessionFactory
 {
-	public static final String CLIENT_ENDPOINT = "client";
-
 	private volatile IClientCreator clientCreator;
 
 	private static WebsocketSessionFactory me;
@@ -48,20 +46,14 @@ public class WebsocketSessionFactory implements IWebsocketSessionFactory
 	}
 
 	/**
-	 * @param endpointType
-	 * @param ngClientEndpoint
+	 * @param uuid
 	 * @return the session
 	 */
-	public IWebsocketSession createSession(String endpointType, String uuid) throws Exception
+	public IWebsocketSession createSession(String uuid) throws Exception
 	{
-		switch (endpointType)
-		{
-			case CLIENT_ENDPOINT :
-				NGClientWebsocketSession wsSession = new NGClientWebsocketSession(uuid);
-				wsSession.setClient(getClientCreator().createClient(wsSession));
-				return wsSession;
-		}
-		return null;
+		NGClientWebsocketSession wsSession = new NGClientWebsocketSession(uuid);
+		wsSession.setClient(getClientCreator().createClient(wsSession));
+		return wsSession;
 	}
 
 	/**

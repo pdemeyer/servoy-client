@@ -206,7 +206,7 @@ angular.module('servoyApp', ['servoy','webStorageModule','ngGrid','servoy-compon
 	   var ignoreChanges = false;
 	   $solutionSettings.solutionName  = /.*\/(\w+)\/.*/.exec(window.location.pathname)[1];
 	   $solutionSettings.windowName = webStorage.session.get("windowid");
-	   var wsSession = $webSocket.connect('client', webStorage.session.get("sessionid"), $solutionSettings.windowName, $solutionSettings.solutionName)
+	   var wsSession = $webSocket.connect('/solutions/'+$solutionSettings.solutionName, [webStorage.session.get("sessionid"), $solutionSettings.windowName, $solutionSettings.solutionName])
 	   wsSession.onMessageObject = function (msg, conversionInfo) {
 		   try {
 			   // data got back from the server

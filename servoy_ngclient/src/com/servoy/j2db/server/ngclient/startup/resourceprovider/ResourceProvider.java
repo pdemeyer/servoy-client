@@ -46,6 +46,7 @@ import org.sablo.specification.property.CustomPropertyTypeResolver;
 import org.sablo.websocket.WebsocketSessionManager;
 
 import com.servoy.j2db.server.ngclient.WebsocketSessionFactory;
+import com.servoy.j2db.server.ngclient.endpoint.NGClientEndpoint;
 import com.servoy.j2db.server.ngclient.property.ComponentTypeImpl;
 import com.servoy.j2db.server.ngclient.property.FoundsetTypeImpl;
 import com.servoy.j2db.server.ngclient.property.types.Types;
@@ -90,7 +91,7 @@ public class ResourceProvider implements Filter
 	private static void initSpecProvider()
 	{
 		//register the session factory at the manager
-		WebsocketSessionManager.setWebsocketSessionFactory(WebsocketSessionFactory.get());
+		WebsocketSessionManager.setWebsocketSessionFactory(NGClientEndpoint.NGCLIENT_ENDPOINT, WebsocketSessionFactory.get());
 
 		registerTypes();
 

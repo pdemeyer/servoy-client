@@ -155,7 +155,7 @@ webSocketModule.factory('$webSocket',
 			 */
 			return {
 
-				connect : function(endpointType, sessionid,windowid, argument) {
+				connect : function(context, args) {
 
 					var loc = window.location, new_uri;
 					if (loc.protocol === "https:") {
@@ -164,15 +164,22 @@ webSocketModule.factory('$webSocket',
 						new_uri = "ws:";
 					}
 					new_uri += "//" + loc.host;
-					var lastIndex = loc.pathname.lastIndexOf("/");
+					var pathname = loc.pathname;
+					var lastIndex = pathname.lastIndexOf("/");
 					if (lastIndex > 0) {
-						new_uri += loc.pathname.substring(0, lastIndex)
-								+ "/../../websocket";
-					} else {
-						new_uri += loc.pathname + "/websocket";
+						pathname = pathname.substring(0, lastIndex);
 					}
-					new_uri += '/' + endpointType + '/' + (sessionid || 'NULL') + '/' + (windowid || 'NULL') + '/'
-							+ (argument || 'NULL')
+					if (context && context.length > 0)
+					{
+						var lastIndex = pathname.lastIndexOf(context);
+						if (lastIndex >= 0) {
+							pathname = pathname.substring(0, lastIndex) + pathname.substring(lastIndex + context.length)
+						}
+					}
+					new_uri += pathname + '/websocket';
+					for (a in args) {
+						new_uri += '/' + args[a]
+					}
 
 					websocket = new WebSocket(new_uri);
 

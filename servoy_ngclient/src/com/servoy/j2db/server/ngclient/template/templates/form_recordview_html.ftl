@@ -14,13 +14,13 @@
  with this program; if not, see http://www.gnu.org/licenses or write to the Free
  Software Foundation,Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301
 -->
-<div ng-controller="${controllerName}" svy-formstyle="formStyle" svyScrollbars='formProperties.scrollbars' svy-layout-update svy-formload>
+<div ng-controller="${controllerName}" svy-formstyle="formStyle" <#if formCls??>class="${formCls}"</#if> svyScrollbars='formProperties.scrollbars' svy-layout-update svy-formload>
 <#list parts as part>
 	<div ng-style="${part.name}Style">
 		<#if (part.baseComponents)??>
 			<#list part.baseComponents as bc>
 				<div ng-style="layout.${bc.name}" svy-layout-update="${bc.name}">
-					<${bc.tagname} name="${bc.name}" svy-model="model.${bc.name}" svy-api="api.${bc.name}" svy-handlers="handlers.${bc.name}" svy-apply="handlers.${bc.name}.svy_apply" svy-servoyApi="handlers.${bc.name}.svy_servoyApi"/>
+					<${bc.tagname} <#if bc.designId??>svy-id="${bc.designId}"</#if> name="${bc.name}" svy-model="model.${bc.name}" svy-api="api.${bc.name}" svy-handlers="handlers.${bc.name}" svy-apply="handlers.${bc.name}.svy_apply" svy-servoyApi="handlers.${bc.name}.svy_servoyApi"/>
 				</div>
 			</#list>
 		</#if>

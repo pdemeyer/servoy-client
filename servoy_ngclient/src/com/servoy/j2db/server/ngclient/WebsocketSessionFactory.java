@@ -20,6 +20,9 @@ package com.servoy.j2db.server.ngclient;
 import org.sablo.websocket.IWebsocketSession;
 import org.sablo.websocket.IWebsocketSessionFactory;
 
+import com.servoy.j2db.server.ngclient.design.DesignNGClient;
+import com.servoy.j2db.server.ngclient.design.DesignNGClientWebsocketSession;
+
 /**
  * Create websocket session handler based on endpoint type.
  *
@@ -28,22 +31,8 @@ import org.sablo.websocket.IWebsocketSessionFactory;
  */
 public class WebsocketSessionFactory implements IWebsocketSessionFactory
 {
-	private volatile IClientCreator clientCreator;
-
-	private static WebsocketSessionFactory me;
-
-	public static WebsocketSessionFactory get()
-	{
-		if (me == null)
-		{
-			me = new WebsocketSessionFactory();
-		}
-		return me;
-	}
-
-	private WebsocketSessionFactory()
-	{
-	}
+	public static final String CLIENT_ENDPOINT = "client";
+	public static final String DESIGN_ENDPOINT = "designclient";
 
 	/**
 	 * @param uuid
@@ -51,35 +40,17 @@ public class WebsocketSessionFactory implements IWebsocketSessionFactory
 	 */
 	public IWebsocketSession createSession(String uuid) throws Exception
 	{
-		NGClientWebsocketSession wsSession = new NGClientWebsocketSession(uuid);
-		wsSession.setClient(getClientCreator().createClient(wsSession));
-		return wsSession;
-	}
-
-	/**
-	 * @return the clientCreator
-	 */
-	public IClientCreator getClientCreator()
-	{
-		if ((clientCreator == null))
+		switch (endpointType)
 		{
-			clientCreator = new IClientCreator()
-			{
-				@Override
-				public NGClient createClient(INGClientWebsocketSession wsSession) throws Exception
-				{
-					return new NGClient(wsSession);
-				}
-			};
+			case DESIGN_ENDPOINT :
+				NGClientWebsocketSession wsSession = new DesignNGClientWebsocketSession(uuid);
+				wsSession.setClient(new DesignNGClient(wsSession));
+				return wsSession;
+			case CLIENT_ENDPOINT :
+				wsSession = new NGClientWebsocketSession(uuid);
+				wsSession.setClient(new NGClient(wsSession));
+				return wsSession;
 		}
-		return clientCreator;
-	}
-
-	/**
-	 * @param clientCreator the clientCreator to set
-	 */
-	public void setClientCreator(IClientCreator creator)
-	{
-		clientCreator = creator;
+		return null;
 	}
 }

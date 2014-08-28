@@ -17,6 +17,7 @@
 
 package com.servoy.j2db.server.ngclient.component;
 
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -25,11 +26,8 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
-import org.mozilla.javascript.Context;
 import org.mozilla.javascript.Function;
-import org.mozilla.javascript.Script;
 import org.mozilla.javascript.Scriptable;
-import org.mozilla.javascript.ScriptableObject;
 import org.sablo.specification.PropertyDescription;
 import org.sablo.specification.WebComponentApiDefinition;
 import org.sablo.specification.WebComponentSpecification;
@@ -41,10 +39,12 @@ import org.sablo.specification.property.IServerObjToJavaPropertyConverter;
 import org.sablo.specification.property.IWrapperType;
 import org.sablo.websocket.ConversionLocation;
 
+import com.servoy.j2db.server.ngclient.ComponentFactory;
 import com.servoy.j2db.server.ngclient.IServoyDataConverterContext;
 import com.servoy.j2db.server.ngclient.WebFormComponent;
 import com.servoy.j2db.server.ngclient.property.types.DataproviderPropertyType;
 import com.servoy.j2db.server.ngclient.scripting.WebComponentFunction;
+import com.servoy.j2db.server.ngclient.scripting.WebServiceScriptable;
 
 /**
  * @author lvostinar
@@ -67,27 +67,11 @@ public class RuntimeWebComponent implements Scriptable
 		this.dataProviderProperties = new HashSet<>();
 		this.complexProperties = new HashMap<>();
 
-		String serverScript = webComponentSpec.getServerScript();
+		URL serverScript = webComponentSpec.getServerScript();
 		Scriptable apiObject = null;
 		if (serverScript != null)
 		{
-			Context context = Context.enter();
-			try
-			{
-				Script script = context.compileString(serverScript, webComponentSpec.getName(), 0, null);
-				ScriptableObject topLevel = context.initStandardObjects();
-				Scriptable scopeObject = context.newObject(topLevel);
-				apiObject = context.newObject(topLevel);
-				apiObject.setPrototype(this);
-				scopeObject.put("api", scopeObject, apiObject);
-				scopeObject.put("model", scopeObject, this);
-				topLevel.put("$scope", topLevel, scopeObject);
-				script.exec(context, topLevel);
-			}
-			finally
-			{
-				Context.exit();
-			}
+			apiObject = WebServiceScriptable.compileServerScript(serverScript, this);
 		}
 		if (webComponentSpec != null)
 		{
@@ -115,9 +99,10 @@ public class RuntimeWebComponent implements Scriptable
 					// all handlers are design properties, all api is runtime
 					specProperties.add(e.getKey());
 				}
-				if (type == DataproviderPropertyType.INSTANCE)
+				else if (type == DataproviderPropertyType.INSTANCE)
 				{
 					dataProviderProperties.add(e.getKey());
+					specProperties.add(e.getKey());
 				}
 				else if (type instanceof IComplexTypeImpl)
 				{
@@ -160,11 +145,11 @@ public class RuntimeWebComponent implements Scriptable
 			}
 			return DesignConversion.toStringObject(value, component.getFormElement().getWebComponentSpec().getProperty(name).getType());
 		}
-		if (apiFunctions.containsKey(name))
+		Function func = apiFunctions.get(name);
+		if (func != null)
 		{
-			return apiFunctions.get(name);
+			return func;
 		}
-
 		// check if we have a setter/getter for this property
 		if (name != null && name.length() > 0)
 		{
@@ -177,6 +162,10 @@ public class RuntimeWebComponent implements Scriptable
 			}
 		}
 
+		if ("markupId".equals(name))
+		{
+			return ComponentFactory.getMarkupId(component.getFormElement().getForm().getName(), component.getName());
+		}
 		return Scriptable.NOT_FOUND;
 	}
 
@@ -488,6 +477,53 @@ public class RuntimeWebComponent implements Scriptable
 				Object convertedValue = convertValue(value, propertyDescription.getProperty(name), ((Map)mapValue).get(name));
 				((Map)mapValue).put(name, convertedValue);
 				markAsChanged();
+			}
+			else if ("length".equals(name))
+			{
+				int length = ((Number)value).intValue();
+				if (mapValue instanceof List)
+				{
+					List lst = (List)mapValue;
+					if (length == 0) lst.clear();
+					else
+					{
+						while (lst.size() != length)
+						{
+							lst.remove(lst.size() - 1);
+						}
+					}
+					markAsChanged();
+				}
+				else if (mapValue instanceof Object[])
+				{
+					Object[] newArray = null;
+					if (length == 0) newArray = new Object[0];
+					else
+					{
+						newArray = new Object[length];
+						System.arraycopy(mapValue, 0, newArray, 0, newArray.length);
+					}
+					// store the new array in the parent.
+					if (parentValue instanceof Scriptable)
+					{
+						if (indexProperty != -1)
+						{
+							((Scriptable)parentValue).put(indexProperty, (Scriptable)parentValue, newArray);
+						}
+						else
+						{
+							((Scriptable)parentValue).put(property, (Scriptable)parentValue, newArray);
+						}
+						markAsChanged();
+					}
+					else
+					{
+
+						((WebFormComponent)parentValue).setProperty(property, newArray, ConversionLocation.SERVER);
+					}
+
+				}
+
 			}
 		}
 

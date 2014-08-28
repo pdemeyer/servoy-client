@@ -85,42 +85,49 @@ public class SpecGenerator
 	private static final List<SpecTemplateModel> specTemplateList = new ArrayList<SpecTemplateModel>();
 	static
 	{
-		specTemplateList.add(new SpecTemplateModel("button", "Button", IRepository.GRAPHICALCOMPONENTS, IRuntimeDataButton.class, new String[0]));
+		specTemplateList.add(new SpecTemplateModel("button", "Button", "Elements", "button.gif", IRepository.GRAPHICALCOMPONENTS, IRuntimeDataButton.class, new String[0]));
 		specTemplateList.add(new SpecTemplateModel(
 			"calendar",
 			"Calendar",
+			"Elements",
+			"Calendar_C16.png",
 			IRepository.FIELDS,
 			IRuntimeCalendar.class,
 			new String[] { "servoydefault/calendar/bootstrap-datetimepicker/js/moment.min.js", "servoydefault/calendar/bootstrap-datetimepicker/js/bootstrap-datetimepicker.min.js", "servoydefault/calendar/bootstrap-datetimepicker/css/bootstrap-datetimepicker.min.css" }));
-		specTemplateList.add(new SpecTemplateModel("checkgroup", "Check group", IRepository.FIELDS, IRuntimeChecks.class, new String[0]));
+		specTemplateList.add(new SpecTemplateModel("checkgroup", "Check group", "Elements", null, IRepository.FIELDS, IRuntimeChecks.class, new String[0]));
 		specTemplateList.add(new SpecTemplateModel(
 			"combobox",
 			"Combobox ",
+			"Elements",
+			"SELECT16.png",
 			IRepository.FIELDS,
 			IRuntimeCombobox.class,
 			new String[] { "servoydefault/combobox/lib/select2-3.4.5/select2.js", "servoydefault/combobox/lib/select2-3.4.5/select2.css", "servoydefault/combobox/svy_select2.css"
 			// minified would be "servoydefault/combobox/lib/select2-3.4.5/select2.min.js"
 			}));
-		specTemplateList.add(new SpecTemplateModel("label", "label", IRepository.GRAPHICALCOMPONENTS, IScriptScriptLabelMethods.class, new String[0]));
-		specTemplateList.add(new SpecTemplateModel("radiogroup", "Radio group", IRepository.FIELDS, IRuntimeRadios.class, new String[0]));
-		specTemplateList.add(new SpecTemplateModel("textfield", "Text field", IRepository.FIELDS, IRuntimeTextField.class, new String[0]));
-		specTemplateList.add(new SpecTemplateModel("typeahead", "TypeAhead ", IRepository.FIELDS, IRuntimeTextField.class, new String[0]));
-		specTemplateList.add(new SpecTemplateModel("tabpanel", "Tab panel", IRepository.TABPANELS, com.servoy.j2db.ui.IScriptTabPanelMethods.class,
-			new String[] { "servoydefault/tabpanel/accordionpanel.css" }));
-		specTemplateList.add(new SpecTemplateModel("password", "Password field", IRepository.FIELDS, IRuntimePassword.class, new String[0]));
-		specTemplateList.add(new SpecTemplateModel("htmlarea", "Html Area", IRepository.FIELDS, IRuntimeHtmlArea.class,
+		specTemplateList.add(new SpecTemplateModel("label", "label", "Elements", "text.gif", IRepository.GRAPHICALCOMPONENTS, IScriptScriptLabelMethods.class, new String[0]));
+		specTemplateList.add(new SpecTemplateModel("radiogroup", "Radio group", "Elements", null, IRepository.FIELDS, IRuntimeRadios.class, new String[0]));
+		specTemplateList.add(new SpecTemplateModel("textfield", "Text field", "Elements", "textinput.png", IRepository.FIELDS, IRuntimeTextField.class, new String[0]));
+		specTemplateList.add(new SpecTemplateModel("typeahead", "TypeAhead ", "Elements", "bhdropdownlisticon.gif", IRepository.FIELDS, IRuntimeTextField.class, new String[0]));
+		specTemplateList.add(new SpecTemplateModel("tabpanel", "Tab panel", "Containers", "tabs.gif", IRepository.TABPANELS, com.servoy.j2db.ui.IScriptTabPanelMethods.class,
+			new String[] { "servoydefault/tabpanel/accordionpanel.css" },"servoydefault/tabpanel/tabpanel_server.js"));
+		specTemplateList.add(new SpecTemplateModel("password", "Password field", "Elements", "password_field_16.png", IRepository.FIELDS, IRuntimePassword.class, new String[0]));
+		specTemplateList.add(new SpecTemplateModel("htmlarea", "Html Area", "Elements", "H1_C16.png", IRepository.FIELDS, IRuntimeHtmlArea.class,
 			new String[] { "servoydefault/htmlarea/lib/tinymce/tinymce.min.js", "servoydefault/htmlarea/lib/ui-tinymce.js" }));
-		specTemplateList.add(new SpecTemplateModel("htmlview", "Html View", IRepository.FIELDS, IRuntimeHtmlArea.class, new String[0]));
-		specTemplateList.add(new SpecTemplateModel("textarea", "Text Area", IRepository.FIELDS, IRuntimeTextArea.class, new String[0]));
-		specTemplateList.add(new SpecTemplateModel("check", "Check", IRepository.FIELDS, IRuntimeCheck.class, new String[0]));
-		specTemplateList.add(new SpecTemplateModel("radio", "Radio", IRepository.FIELDS, IRuntimeRadio.class, new String[0]));
-		specTemplateList.add(new SpecTemplateModel("imagemedia", "Image Media", IRepository.FIELDS, IRuntimeImageMedia.class, new String[0]));
+		specTemplateList.add(new SpecTemplateModel("htmlview", "Html View", "Elements", null, IRepository.FIELDS, IRuntimeHtmlArea.class, new String[0]));
+		specTemplateList.add(new SpecTemplateModel("textarea", "Text Area", "Elements", "TEXTAREA16.png", IRepository.FIELDS, IRuntimeTextArea.class, new String[0]));
+		specTemplateList.add(new SpecTemplateModel("check", "Check", "Elements", "CHECKBOX16.png", IRepository.FIELDS, IRuntimeCheck.class, new String[0]));
+		specTemplateList.add(new SpecTemplateModel("radio", "Radio", "Elements", "RADIO16.png", IRepository.FIELDS, IRuntimeRadio.class, new String[0]));
+		specTemplateList.add(new SpecTemplateModel("imagemedia", "Image Media", "Elements", "IMG16.png", IRepository.FIELDS, IRuntimeImageMedia.class, new String[0]));
 		specTemplateList.add(new SpecTemplateModel(
 			"splitpane",
 			"Split Pane",
+			"Containers",
+			"split.gif",
 			IRepository.TABPANELS,
 			com.servoy.j2db.ui.IScriptSplitPaneMethods.class,
 			new String[] { "servoydefault/splitpane/bg-splitter/js/splitter.js", "servoydefault/splitpane/bg-splitter/css/style.css" },
+			null,
 			// @formatter:off
 			new ApiMethod[] {
 				getApiMethod("getDividerLocation", "double", null, null, null),
@@ -138,13 +145,15 @@ public class SpecGenerator
 			}
 			// @formatter:on
 		));
-		specTemplateList.add(new SpecTemplateModel("portal", "Portal", IRepository.PORTALS, com.servoy.j2db.ui.IScriptPortalComponentMethods.class,
-			new String[] { "servoydefault/portal/portal.css" }));
-		specTemplateList.add(new SpecTemplateModel("spinner", "Spinner", IRepository.FIELDS, com.servoy.j2db.ui.runtime.IRuntimeSpinner.class,
+		specTemplateList.add(new SpecTemplateModel("portal", "Portal", "Elements", "portal.gif", IRepository.PORTALS,
+			com.servoy.j2db.ui.IScriptPortalComponentMethods.class, new String[] { "servoydefault/portal/portal.css" }));
+		specTemplateList.add(new SpecTemplateModel("spinner", "Spinner", "Elements", "spinner.png", IRepository.FIELDS,
+			com.servoy.j2db.ui.runtime.IRuntimeSpinner.class,
 			new String[] { "servoydefault/spinner/spinner.css", "//netdna.bootstrapcdn.com/font-awesome/3.2.1/css/font-awesome.css" }));
-		specTemplateList.add(new SpecTemplateModel("listbox", "ListBox", IRepository.FIELDS, com.servoy.j2db.ui.runtime.IRuntimeListBox.class, new String[0]));
-		specTemplateList.add(new SpecTemplateModel("rectangle", "Rectangle", IRepository.RECTSHAPES, com.servoy.j2db.ui.runtime.IRuntimeRectangle.class,
-			new String[0]));
+		specTemplateList.add(new SpecTemplateModel("listbox", "ListBox", "Elements", "listbox.png", IRepository.FIELDS,
+			com.servoy.j2db.ui.runtime.IRuntimeListBox.class, new String[0]));
+		specTemplateList.add(new SpecTemplateModel("rectangle", "Rectangle", "Shapes", "rectangle.gif", IRepository.RECTSHAPES,
+			com.servoy.j2db.ui.runtime.IRuntimeRectangle.class, new String[0]));
 
 		//specTemplateList.add(new SpecTemplateModel("navigator","Navigator", IRepository.FIELDS));
 	}
@@ -228,8 +237,8 @@ public class SpecGenerator
 
 			for (SpecTemplateModel specModel : specTemplateList)
 			{
-				String runtimeComponentExpression = "/servoydoc/runtime/object[@qualifiedName='" + specModel.getApiInterface().getName() +
-					"']/functions/function";
+				String runtimeComponentExpression = "/servoydoc/runtime/object[@qualifiedName=\"" + specModel.getApiInterface().getName() +
+					"\"]/functions/function";
 				//read function list  nodes using xpath
 				NodeList functionList = (NodeList)xPath.compile(runtimeComponentExpression).evaluate(document, XPathConstants.NODESET);
 				for (int i = 0; i < functionList.getLength(); i++)
@@ -245,86 +254,86 @@ public class SpecGenerator
 						}
 						else
 						{
-						Node returnNode = (Node)returnTypeExpr.evaluate(function, XPathConstants.NODE);
-						String returnType = specSpecTypeFromDoc(returnNode.getAttributes().getNamedItem("typecode").getTextContent());
-						List<String> parameterNames = new ArrayList<>();
-						List<String> parameterTypes = new ArrayList<>();
-						List<String> optionalParams = new ArrayList<>();
+							Node returnNode = (Node)returnTypeExpr.evaluate(function, XPathConstants.NODE);
+							String returnType = specSpecTypeFromDoc(returnNode.getAttributes().getNamedItem("typecode").getTextContent());
+							List<String> parameterNames = new ArrayList<>();
+							List<String> parameterTypes = new ArrayList<>();
+							List<String> optionalParams = new ArrayList<>();
 
-						// read argumentTypes and parameter nodes
-						NodeList argumentTypesNodes = (NodeList)argumentTypesExpr.evaluate(function, XPathConstants.NODESET);
-						NodeList parametersNamesNodes = (NodeList)parametersExpr.evaluate(function, XPathConstants.NODESET);
-						for (int j = 0; j < argumentTypesNodes.getLength() || j < parametersNamesNodes.getLength(); j++)
-						{
-							Node argType = j > argumentTypesNodes.getLength() ? null : argumentTypesNodes.item(j);
-							Node param = j > parametersNamesNodes.getLength() ? null : parametersNamesNodes.item(j);
+							// read argumentTypes and parameter nodes
+							NodeList argumentTypesNodes = (NodeList)argumentTypesExpr.evaluate(function, XPathConstants.NODESET);
+							NodeList parametersNamesNodes = (NodeList)parametersExpr.evaluate(function, XPathConstants.NODESET);
+							for (int j = 0; j < argumentTypesNodes.getLength() || j < parametersNamesNodes.getLength(); j++)
+							{
+								Node argType = j > argumentTypesNodes.getLength() ? null : argumentTypesNodes.item(j);
+								Node param = j > parametersNamesNodes.getLength() ? null : parametersNamesNodes.item(j);
 
-							// --- read parameter type
-							if (argType != null)
-							{
-								parameterTypes.add(specSpecTypeFromDoc(argType.getAttributes().getNamedItem("typecode").getTextContent()));
-							}
-							else if (param != null)
-							{
-								Node node = param.getAttributes().getNamedItem("typecode");
-								if (node != null)
+								// --- read parameter type
+								if (argType != null)
 								{
-									parameterTypes.add(specSpecTypeFromDoc(node.getTextContent()));
+									parameterTypes.add(specSpecTypeFromDoc(argType.getAttributes().getNamedItem("typecode").getTextContent()));
+								}
+								else if (param != null)
+								{
+									Node node = param.getAttributes().getNamedItem("typecode");
+									if (node != null)
+									{
+										parameterTypes.add(specSpecTypeFromDoc(node.getTextContent()));
+									}
+									else
+									{
+										parameterTypes.add(specSpecTypeFromDoc("object"));
+									}
+								}
+
+								// read parameter name , and add optional if present
+								if (param == null)
+								{
+									parameterNames.add("unnamed_" + j);
 								}
 								else
 								{
-									parameterTypes.add(specSpecTypeFromDoc("object"));
-								}
-							}
-
-							// read parameter name , and add optional if present  
-							if (param == null)
-							{
-								parameterNames.add("unnamed_" + j);
-							}
-							else
-							{
-								String paramName = param.getAttributes().getNamedItem("name").getTextContent();
-								Node node = param.getAttributes().getNamedItem("optional");
-								if (node != null && "true".equals(node.getTextContent()))
-								{
-									optionalParams.add(paramName);
-								}
-								parameterNames.add(paramName);
-							}
-						}
-						//if there is already added a method with more parameters that it skip it .
-						boolean addNewApi = true;
-						ApiMethod apiToRemove = null;
-						for (ApiMethod api : specModel.getApis())
-						{
-							if (api.getName().equals(functionName))
-							{
-								if (api.getParameters().size() > parameterNames.size())
-								{
-									// method already exists with larger number of parameters
-									addNewApi = false;
-									break;
-								}
-								else if (api.getParameters().size() < parameterNames.size())
-								{
-									//if a method already exists with fewer number of parameters force the rest of new parameters as optional
-									for (int ii = api.getParameters().size(); ii < parameterNames.size(); ii++)
+									String paramName = param.getAttributes().getNamedItem("name").getTextContent();
+									Node node = param.getAttributes().getNamedItem("optional");
+									if (node != null && "true".equals(node.getTextContent()))
 									{
-										optionalParams.add(parameterNames.get(ii));
+										optionalParams.add(paramName);
 									}
-									apiToRemove = api;
-									break;
+									parameterNames.add(paramName);
 								}
 							}
+							//if there is already added a method with more parameters that it skip it .
+							boolean addNewApi = true;
+							ApiMethod apiToRemove = null;
+							for (ApiMethod api : specModel.getApis())
+							{
+								if (api.getName().equals(functionName))
+								{
+									if (api.getParameters().size() > parameterNames.size())
+									{
+										// method already exists with larger number of parameters
+										addNewApi = false;
+										break;
+									}
+									else if (api.getParameters().size() < parameterNames.size())
+									{
+										//if a method already exists with fewer number of parameters force the rest of new parameters as optional
+										for (int ii = api.getParameters().size(); ii < parameterNames.size(); ii++)
+										{
+											optionalParams.add(parameterNames.get(ii));
+										}
+										apiToRemove = api;
+										break;
+									}
+								}
+							}
+							if (apiToRemove != null) specModel.getApis().remove(apiToRemove);
+							if (addNewApi && !serverSideApi.contains(functionName)) specModel.getApis().add(
+								new ApiMethod(functionName, returnType, parameterNames, parameterTypes, optionalParams, metaDataForApi.get(functionName)));
 						}
-						if (apiToRemove != null) specModel.getApis().remove(apiToRemove);
-						if (addNewApi && !serverSideApi.contains(functionName)) specModel.getApis().add(
-							new ApiMethod(functionName, returnType, parameterNames, parameterTypes, optionalParams, metaDataForApi.get(functionName)));
 					}
 				}
 			}
-		}
 		}
 		catch (Exception e)
 		{
@@ -406,155 +415,155 @@ public class SpecGenerator
 		repoTypeMapping.put(IRepository.DIMENSION, "dimension");
 		repoTypeMapping.put(IRepository.INSETS, "dimension");
 		repoTypeMapping.put(IRepositoryConstants.MEDIA, "media");
-		repoTypeMapping.put(IRepositoryConstants.SERVERS, "object"); // use SERVERS to generate 'object type'
-
+		repoTypeMapping.put(IRepositoryConstants.SERVERS, "object"); // use SERVERS to generate \"object type\"
 
 		// component specific repository element mapping
 		HashMap<String, String> htmlViewRepoTypeMapping = new HashMap<String, String>();
 		htmlViewRepoTypeMapping.put(StaticContentSpecLoader.PROPERTY_DATAPROVIDERID.getPropertyName(),
-			"{ type:'dataprovider', 'ondatachange': { 'onchange':'onDataChangeMethodID', 'callback':'onDataChangeCallback', 'parsehtml':true }}");
-		htmlViewRepoTypeMapping.put(StaticContentSpecLoader.PROPERTY_STYLECLASS.getPropertyName(), "{ type:'styleclass', scope:'design', values:[]}");
-		htmlViewRepoTypeMapping.put(StaticContentSpecLoader.PROPERTY_SIZE.getPropertyName(), "{type:'dimension',  default: {width:140, height:140}}");
+			"{ \"type\" :\"dataprovider\", \"ondatachange\": { \"onchange\":\"onDataChangeMethodID\", \"callback\":\"onDataChangeCallback\", \"parsehtml\":true }}");
+		htmlViewRepoTypeMapping.put(StaticContentSpecLoader.PROPERTY_STYLECLASS.getPropertyName(), "{ \"type\" :\"styleclass\", \"scope\" :\"design\", \"values\" :[]}");
+		htmlViewRepoTypeMapping.put(StaticContentSpecLoader.PROPERTY_SIZE.getPropertyName(), "{\"type\" :\"dimension\",  \"default\" : {\"width\":140, \"height\":140}}");
 		componentRepoTypeMappingExceptions.put("htmlview", htmlViewRepoTypeMapping);
 
 		HashMap<String, String> buttonTypeMapping = new HashMap<String, String>();
 		buttonTypeMapping.put(StaticContentSpecLoader.PROPERTY_STYLECLASS.getPropertyName(),
-			"{ type:'styleclass', scope:'design', values:['btn','btn-default','btn-lg','btn-sm','btn-xs']}");
+			"{ \"type\" :\"styleclass\", \"scope\" :\"design\", \"values\" :[\"btn\",\"btn-default\",\"btn-lg\",\"btn-sm\",\"btn-xs\"]}");
 		buttonTypeMapping.put(StaticContentSpecLoader.PROPERTY_VERTICALALIGNMENT.getPropertyName(),
-			"{type:'int', scope:'design', values:[{TOP:1}, {CENTER:0} ,{BOTTOM:3}], default: 0}");
+			"{\"type\" :\"int\", \"scope\" :\"design\", \"values\" :[{\"TOP\":1}, {\"CENTER\":0} ,{\"BOTTOM\":3}], \"default\" : 0}");
 		buttonTypeMapping.put(StaticContentSpecLoader.PROPERTY_HORIZONTALALIGNMENT.getPropertyName(),
-			"{type:'int', scope:'design', values:[{LEFT:2}, {CENTER:0},{RIGHT:4}], default: 0}");
-		buttonTypeMapping.put(StaticContentSpecLoader.PROPERTY_SIZE.getPropertyName(), "{type:'dimension',  default: {width:80, height:20}}");
+			"{\"type\" :\"int\", \"scope\" :\"design\", \"values\" :[{\"LEFT\":2}, {\"CENTER\":0},{\"RIGHT\":4}], \"default\" : 0}");
+		buttonTypeMapping.put(StaticContentSpecLoader.PROPERTY_SIZE.getPropertyName(), "{\"type\" :\"dimension\",  \"default\" : {\"width\":80, \"height\":20}}");
 		componentRepoTypeMappingExceptions.put("button", buttonTypeMapping);
 
 		HashMap<String, String> portalTypeMapping = new HashMap<String, String>();
-		portalTypeMapping.put(StaticContentSpecLoader.PROPERTY_SIZE.getPropertyName(), "{type:'dimension',  default: {width:200, height:200}}");
+		portalTypeMapping.put(StaticContentSpecLoader.PROPERTY_SIZE.getPropertyName(), "{\"type\" :\"dimension\",  \"default\" : {\"width\":200, \"height\":200}}");
 		portalTypeMapping.put("relatedFoundset", "foundset");
-		portalTypeMapping.put("childElements", "{ type: 'component[]', forFoundsetTypedProperty: 'relatedFoundset' }");
+		portalTypeMapping.put("childElements", "{ \"type\" : \"component[]\", \"forFoundsetTypedProperty\": \"relatedFoundset\" }");
 		componentRepoTypeMappingExceptions.put("portal", portalTypeMapping);
 
 		HashMap<String, String> calendarTypeMapping = new HashMap<String, String>();
 		calendarTypeMapping.put(StaticContentSpecLoader.PROPERTY_STYLECLASS.getPropertyName(),
-			"{ type:'styleclass', scope:'design', values:['form-control', 'input-sm', 'svy-padding-xs', 'svy-line-height-normal']}");
+			"{ \"type\" :\"styleclass\", \"scope\" :\"design\", \"values\" :[\"form-control\", \"input-sm\", \"svy-padding-xs\", \"svy-line-height-normal\"]}");
 
-		calendarTypeMapping.put(StaticContentSpecLoader.PROPERTY_SIZE.getPropertyName(), "{type:'dimension',  default: {width:140, height:20}}");
+		calendarTypeMapping.put(StaticContentSpecLoader.PROPERTY_SIZE.getPropertyName(), "{\"type\" :\"dimension\",  \"default\" : {\"width\":140, \"height\":20}}");
 		componentRepoTypeMappingExceptions.put("calendar", calendarTypeMapping);
 
 		HashMap<String, String> checkTypeMapping = new HashMap<String, String>();
-		checkTypeMapping.put(StaticContentSpecLoader.PROPERTY_STYLECLASS.getPropertyName(), "{ type:'styleclass', scope:'design', values:['checkbox']}");
-		checkTypeMapping.put(StaticContentSpecLoader.PROPERTY_SIZE.getPropertyName(), "{type:'dimension',  default: {width:140, height:20}}");
+		checkTypeMapping.put(StaticContentSpecLoader.PROPERTY_STYLECLASS.getPropertyName(), "{ \"type\" :\"styleclass\", \"scope\" :\"design\", \"values\" :[\"checkbox\"]}");
+		checkTypeMapping.put(StaticContentSpecLoader.PROPERTY_SIZE.getPropertyName(), "{\"type\" :\"dimension\",  \"default\" : {\"width\":140, \"height\":20}}");
 		componentRepoTypeMappingExceptions.put("check", checkTypeMapping);
 
 		HashMap<String, String> checkGroupTypeMapping = new HashMap<String, String>();
 		checkGroupTypeMapping.put(StaticContentSpecLoader.PROPERTY_STYLECLASS.getPropertyName(),
-			"{ type:'styleclass', scope:'design', values:['form-control', 'input-sm', 'svy-padding-xs']}");
-		checkGroupTypeMapping.put(StaticContentSpecLoader.PROPERTY_SIZE.getPropertyName(), "{type:'dimension',  default: {width:140, height:20}}");
+			"{ \"type\" :\"styleclass\", \"scope\" :\"design\", \"values\" :[\"form-control\", \"input-sm\", \"svy-padding-xs\"]}");
+		checkGroupTypeMapping.put(StaticContentSpecLoader.PROPERTY_SIZE.getPropertyName(), "{\"type\" :\"dimension\",  \"default\" : {\"width\":140, \"height\":20}}");
 		componentRepoTypeMappingExceptions.put("checkgroup", checkGroupTypeMapping);
 
 		HashMap<String, String> comboTypeMapping = new HashMap<String, String>();
 		comboTypeMapping.put(StaticContentSpecLoader.PROPERTY_STYLECLASS.getPropertyName(),
-			"{ type:'styleclass', scope:'design', values:['form-control', 'input-sm', 'svy-padding-xs', 'select2-container-svy-xs']}");
-		comboTypeMapping.put(StaticContentSpecLoader.PROPERTY_SIZE.getPropertyName(), "{type:'dimension',  default: {width:140, height:20}}");
+			"{ \"type\" :\"styleclass\", \"scope\" :\"design\", \"values\" :[\"form-control\", \"input-sm\", \"svy-padding-xs\", \"select2-container-svy-xs\"]}");
+		comboTypeMapping.put(StaticContentSpecLoader.PROPERTY_SIZE.getPropertyName(), "{\"type\" :\"dimension\",  \"default\" : {\"width\":140, \"height\":20}}");
 		componentRepoTypeMappingExceptions.put("combobox", comboTypeMapping);
 
 		HashMap<String, String> htmlAreaMapping = new HashMap<String, String>();
-		htmlAreaMapping.put(StaticContentSpecLoader.PROPERTY_STYLECLASS.getPropertyName(), "{ type:'styleclass', scope:'design', values:[]}");
-		htmlAreaMapping.put(StaticContentSpecLoader.PROPERTY_SIZE.getPropertyName(), "{type:'dimension',  default: {width:140, height:140}}");
+		htmlAreaMapping.put(StaticContentSpecLoader.PROPERTY_STYLECLASS.getPropertyName(), "{ \"type\" :\"styleclass\", \"scope\" :\"design\", \"values\" :[]}");
+		htmlAreaMapping.put(StaticContentSpecLoader.PROPERTY_SIZE.getPropertyName(), "{\"type\" :\"dimension\",  \"default\" : {\"width\":140, \"height\":140}}");
 		componentRepoTypeMappingExceptions.put("htmlarea", htmlAreaMapping);
 
 		HashMap<String, String> imageMediaMapping = new HashMap<String, String>();
-		imageMediaMapping.put(StaticContentSpecLoader.PROPERTY_STYLECLASS.getPropertyName(), "{ type:'styleclass', scope:'design', values:[]}");
-		imageMediaMapping.put(StaticContentSpecLoader.PROPERTY_SIZE.getPropertyName(), "{type:'dimension',  default: {width:140, height:20}}");
+		imageMediaMapping.put(StaticContentSpecLoader.PROPERTY_STYLECLASS.getPropertyName(), "{ \"type\" :\"styleclass\", \"scope\" :\"design\", \"values\" :[]}");
+		imageMediaMapping.put(StaticContentSpecLoader.PROPERTY_SIZE.getPropertyName(), "{\"type\" :\"dimension\",  \"default\" : {\"width\":140, \"height\":20}}");
 		componentRepoTypeMappingExceptions.put("imagemedia", imageMediaMapping);
 
 		HashMap<String, String> labelMapping = new HashMap<String, String>();
-		labelMapping.put(StaticContentSpecLoader.PROPERTY_STYLECLASS.getPropertyName(), "{ type:'styleclass', scope:'design', values:[]}");
+		labelMapping.put(StaticContentSpecLoader.PROPERTY_STYLECLASS.getPropertyName(), "{ \"type\" :\"styleclass\", \"scope\" :\"design\", \"values\" :[]}");
 		labelMapping.put(StaticContentSpecLoader.PROPERTY_VERTICALALIGNMENT.getPropertyName(),
-			"{type:'int', scope:'design', values:[{TOP:1}, {CENTER:0} ,{BOTTOM:3}], default: 0}");
-		labelMapping.put(StaticContentSpecLoader.PROPERTY_SIZE.getPropertyName(), "{type:'dimension',  default: {width:80, height:20}}");
+			"{\"type\" :\"int\", \"scope\" :\"design\", \"values\" :[{\"TOP\":1}, {\"CENTER\":0} ,{\"BOTTOM\":3}], \"default\" : 0}");
+		labelMapping.put(StaticContentSpecLoader.PROPERTY_SIZE.getPropertyName(), "{\"type\" :\"dimension\",  \"default\" : {\"width\":80, \"height\":20}}");
 		componentRepoTypeMappingExceptions.put("label", labelMapping);
 
 		HashMap<String, String> listboxTypeMapping = new HashMap<String, String>();
 		listboxTypeMapping.put(StaticContentSpecLoader.PROPERTY_STYLECLASS.getPropertyName(),
-			"{ type:'styleclass', scope:'design', values:['form-control', 'input-sm', 'svy-padding-xs']}");
-		listboxTypeMapping.put(StaticContentSpecLoader.PROPERTY_SIZE.getPropertyName(), "{type:'dimension',  default: {width:140, height:140}}");
+			"{ \"type\" :\"styleclass\", \"scope\" :\"design\", \"values\" :[\"form-control\", \"input-sm\", \"svy-padding-xs\"]}");
+		listboxTypeMapping.put(StaticContentSpecLoader.PROPERTY_SIZE.getPropertyName(), "{\"type\" :\"dimension\",  \"default\" : {\"width\":140, \"height\":140}}");
 		componentRepoTypeMappingExceptions.put("listbox", listboxTypeMapping);
 
 		HashMap<String, String> passwordMapping = new HashMap<String, String>();
 		passwordMapping.put(StaticContentSpecLoader.PROPERTY_STYLECLASS.getPropertyName(),
-			"{ type:'styleclass', scope:'design', values:['form-control', 'input-sm', 'svy-padding-xs']}");
-		passwordMapping.put(StaticContentSpecLoader.PROPERTY_SIZE.getPropertyName(), "{type:'dimension',  default: {width:140, height:20}}");
+			"{ \"type\" :\"styleclass\", \"scope\" :\"design\", \"values\" :[\"form-control\", \"input-sm\", \"svy-padding-xs\"]}");
+		passwordMapping.put(StaticContentSpecLoader.PROPERTY_SIZE.getPropertyName(), "{\"type\" :\"dimension\",  \"default\" : {\"width\":140, \"height\":20}}");
 		componentRepoTypeMappingExceptions.put("password", passwordMapping);
 
 		HashMap<String, String> radioTypeMapping = new HashMap<String, String>();
-		radioTypeMapping.put(StaticContentSpecLoader.PROPERTY_STYLECLASS.getPropertyName(), "{ type:'styleclass', scope:'design', values:['radio']}");
-		radioTypeMapping.put(StaticContentSpecLoader.PROPERTY_SIZE.getPropertyName(), "{type:'dimension',  default: {width:140, height:20}}");
+		radioTypeMapping.put(StaticContentSpecLoader.PROPERTY_STYLECLASS.getPropertyName(), "{ \"type\" :\"styleclass\", \"scope\" :\"design\", \"values\" :[\"radio\"]}");
+		radioTypeMapping.put(StaticContentSpecLoader.PROPERTY_SIZE.getPropertyName(), "{\"type\" :\"dimension\",  \"default\" : {\"width\":140, \"height\":20}}");
 		componentRepoTypeMappingExceptions.put("radio", radioTypeMapping);
 
 		HashMap<String, String> radioGroupTypeMapping = new HashMap<String, String>();
 		radioGroupTypeMapping.put(StaticContentSpecLoader.PROPERTY_STYLECLASS.getPropertyName(),
-			"{ type:'styleclass', scope:'design', values:['form-control', 'input-sm', 'svy-padding-xs']}");
-		radioGroupTypeMapping.put(StaticContentSpecLoader.PROPERTY_SIZE.getPropertyName(), "{type:'dimension',  default: {width:140, height:20}}");
+			"{ \"type\" :\"styleclass\", \"scope\" :\"design\", \"values\" :[\"form-control\", \"input-sm\", \"svy-padding-xs\"]}");
+		radioGroupTypeMapping.put(StaticContentSpecLoader.PROPERTY_SIZE.getPropertyName(), "{\"type\" :\"dimension\",  \"default\" : {\"width\":140, \"height\":20}}");
 		componentRepoTypeMappingExceptions.put("radiogroup", radioGroupTypeMapping);
 
 		HashMap<String, String> spinnerMapping = new HashMap<String, String>();
-		spinnerMapping.put(StaticContentSpecLoader.PROPERTY_STYLECLASS.getPropertyName(), "{ type:'styleclass', scope:'design', values:[]}");
-		spinnerMapping.put(StaticContentSpecLoader.PROPERTY_SIZE.getPropertyName(), "{type:'dimension',  default: {width:140, height:20}}");
+		spinnerMapping.put(StaticContentSpecLoader.PROPERTY_STYLECLASS.getPropertyName(), "{ \"type\" :\"styleclass\", \"scope\" :\"design\", \"values\" :[]}");
+		spinnerMapping.put(StaticContentSpecLoader.PROPERTY_SIZE.getPropertyName(), "{\"type\" :\"dimension\",  \"default\" : {\"width\":140, \"height\":20}}");
 		componentRepoTypeMappingExceptions.put("spinner", spinnerMapping);
 
 		HashMap<String, String> splitpaneMapping = new HashMap<String, String>();
-		splitpaneMapping.put(StaticContentSpecLoader.PROPERTY_STYLECLASS.getPropertyName(), "{ type:'styleclass', scope:'design', values:[]}");
-		splitpaneMapping.put(StaticContentSpecLoader.PROPERTY_SIZE.getPropertyName(), "{type:'dimension',  default: {width:300, height:300}}");
+		splitpaneMapping.put(StaticContentSpecLoader.PROPERTY_STYLECLASS.getPropertyName(), "{ \"type\" :\"styleclass\", \"scope\" :\"design\", \"values\" :[]}");
+		splitpaneMapping.put(StaticContentSpecLoader.PROPERTY_SIZE.getPropertyName(), "{\"type\" :\"dimension\",  \"default\" : {\"width\":300, \"height\":300}}");
 		componentRepoTypeMappingExceptions.put("splitpane", splitpaneMapping);
 
 		HashMap<String, String> tabpanelMapping = new HashMap<String, String>();
-		tabpanelMapping.put(StaticContentSpecLoader.PROPERTY_STYLECLASS.getPropertyName(), "{ type:'styleclass', scope:'design', values:[]}");
-		tabpanelMapping.put(StaticContentSpecLoader.PROPERTY_SIZE.getPropertyName(), "{type:'dimension',  default: {width:300, height:300}}");
+		tabpanelMapping.put(StaticContentSpecLoader.PROPERTY_STYLECLASS.getPropertyName(), "{ \"type\" :\"styleclass\", \"scope\" :\"design\", \"values\" :[]}");
+		tabpanelMapping.put(StaticContentSpecLoader.PROPERTY_SIZE.getPropertyName(), "{\"type\" :\"dimension\",  \"default\" : {\"width\":300, \"height\":300}}");
 		componentRepoTypeMappingExceptions.put("tabpanel", tabpanelMapping);
 
 		HashMap<String, String> textareaTypeMapping = new HashMap<String, String>();
 		textareaTypeMapping.put(StaticContentSpecLoader.PROPERTY_STYLECLASS.getPropertyName(),
-			"{ type:'styleclass', scope:'design', values:['form-control', 'input-sm', 'svy-padding-xs']}");
-		textareaTypeMapping.put(StaticContentSpecLoader.PROPERTY_SIZE.getPropertyName(), "{type:'dimension',  default: {width:140, height:140}}");
+			"{ \"type\" :\"styleclass\", \"scope\" :\"design\", \"values\" :[\"form-control\", \"input-sm\", \"svy-padding-xs\"]}");
+		textareaTypeMapping.put(StaticContentSpecLoader.PROPERTY_SIZE.getPropertyName(), "{\"type\" :\"dimension\",  \"default\" : {\"width\":140, \"height\":140}}");
 		componentRepoTypeMappingExceptions.put("textarea", textareaTypeMapping);
 
 		HashMap<String, String> textfieldTypeMapping = new HashMap<String, String>();
 		textfieldTypeMapping.put(StaticContentSpecLoader.PROPERTY_STYLECLASS.getPropertyName(),
-			"{ type:'styleclass', scope:'design', values:['form-control', 'input-sm', 'svy-padding-xs']}");
-		textfieldTypeMapping.put(StaticContentSpecLoader.PROPERTY_SIZE.getPropertyName(), "{type:'dimension',  default: {width:140, height:20}}");
+			"{ \"type\" :\"styleclass\", \"scope\" :\"design\", \"values\" :[\"form-control\", \"input-sm\", \"svy-padding-xs\"]}");
+		textfieldTypeMapping.put(StaticContentSpecLoader.PROPERTY_SIZE.getPropertyName(), "{\"type\" :\"dimension\",  \"default\" : {\"width\":140, \"height\":20}}");
 		componentRepoTypeMappingExceptions.put("textfield", textfieldTypeMapping);
 
 		HashMap<String, String> typeaheadTypeMapping = new HashMap<String, String>();
 		typeaheadTypeMapping.put(StaticContentSpecLoader.PROPERTY_STYLECLASS.getPropertyName(),
-			"{ type:'styleclass', scope:'design', values:['form-control', 'input-sm', 'svy-padding-xs']}");
-		typeaheadTypeMapping.put(StaticContentSpecLoader.PROPERTY_SIZE.getPropertyName(), "{type:'dimension',  default: {width:140, height:20}}");
+			"{ \"type\" :\"styleclass\", \"scope\" :\"design\", \"values\" :[\"form-control\", \"input-sm\", \"svy-padding-xs\"]}");
+		typeaheadTypeMapping.put(StaticContentSpecLoader.PROPERTY_SIZE.getPropertyName(), "{\"type\" :\"dimension\",  \"default\" : {\"width\":140, \"height\":20}}");
 		componentRepoTypeMappingExceptions.put("typeahead", typeaheadTypeMapping);
 
 		//speciffic repository element mapping
 		repoTypeMappingExceptions.put(StaticContentSpecLoader.PROPERTY_DATAPROVIDERID.getPropertyName(),
-			"{ 'type':'dataprovider', scope:'design', 'ondatachange': { 'onchange':'onDataChangeMethodID', 'callback':'onDataChangeCallback'}}");
-		repoTypeMappingExceptions.put(StaticContentSpecLoader.PROPERTY_FORMAT.getPropertyName(), "{for:'dataProviderID' , type:'format'}");
+			"{ \"type\":\"dataprovider\", \"scope\" :\"design\", \"ondatachange\": { \"onchange\":\"onDataChangeMethodID\", \"callback\":\"onDataChangeCallback\"}}");
+		repoTypeMappingExceptions.put(StaticContentSpecLoader.PROPERTY_FORMAT.getPropertyName(), "{\"for\":\"dataProviderID\" , \"type\" :\"format\"}");
 		repoTypeMappingExceptions.put(StaticContentSpecLoader.PROPERTY_TEXT.getPropertyName(), "tagstring");
 		repoTypeMappingExceptions.put(StaticContentSpecLoader.PROPERTY_PLACEHOLDERTEXT.getPropertyName(), "tagstring");
 		repoTypeMappingExceptions.put(StaticContentSpecLoader.PROPERTY_TOOLTIPTEXT.getPropertyName(), "tagstring");
-		repoTypeMappingExceptions.put(StaticContentSpecLoader.PROPERTY_VALUELISTID.getPropertyName(), "{ type: 'valuelist', scope:'design', for: 'dataProviderID'}");
-		repoTypeMappingExceptions.put(StaticContentSpecLoader.PROPERTY_ROLLOVERIMAGEMEDIAID.getPropertyName(), "{type: 'media', scope:'design'}");
+		repoTypeMappingExceptions.put(StaticContentSpecLoader.PROPERTY_VALUELISTID.getPropertyName(), "{ \"type\" : \"valuelist\", \"scope\" :\"design\", \"for\": \"dataProviderID\"}");
+		repoTypeMappingExceptions.put(StaticContentSpecLoader.PROPERTY_ROLLOVERIMAGEMEDIAID.getPropertyName(), "{\"type\" : \"media\", \"scope\" :\"design\"}");
 		repoTypeMappingExceptions.put(StaticContentSpecLoader.PROPERTY_IMAGEMEDIAID.getPropertyName(), "media");
 		repoTypeMappingExceptions.put(StaticContentSpecLoader.PROPERTY_HORIZONTALALIGNMENT.getPropertyName(),
-			"{type:'int', scope:'design', values:[{LEFT:2}, {CENTER:0},{RIGHT:4}],default: -1}");
-		repoTypeMappingExceptions.put(StaticContentSpecLoader.PROPERTY_TEXTROTATION.getPropertyName(), "{type:'int', scope:'design', values:[0,90,180,270]}");
+			"{\"type\" :\"int\", \"scope\" :\"design\", \"values\" :[{\"LEFT\":2}, {\"CENTER\":0},{\"RIGHT\":4}],\"default\" : -1}");
+		repoTypeMappingExceptions.put(StaticContentSpecLoader.PROPERTY_TEXTROTATION.getPropertyName(), "{\"type\" :\"int\", \"scope\" :\"design\", \"values\" :[0,90,180,270]}");
 		repoTypeMappingExceptions.put(StaticContentSpecLoader.PROPERTY_TABORIENTATION.getPropertyName(),
-			"{type:'int', scope:'design', values:[{DEFAULT:0}, {TOP:1}, {HIDE:-1}]}");
-		repoTypeMappingExceptions.put(StaticContentSpecLoader.PROPERTY_TABSEQ.getPropertyName(), "{type:'tabseq', scope:'design'}");
-		repoTypeMappingExceptions.put(StaticContentSpecLoader.PROPERTY_MEDIAOPTIONS.getPropertyName(), "{type:'mediaoptions', scope:'design'}");
+			"{\"type\" :\"int\", \"scope\" :\"design\", \"values\" :[{\"default\" :0}, {\"TOP\":1}, {\"HIDE\":-1}]}");
+		repoTypeMappingExceptions.put(StaticContentSpecLoader.PROPERTY_TABSEQ.getPropertyName(), "{\"type\" :\"tabseq\", \"scope\" :\"design\"}");
+		repoTypeMappingExceptions.put(StaticContentSpecLoader.PROPERTY_MEDIAOPTIONS.getPropertyName(), "{\"type\" :\"mediaoptions\", \"scope\" :\"design\"}");
 		repoTypeMappingExceptions.put(StaticContentSpecLoader.PROPERTY_LABELFOR.getPropertyName(), "bean");
 		repoTypeMappingExceptions.put("tabs", "tab[]");
 		repoTypeMappingExceptions.put("tabIndex", "int");
-		repoTypeMappingExceptions.put(StaticContentSpecLoader.PROPERTY_MARGIN.getPropertyName(), "{type:'dimension', scope:'design'}");
-		repoTypeMappingExceptions.put(StaticContentSpecLoader.PROPERTY_ROLLOVERCURSOR.getPropertyName(), "{type:'int', scope:'design'}");
-		repoTypeMappingExceptions.put(StaticContentSpecLoader.PROPERTY_SCROLLBARS.getPropertyName(), "{type:'int', scope:'design'}");
-		repoTypeMappingExceptions.put(StaticContentSpecLoader.PROPERTY_SELECTONENTER.getPropertyName(), "{type:'boolean', scope:'design'}");
-		
+		repoTypeMappingExceptions.put(StaticContentSpecLoader.PROPERTY_MARGIN.getPropertyName(), "{\"type\" :\"insets\", \"scope\" :\"design\"}");
+		repoTypeMappingExceptions.put(StaticContentSpecLoader.PROPERTY_ROLLOVERCURSOR.getPropertyName(), "{\"type\" :\"int\", \"scope\" :\"design\"}");
+		repoTypeMappingExceptions.put(StaticContentSpecLoader.PROPERTY_SCROLLBARS.getPropertyName(), "{\"type\" :\"int\", \"scope\" :\"design\"}");
+		repoTypeMappingExceptions.put(StaticContentSpecLoader.PROPERTY_SELECTONENTER.getPropertyName(), "{\"type\" :\"boolean\", \"scope\" :\"design\"}");
+		repoTypeMappingExceptions.put(StaticContentSpecLoader.PROPERTY_CONTAINSFORMID.getPropertyName(), "form");
+
 		//internal properties (properties that should not be generated for any component)
 		internalProperties.add(StaticContentSpecLoader.PROPERTY_EXTENDSID.getPropertyName());
 		internalProperties.add(StaticContentSpecLoader.PROPERTY_ANCHORS.getPropertyName());
@@ -577,7 +586,7 @@ public class SpecGenerator
 		internalProperties.add(StaticContentSpecLoader.PROPERTY_PRINTABLE.getPropertyName());
 		internalProperties.add(StaticContentSpecLoader.PROPERTY_SCROLLTABS.getPropertyName());
 		internalProperties.add(StaticContentSpecLoader.PROPERTY_CLOSEONTABS.getPropertyName());
-		
+
 		// per component exceptions to internal properties (for ex labelfor should be only for datalabel)
 		perComponentExceptions.put(
 			"label",
@@ -608,7 +617,7 @@ public class SpecGenerator
 		perComponentInternalProperties.put("combobox", new ArrayList<>(Arrays.asList(StaticContentSpecLoader.PROPERTY_SCROLLBARS.getPropertyName())));
 		perComponentInternalProperties.put("spinner", new ArrayList<>(Arrays.asList(StaticContentSpecLoader.PROPERTY_SCROLLBARS.getPropertyName())));
 		perComponentInternalProperties.put("typeahead", new ArrayList<>(Arrays.asList(StaticContentSpecLoader.PROPERTY_SCROLLBARS.getPropertyName())));
-		
+
 		serverSideApi.add("getAbsoluteFormLocationY");
 		serverSideApi.add("getClientProperty");
 		serverSideApi.add("getDataProviderID");
@@ -625,9 +634,9 @@ public class SpecGenerator
 		serverSideApi.add("setLocation");
 		serverSideApi.add("setSize");
 
-		overriddenClientSideApi.put("setValueListItems", getApiMethod("getDividerLocation", "void",  Arrays.asList(new String[] { "value" }), Arrays.asList(new String[] { "dataset" }), null));
+		overriddenClientSideApi.put("setValueListItems", getApiMethod("setValueListItems", "void",  Arrays.asList(new String[] { "value" }), Arrays.asList(new String[] { "dataset" }), null));
 
-		final String callOnAll = "callOn: 1"; // ALL_RECORDS_IF_TEMPLATE; see globalServoyCustomTypes.spec 
+		final String callOnAll = "callOn: 1"; // ALL_RECORDS_IF_TEMPLATE; see globalServoyCustomTypes.spec
 		//metaDataForApi.put("setValueListItems", Arrays.asList(new String[] { callOnAll }));
 	}
 

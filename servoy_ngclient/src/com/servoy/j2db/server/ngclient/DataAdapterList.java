@@ -14,6 +14,7 @@ import java.util.WeakHashMap;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.mozilla.javascript.Scriptable;
 import org.sablo.WebComponent;
 import org.sablo.specification.PropertyDescription;
 import org.sablo.specification.PropertyType;
@@ -254,31 +255,35 @@ public class DataAdapterList implements IModificationListener, ITagResolver, IDa
 		return record;
 	}
 
-	private boolean updateRecordDataprovider(String dataprovider, List<Pair<WebFormComponent, String>> components, boolean fireOnDataChange)
+	private boolean updateRecordDataprovider(String dataprovider, List<Pair<WebFormComponent, String>> components, boolean fireOnDataChange, boolean fireChange)
 	{
 		boolean changed = false;
 		Object value = com.servoy.j2db.dataprocessing.DataAdapterList.getValueObject(this.record, formController.getFormScope(), dataprovider);
-		Object oldValue;
-		boolean isPropertyChanged;
-		WebFormComponent wc;
-		String property;
-		String onDataChange, onDataChangeCallback;
+		if (value == Scriptable.NOT_FOUND) value = null;
 		for (Pair<WebFormComponent, String> pair : components)
 		{
-			wc = pair.getLeft();
-			property = pair.getRight();
-			oldValue = wc.getProperty(property);
-			isPropertyChanged = wc.setProperty(property, value, ConversionLocation.SERVER);
-			onDataChange = ((DataproviderConfig)wc.getFormElement().getWebComponentSpec().getProperty(property).getConfig()).getOnDataChange();
-			if (fireOnDataChange && onDataChange != null && wc.hasEvent(onDataChange) && isPropertyChanged)
+			WebFormComponent wc = pair.getLeft();
+			String property = pair.getRight();
+			Object oldValue = wc.getProperty(property);
+			boolean isPropertyChanged = wc.setProperty(property, value, ConversionLocation.SERVER);
+			if (isPropertyChanged && fireOnDataChange)
 			{
-				JSONObject event = EventExecutor.createEvent(onDataChange);
-				Object returnValue = wc.executeEvent(onDataChange, new Object[] { oldValue, value, event });
-				onDataChangeCallback = ((DataproviderConfig)wc.getFormElement().getWebComponentSpec().getProperty(property).getConfig()).getOnDataChangeCallback();
-				if (onDataChangeCallback != null)
+				String onDataChange = ((DataproviderConfig)wc.getFormElement().getWebComponentSpec().getProperty(property).getConfig()).getOnDataChange();
+				if (onDataChange != null && wc.hasEvent(onDataChange))
 				{
-					wc.invokeApi(onDataChangeCallback, new Object[] { event, returnValue });
+					JSONObject event = EventExecutor.createEvent(onDataChange);
+					Object returnValue = wc.executeEvent(onDataChange, new Object[] { oldValue, value, event });
+					String onDataChangeCallback = ((DataproviderConfig)wc.getFormElement().getWebComponentSpec().getProperty(property).getConfig()).getOnDataChangeCallback();
+					if (onDataChangeCallback != null)
+					{
+						wc.invokeApi(onDataChangeCallback, new Object[] { event, returnValue });
+					}
 				}
+			}
+			if (!fireChange)
+			{
+				// this component is currently rendering so clear all the changes
+				wc.clearChanges();
 			}
 			changed = isPropertyChanged || changed;
 		}
@@ -286,7 +291,7 @@ public class DataAdapterList implements IModificationListener, ITagResolver, IDa
 		return changed;
 	}
 
-	private boolean updateTagValue(Map<WebFormComponent, List<String>> components)
+	private boolean updateTagValue(Map<WebFormComponent, List<String>> components, boolean fireChange)
 	{
 		boolean changed = false;
 		for (Map.Entry<WebFormComponent, List<String>> entry : components.entrySet())
@@ -297,6 +302,11 @@ public class DataAdapterList implements IModificationListener, ITagResolver, IDa
 				String initialPropValue = (String)component.getInitialProperty(taggedProp);
 				String tagValue = Text.processTags(initialPropValue, DataAdapterList.this);
 				changed = component.setProperty(taggedProp, tagValue, ConversionLocation.SERVER) || changed;
+			}
+			if (!fireChange)
+			{
+				// this component is currently rendering so clear all the changes
+				component.clearChanges();
 			}
 		}
 
@@ -334,24 +344,24 @@ public class DataAdapterList implements IModificationListener, ITagResolver, IDa
 		{
 			for (Entry<String, List<Pair<WebFormComponent, String>>> entry : recordDataproviderToComponent.entrySet())
 			{
-				changed = updateRecordDataprovider(entry.getKey(), entry.getValue(), fireOnDataChange) || changed;
+				changed = updateRecordDataprovider(entry.getKey(), entry.getValue(), fireOnDataChange, fireChangeEvent) || changed;
 			}
 
 			for (Entry<String, Map<WebFormComponent, List<String>>> entry : dataProviderToComponentWithTags.entrySet())
 			{
-				changed = updateTagValue(entry.getValue()) || changed;
+				changed = updateTagValue(entry.getValue(), fireChangeEvent) || changed;
 			}
 		}
 		else
 		{
 			if (recordDataproviderToComponent.containsKey(dataProvider))
 			{
-				changed = updateRecordDataprovider(dataProvider, recordDataproviderToComponent.get(dataProvider), fireOnDataChange);
+				changed = updateRecordDataprovider(dataProvider, recordDataproviderToComponent.get(dataProvider), fireOnDataChange, fireChangeEvent);
 			}
 
 			if ((isFormDP || isGlobalDP) && dataProviderToComponentWithTags.containsKey(dataProvider))
 			{
-				changed = updateTagValue(dataProviderToComponentWithTags.get(dataProvider)) || changed;
+				changed = updateTagValue(dataProviderToComponentWithTags.get(dataProvider), fireChangeEvent) || changed;
 			}
 		}
 
@@ -425,7 +435,10 @@ public class DataAdapterList implements IModificationListener, ITagResolver, IDa
 				String onDataChangeCallback = ((DataproviderConfig)webComponent.getFormElement().getWebComponentSpec().getProperty(beanProperty).getConfig()).getOnDataChangeCallback();
 				if (onDataChangeCallback != null)
 				{
-					webComponent.invokeApi(onDataChangeCallback, new Object[] { event, returnValue });
+					WebComponentApiDefinition call = new WebComponentApiDefinition(onDataChangeCallback);
+					call.addParameter(new PropertyDescription("event", new PropertyType("object")));
+					call.addParameter(new PropertyDescription("returnValue", new PropertyType("object")));
+					webComponent.invokeApi(call, new Object[] { event, returnValue });
 				}
 			}
 		}

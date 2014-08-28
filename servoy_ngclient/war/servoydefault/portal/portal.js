@@ -237,10 +237,9 @@ angular.module('svyPortal',['servoy']).directive('svyPortal', ['$utils', '$found
     	  $scope.rowHeight = $scope.model.rowHeight;
     	  
     	  var rowTemplate = ''
-    	  var columnDefinitions = [];
+    	  $scope.columnDefinitions = [];
     	  for (var idx = 0; idx < elements.length; idx++) {
     		  var el = elements[idx]; 
-    		  var elX = el.model.location.x - $scope.model.location.x;
     		  var elY = el.model.location.y - $scope.model.location.y;
     		  var columnTitle = el.model.text;
     		  if (!columnTitle) {
@@ -259,24 +258,33 @@ angular.module('svyPortal',['servoy']).directive('svyPortal', ['$utils', '$found
     			  if($scope.rowHeight == undefined || (!$scope.model.rowHeight && ($scope.rowHeight < elY + el.model.size.height))) {
     				  $scope.rowHeight = $scope.model.rowHeight ? $scope.model.rowHeight : elY + el.model.size.height;
     			  }
-    			  rowTemplate = rowTemplate + '<div style="position:absolute;left:' + elX + 'px;top:' + elY + 'px;width:' + el.model.size.width + 'px;height:' + el.model.size.height + 'px;">' + cellTemplate + '</div>';
+    			  rowTemplate = rowTemplate + '<div ng-style="getMultilineComponentWrapperStyle(' + idx + ')" >' + cellTemplate + '</div>';
     		  }
     		  else {
     			  if($scope.rowHeight == undefined || $scope.rowHeigth < el.model.size.height) {
     				  $scope.rowHeight = el.model.size.height;
     			  }
-        		  columnDefinitions.push({
+        		  $scope.columnDefinitions.push({
         			  displayName: columnTitle,
-        			  cellTemplate: cellTemplate 
-        		  });  
+        			  cellTemplate: cellTemplate,
+        			  visible: el.model.visible
+        		  });
+
+        		  updateColumnVisibility($scope, idx);
     		  }
     	  }
     	  
     	  if($scope.model.multiLine) {
-    		  columnDefinitions.push({
+    		  $scope.columnDefinitions.push({
     			  width: '100%',
     			  cellTemplate: rowTemplate 
     		  });
+    	  }
+    	  
+    	  function updateColumnVisibility(scope, idx) {
+    		  scope.$watch('model.childElements[' + idx + '].model.visible', function (newVal, oldVal) {
+    			  scope.columnDefinitions[idx].visible = scope.model.childElements[idx].model.visible;
+    		  }, false);
     	  }
     	  
     	  function getOrCreateRowProxies(rowId) {
@@ -315,6 +323,16 @@ angular.module('svyPortal',['servoy']).directive('svyPortal', ['$utils', '$found
     	  
     	  function isInViewPort(absoluteRowIndex) {
     		  return (absoluteRowIndex >= foundset.viewPort.startIndex && absoluteRowIndex < (foundset.viewPort.startIndex + foundset.viewPort.size));
+    	  }
+    	  
+    	  $scope.getMultilineComponentWrapperStyle = function(elementIndex) {
+    		  var el = elements[elementIndex]; 
+    		  var elX = el.model.location.x - $scope.model.location.x;
+    		  var elY = el.model.location.y - $scope.model.location.y;
+    		  var style = {position: 'absolute', left: elX + 'px', top: elY + 'px', width: el.model.size.width + 'px', height: el.model.size.height + 'px'};
+    		  if(!el.model.visible) style.display = 'none';
+    		  
+    		  return style;
     	  }
     	  
     	  // merges foundset record dataprovider/tagstring properties into the element's model
@@ -515,7 +533,7 @@ angular.module('svyPortal',['servoy']).directive('svyPortal', ['$utils', '$found
     			  totalServerItems: 'artificialServerSize', // we sometimes fake a page for the sake of following the first selected record with viewport - so we can't use real size here; see updatePageCount()
     			  pagingOptions: $scope.pagingOptions,
     			  primaryKey: $foundsetTypeConstants.ROW_ID_COL_KEY, // not currently documented in ngGrid API but is used internally and useful - see ngGrid source code
-    			  columnDefs: columnDefinitions,
+    			  columnDefs: 'columnDefinitions',
     			  headerRowHeight: $scope.model.multiLine ? 0 : 32,
     			  rowHeight: $scope.rowHeight?$scope.rowHeight:20
     	  };

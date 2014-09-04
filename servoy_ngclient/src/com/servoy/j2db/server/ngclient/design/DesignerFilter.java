@@ -18,6 +18,14 @@
 package com.servoy.j2db.server.ngclient.design;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
@@ -30,10 +38,13 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.json.JSONException;
+import org.json.JSONObject;
 import org.json.JSONWriter;
+import org.sablo.specification.PropertyDescription;
 import org.sablo.specification.WebComponentSpecProvider;
 import org.sablo.specification.WebComponentSpecification;
 
+import com.servoy.j2db.server.ngclient.template.FormTemplateGenerator;
 import com.servoy.j2db.util.Debug;
 
 /**
@@ -44,6 +55,8 @@ import com.servoy.j2db.util.Debug;
 @SuppressWarnings("nls")
 public class DesignerFilter implements Filter
 {
+	private static List<String> ignoreList = Arrays.asList(new String[] { "svy-checkgroup", "svy-errorbean", "svy-navigator", "svy-radiogroup", "svy-htmlview", "colorthefoundset" });
+
 	@Override
 	public void doFilter(ServletRequest servletRequest, ServletResponse servletResponse, FilterChain filterChain) throws IOException, ServletException
 	{
@@ -60,19 +73,64 @@ public class DesignerFilter implements Filter
 				{
 					JSONWriter jsonWriter = new JSONWriter(servletResponse.getWriter());
 					jsonWriter.array();
-					for (WebComponentSpecification spec : provider.getWebComponentSpecifications())
+					Set<String> packageNames = provider.getPackageNames();
+					ArrayList<String> orderedPackageNames = new ArrayList<>();
+					for (String packName : packageNames)
+					{
+						orderedPackageNames.add(packName);
+					}
+					Collections.sort(orderedPackageNames, new Comparator<String>()
+					{
+
+						@Override
+						public int compare(String o1, String o2)
+						{
+							if (o1.toLowerCase().contains("default")) return -1;
+							else return o1.compareTo(o2);
+						}
+					});
+					for (String packageName : orderedPackageNames)
 					{
 						jsonWriter.object();
-						jsonWriter.key("name").value(spec.getName());
-						jsonWriter.key("displayName").value(spec.getDisplayName());
-						if (spec.getCategoryName() != null)
+						jsonWriter.key("packageName").value(packageName);
+						jsonWriter.key("components");
+						jsonWriter.array();
+						for (String componentName : provider.getComponentsInPackage(packageName))
 						{
-							jsonWriter.key("categoryName").value(spec.getCategoryName());
+							if (!ignoreList.contains(componentName))
+							{
+								WebComponentSpecification spec = provider.getWebComponentSpecification(componentName);
+								jsonWriter.object();
+								jsonWriter.key("name").value(spec.getName());
+								jsonWriter.key("displayName").value(spec.getDisplayName());
+								jsonWriter.key("tagName").value(FormTemplateGenerator.getTagName(componentName));
+								Map<String, Object> model = new HashMap<String, Object>();
+								PropertyDescription pd = spec.getProperty("size");
+								if (pd != null && pd.getDefaultValue() != null)
+								{
+									model.put("size", pd.getDefaultValue());
+								}
+								if (spec.getProperty("enabled") != null)
+								{
+									model.put("enabled", Boolean.TRUE);
+								}
+								if (spec.getProperty("editable") != null)
+								{
+									model.put("editable", Boolean.TRUE);
+								}
+								if ("svy-label".equals(spec.getName()))
+								{
+									model.put("text", "label");
+								}
+								jsonWriter.key("model").value(new JSONObject(model));
+								if (spec.getIcon() != null)
+								{
+									jsonWriter.key("icon").value(spec.getIcon());
+								}
+								jsonWriter.endObject();
+							}
 						}
-						if (spec.getIcon() != null)
-						{
-							jsonWriter.key("icon").value(spec.getIcon());
-						}
+						jsonWriter.endArray();
 						jsonWriter.endObject();
 					}
 					jsonWriter.endArray();

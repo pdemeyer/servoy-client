@@ -1,7 +1,6 @@
 {
 	"name": "svy-label",
-	"displayName": "label",
-	"categoryName": "Elements",
+	"displayName": "Label",
 	"icon": "servoydefault/label/text.gif",
 	"definition": "servoydefault/label/label.js",
 	"libraries": [],

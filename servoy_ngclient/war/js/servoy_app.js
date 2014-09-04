@@ -29,9 +29,9 @@ angular.module('servoyApp', ['servoy','webStorageModule','ngGrid','servoy-compon
 			   if (!prev) {
 				   changed = true;
 			   }
-			   else if (now[prop] && now[prop][$sabloConverters.INTERNAL_IMPL] && now[prop][$sabloConverters.INTERNAL_IMPL].isChanged && now[prop][$sabloConverters.INTERNAL_IMPL].isChanged())
+			   else if (now[prop] && now[prop][$sabloConverters.INTERNAL_IMPL] && now[prop][$sabloConverters.INTERNAL_IMPL].isChanged)
 			   {
-				   changed = true;
+				   changed = now[prop][$sabloConverters.INTERNAL_IMPL].isChanged();
 			   }
 			   else if (prev[prop] !== now[prop]) {
 				   if (typeof now[prop] == "object") {
@@ -67,7 +67,7 @@ angular.module('servoyApp', ['servoy','webStorageModule','ngGrid','servoy-compon
 		   if (newConversionInfo) { // then means beanConversionInfo should also be defined - we assume that
 			   // beanConversionInfo will be granularly updated in the loop below
 			   // (to not drop other property conversion info when only one property is being applied granularly to the bean)
-			   $sabloConverters.convertFromServerToClient(beanData, newConversionInfo, beanModel);
+			   beanData = $sabloConverters.convertFromServerToClient(beanData, newConversionInfo, beanModel);
 		   }
 
 		   for(var key in beanData) {
@@ -201,13 +201,13 @@ angular.module('servoyApp', ['servoy','webStorageModule','ngGrid','servoy-compon
 			   }
 		   }
 	   }
-	   
+		   
 	   
 		  
 	   var ignoreChanges = false;
 	   var wsSession = null;
 	   function connect() {
-		   // maybe do this with defer ($q)
+	   // maybe do this with defer ($q)
 		   var solName = decodeURIComponent((new RegExp('[?|&]s=' + '([^&;]+?)(&|#|;|$)').exec($window.location.search)||[,""])[1].replace(/\+/g, '%20'))||null
 		   if (!solName) $solutionSettings.solutionName  = /.*\/(\w+)\/.*/.exec($window.location.pathname)[1];
 		   else $solutionSettings.solutionName  = solName;
@@ -232,127 +232,131 @@ angular.module('servoyApp', ['servoy','webStorageModule','ngGrid','servoy-compon
 								   var newFormProperties = newFormData['']; // f form properties
 								   var newFormConversionInfo = (conversionInfo && conversionInfo.forms && conversionInfo.forms[formname]) ? conversionInfo.forms[formname] : undefined;
 
-								   if(newFormProperties) {
-									   if (newFormConversionInfo && newFormConversionInfo['']) $sabloConverters.convertFromServerToClient(newFormProperties, newFormConversionInfo[''], formModel['']);
-									   if (!formModel['']) formModel[''] = {};
-									   for(var p in newFormProperties) {
-										   formModel[''][p] = newFormProperties[p]; 
+							   if(newFormProperties) {
+								   if (newFormConversionInfo && newFormConversionInfo['']) newFormProperties = $sabloConverters.convertFromServerToClient(newFormProperties, newFormConversionInfo[''], formModel['']);
+								   if (!formModel['']) formModel[''] = {};
+								   for(var p in newFormProperties) {
+									   formModel[''][p] = newFormProperties[p]; 
+								   } 
+							   }
+
+							   for (var beanname in newFormData) {
+								   // copy over the changes, skip for form properties (beanname empty)
+								   if (beanname != '') {
+									   if (formModel[beanname]!= undefined && (newFormData[beanname].size != undefined ||  newFormData[beanname].location != undefined)) {	
+										   //size or location were changed at runtime, we need to update components with anchors
+										   newFormData[beanname].anchors = formModel[beanname].anchors;
+									   }
+
+									   var newBeanConversionInfo = newFormConversionInfo ? newFormConversionInfo[beanname] : undefined;
+									   var beanConversionInfo = newBeanConversionInfo ? $utils.getOrCreateInDepthProperty(formStatesConversionInfo, formname, beanname) : undefined; // we could do a get instead of undefined, but normally that value is not needed if the new conversion info is undefined
+									   applyBeanData(formModel[beanname], layout[beanname], newFormData[beanname], formState.properties.designSize, getChangeNotifier(formname, beanname), beanConversionInfo, newBeanConversionInfo);
+									   for (var defProperty in deferredProperties) {
+										   for(var key in newFormData[beanname]) {
+											   if (defProperty == (formname + "_" + beanname + "_" + key)) {
+												   deferredProperties[defProperty].resolve(newFormData[beanname][key]);
+												   delete deferredProperties[defProperty];
+											   }
+										   }
 									   } 
 								   }
-
-								   for (var beanname in newFormData) {
-									   // copy over the changes, skip for form properties (beanname empty)
-									   if (beanname != '') {
-										   if (formModel[beanname]!= undefined && (newFormData[beanname].size != undefined ||  newFormData[beanname].location != undefined)) {	
-											   //size or location were changed at runtime, we need to update components with anchors
-											   newFormData[beanname].anchors = formModel[beanname].anchors;
-										   }
-
-										   var newBeanConversionInfo = newFormConversionInfo ? newFormConversionInfo[beanname] : undefined;
-										   var beanConversionInfo = newBeanConversionInfo ? $utils.getOrCreateInDepthProperty(formStatesConversionInfo, formname, beanname) : undefined; // we could do a get instead of undefined, but normally that value is not needed if the new conversion info is undefined
-										   applyBeanData(formModel[beanname], layout[beanname], newFormData[beanname], formState.properties.designSize, getChangeNotifier(formname, beanname), beanConversionInfo, newBeanConversionInfo);
-										   for (var defProperty in deferredProperties) {
-											   for(var key in newFormData[beanname]) {
-												   if (defProperty == (formname + "_" + beanname + "_" + key)) {
-													   deferredProperties[defProperty].resolve(newFormData[beanname][key]);
-													   delete deferredProperties[defProperty];
-												   }
-											   }
-										   } 
-									   }
-								   }
-								   if(deferredformStates[formname]){
-									   deferredformStates[formname].resolve(formStates[formname])
-									   delete deferredformStates[formname]
-								   }
-								   
-								   if (msg.initialdatarequest)
-								   		formState.addWatches();
 							   }
-						   } finally {
-							   ignoreChanges = false;
-						   }
-					   });
-				   }
-
-				   if (conversionInfo && conversionInfo.call) $sabloConverters.convertFromServerToClient(msg.call, conversionInfo.call);
-				   if (msg.call) {
-					   // {"call":{"form":"product","element":"datatextfield1","api":"requestFocus","args":[arg1, arg2]}, // optionally "viewIndex":1 
-					   // "{ conversions: {product: {datatextfield1: {0: "Date"}}} }
-					   var call = msg.call;
-					   var formState = formStates[call.form];
-					   if (call.viewIndex != undefined) {
-						   var funcThis = formState.api[call.bean][call.viewIndex]; 
-						   if (funcThis)
-						   {
-							   var func = funcThis[call.api];
-						   }
-						   else
-						   {
-							   console.warn("cannot call " + call.api + " on " + call.bean + " because viewIndex "+ call.viewIndex +" api is not found")
-						   }
-					   }
-					   else if (call.parentComponentName != undefined)
-					   {
-						   // handle nested components
-						   var funcThis = formState.model[call.parentComponentName][call.parentComponentProperty][call.parentComponentIndex].api;
-						   var func = funcThis[call.api];
-					   }
-					   else {
-						   var funcThis = formState.api[call.bean];
-						   var func = funcThis[call.api];
-					   }
-					   if (!func) {
-						   // if setFindMode not present, set editable/readonly state
-						   if (call.api != "setFindMode") 
-						   {
-							   console.warn("bean " + call.bean + " did not provide the api: " + call.api)
-						   }
-						   else
-						   {
-							   if (call.args[0])
-							   {
-								   formState.model[call.bean].readOnlyBeforeFindMode = formState.model[call.bean].readOnly;
-								   formState.model[call.bean].readOnly = true;
+							   if(deferredformStates[formname]){
+								   deferredformStates[formname].resolve(formStates[formname])
+								   delete deferredformStates[formname]
 							   }
-							   else
-							   {
-								   formState.model[call.bean].readOnly = formState.model[call.bean].readOnlyBeforeFindMode;
-							   }
+							   
+							   if (msg.initialdatarequest)
+							   		formState.addWatches();
 						   }
-						   return;
+					   } finally {
+						   ignoreChanges = false;
 					   }
-
-					   return $rootScope.$apply(function() {
-						   return func.apply(funcThis, call.args)
-					   })
-				   }
-				   if (msg.sessionid) {
-					   webStorage.session.add("sessionid",msg.sessionid);
-				   }
-				   if (msg.styleSheetPath) {
-					   $solutionSettings.styleSheetPath = msg.styleSheetPath;
-				   }	   
-				   /**
-				    * TODO sesionExpired should not be called forom the protocol , 
-				    * it should be a direct call to a service (also check to see if  noLicense and maintenanceMode can be moved to a service)
-				    * */
-				   if(msg.noLicense){
-					   $sessionService.setNoLicense(msg.noLicense)	        		
-				   }	       
-				   if(msg.maintenanceMode){
-					   $sessionService.setMaintenanceMode(msg.maintenanceMode)    		
-				   }
-
-				   /** end TODO*/
-				   if (msg.windowid) {
-					   $solutionSettings.windowName = msg.windowid;
-					   webStorage.session.add("windowid",msg.windowid);
-				   }
-			   } finally {
-				   ignoreChanges = false;
+				   });
 			   }
-		   };
+
+			   if (conversionInfo && conversionInfo.call) msg.call = $sabloConverters.convertFromServerToClient(msg.call, conversionInfo.call);
+			   if (msg.call) {
+				   // {"call":{"form":"product","element":"datatextfield1","api":"requestFocus","args":[arg1, arg2]}, // optionally "viewIndex":1 
+				   // "{ conversions: {product: {datatextfield1: {0: "Date"}}} }
+				   var call = msg.call;
+				   var formState = formStates[call.form];
+				   if (call.viewIndex != undefined) {
+					   var funcThis = formState.api[call.bean][call.viewIndex]; 
+					   if (funcThis)
+					   {
+						   var func = funcThis[call.api];
+					   }
+					   else
+					   {
+						   console.warn("cannot call " + call.api + " on " + call.bean + " because viewIndex "+ call.viewIndex +" api is not found")
+					   }
+				   }
+				   else if (call.propertyPath != undefined)
+				   {
+					   // handle nested components; the property path is an array of string or int keys going
+					   // through the form's model starting with the root bean name, then it's properties (that could be nested)
+					   // then maybe nested child properties and so on 
+					   var obj = formState.model;
+					   var pn;
+					   for (pn in call.propertyPath) obj = obj[call.propertyPath[pn]];
+					   var func = obj.api[call.api];
+				   }
+				   else {
+					   var funcThis = formState.api[call.bean];
+					   var func = funcThis[call.api];
+				   }
+				   if (!func) {
+					   // if setFindMode not present, set editable/readonly state
+					   if (call.api != "setFindMode") 
+					   {
+						   console.warn("bean " + call.bean + " did not provide the api: " + call.api)
+					   }
+					   else
+					   {
+						   if (call.args[0])
+						   {
+							   formState.model[call.bean].readOnlyBeforeFindMode = formState.model[call.bean].readOnly;
+							   formState.model[call.bean].readOnly = true;
+						   }
+						   else
+						   {
+							   formState.model[call.bean].readOnly = formState.model[call.bean].readOnlyBeforeFindMode;
+						   }
+					   }
+					   return;
+				   }
+
+				   return $rootScope.$apply(function() {
+					   return func.apply(funcThis, call.args)
+				   })
+			   }
+			   if (msg.sessionid) {
+				   webStorage.session.add("sessionid",msg.sessionid);
+			   }
+			   if (msg.styleSheetPath) {
+				   $solutionSettings.styleSheetPath = msg.styleSheetPath;
+			   }	   
+			   /**
+			    * TODO sesionExpired should not be called forom the protocol , 
+			    * it should be a direct call to a service (also check to see if  noLicense and maintenanceMode can be moved to a service)
+			    * */
+			   if(msg.noLicense){
+				   $sessionService.setNoLicense(msg.noLicense)	        		
+			   }	       
+			   if(msg.maintenanceMode){
+				   $sessionService.setMaintenanceMode(msg.maintenanceMode)    		
+			   }
+
+			   /** end TODO*/
+			   if (msg.windowid) {
+				   $solutionSettings.windowName = msg.windowid;
+				   webStorage.session.add("windowid",msg.windowid);
+			   }
+		   } finally {
+			   ignoreChanges = false;
+		   }
+	   };
 	   }
 	   function getSession() {
 		   if (wsSession == null) throw "Session is not created yet, first call connect()";
@@ -461,11 +465,13 @@ angular.module('servoyApp', ['servoy','webStorageModule','ngGrid','servoy-compon
 			   }
 			   // default model, simple direct form child component
 			   var conversionInfo = (formStatesConversionInfo[formname] ? formStatesConversionInfo[formname][beanname] : undefined);
-			   if (conversionInfo && conversionInfo[property]){
+			   
+			   if (conversionInfo && conversionInfo[property]) {
 				   changes[property] = $sabloConverters.convertFromClientToServer(formStates[formname].model[beanname][property], conversionInfo[property], undefined);
-			   }else{
-				   changes[property] = formStates[formname].model[beanname][property]
+			   } else {
+				   changes[property] = $sabloUtils.convertClientObject(formStates[formname].model[beanname][property]);
 			   }
+
 			   getSession().sendMessageObject({cmd:'svypush',formname:formname,beanname:beanname,property:property,changes:changes})
 		   },
 
@@ -601,52 +607,44 @@ angular.module('servoyApp', ['servoy','webStorageModule','ngGrid','servoy-compon
 	
 	return {
 		expireSession : function (sessionExpired){
-			$rootScope.$apply(function(){
-				var exp = { 
-			    	viewUrl: 'templates/sessionExpiredView.html',
-			    	redirectUrl : $window.location.href
-			    }
-			    if(sessionExpired.viewUrl)	exp.viewUrl= sessionExpired.viewUrl;
-			    
-			    $solutionSettings.sessionExpired = exp;
-			})
+			var exp = { 
+					viewUrl: 'templates/sessionExpiredView.html',
+					redirectUrl : $window.location.href
+			}
+			if(sessionExpired.viewUrl)	exp.viewUrl= sessionExpired.viewUrl;
+
+			$solutionSettings.sessionExpired = exp;
 		},
 		setNoLicense: function (noLicense){
-			$rootScope.$apply(function(){
-				var noLic = {
-						viewUrl : 'templates/serverTooBusyView.html',
-						redirectUrl : $window.location.href,
-						redirectTimeout : 0
-				}
-	        	if(noLicense.viewUrl) noLic.viewUrl = noLicense.viewUrl 
-	        	if(noLicense.redirectUrl) noLic.redirectUrl = noLicense.redirectUrl;
-	        	if(noLicense.redirectTimeout) noLic.redirectTimeout = noLicense.redirectTimeout;
-	        	
-	        	$solutionSettings.noLicense = noLic;
-			})
+			var noLic = {
+					viewUrl : 'templates/serverTooBusyView.html',
+					redirectUrl : $window.location.href,
+					redirectTimeout : 0
+			}
+			if(noLicense.viewUrl) noLic.viewUrl = noLicense.viewUrl 
+			if(noLicense.redirectUrl) noLic.redirectUrl = noLicense.redirectUrl;
+			if(noLicense.redirectTimeout) noLic.redirectTimeout = noLicense.redirectTimeout;
+
+			$solutionSettings.noLicense = noLic;
 		},
 		setMaintenanceMode: function (maintenanceMode){
-			$rootScope.$apply(function(){
-				var ment = {
-						viewUrl : 'templates/maintenanceView.html',
-						redirectUrl : $window.location.href,
-						redirectTimeout : 0
-				}
-	        	if(maintenanceMode.viewUrl) ment.viewUrl = mentenanceMode.viewUrl 
-	        	if(msg.maintenanceMode.redirectUrl)	ment.redirectUrl = maintenanceMode.redirectUrl;
-	        	if(msg.maintenanceMode.redirectTimeout)	ment.redirectTimeout = maintenanceMode.redirectTimeout;
-	
-	        	$solutionSettings.maintenanceMode = ment;
-			})
+			var ment = {
+					viewUrl : 'templates/maintenanceView.html',
+					redirectUrl : $window.location.href,
+					redirectTimeout : 0
+			}
+			if(maintenanceMode.viewUrl) ment.viewUrl = mentenanceMode.viewUrl 
+			if(msg.maintenanceMode.redirectUrl)	ment.redirectUrl = maintenanceMode.redirectUrl;
+			if(msg.maintenanceMode.redirectTimeout)	ment.redirectTimeout = maintenanceMode.redirectTimeout;
+
+			$solutionSettings.maintenanceMode = ment;
 		},
 		setInternalServerError: function(internalServerError){
-			$rootScope.$apply(function(){
-				var error = {viewUrl:'templates/serverInternalErrorView.html'}
-				if(internalServerError.viewUrl)  error.viewUrl = internalServerError.viewUrl;
-				if(internalServerError.stack) error.stack = internalServerError.stack;
-				
-				$solutionSettings.internalServerError = error;					
-			})
+			var error = {viewUrl:'templates/serverInternalErrorView.html'}
+			if(internalServerError.viewUrl)  error.viewUrl = internalServerError.viewUrl;
+			if(internalServerError.stack) error.stack = internalServerError.stack;
+
+			$solutionSettings.internalServerError = error;					
 		}
 	}
 }])

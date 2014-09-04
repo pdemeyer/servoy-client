@@ -26,7 +26,6 @@ import java.util.Map;
 
 import org.json.JSONException;
 import org.json.JSONStringer;
-import org.sablo.websocket.ConversionLocation;
 import org.sablo.websocket.utils.JSONUtils;
 
 import com.servoy.base.persistence.constants.IFormConstants;
@@ -59,17 +58,24 @@ public class FormWrapper
 	private final String realName;
 	private final IFormElementValidator formElementValidator;
 	private final IServoyDataConverterContext context;
+	private final boolean design;
 
 	public FormWrapper(Form form, String realName, boolean useControllerProvider, IFormElementValidator formElementValidator,
-		IServoyDataConverterContext context)
+		IServoyDataConverterContext context, boolean design)
 	{
 		this.form = form;
 		this.realName = realName;
 		this.useControllerProvider = useControllerProvider;
 		this.formElementValidator = formElementValidator;
 		this.context = context;
+		this.design = design;
 		isTableView = (form.getView() == IFormConstants.VIEW_TYPE_TABLE || form.getView() == IFormConstants.VIEW_TYPE_TABLE_LOCKED);
 		isListView = form.getView() == IFormConstants.VIEW_TYPE_LIST || form.getView() == IFormConstants.VIEW_TYPE_LIST_LOCKED;
+	}
+
+	public boolean isDesign()
+	{
+		return design;
 	}
 
 	public String getControllerName()
@@ -266,7 +272,7 @@ public class FormWrapper
 		properties.put("designSize", form.getSize());
 		removeUnneededFormProperties(properties);
 
-		return JSONUtils.writeDataWithConversions(new JSONStringer().object(), properties, null, ConversionLocation.BROWSER).endObject().toString(); // null types as we don't have a spec file for forms
+		return JSONUtils.writeDataWithConversions(new JSONStringer().object(), properties, null).endObject().toString(); // null types as we don't have a spec file for forms
 	}
 
 	private static void removeUnneededFormProperties(Map<String, Object> properties)

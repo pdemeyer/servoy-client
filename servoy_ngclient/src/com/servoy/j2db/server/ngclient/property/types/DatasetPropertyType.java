@@ -24,7 +24,6 @@ import org.json.JSONObject;
 import org.json.JSONWriter;
 import org.sablo.specification.property.IConvertedPropertyType;
 import org.sablo.specification.property.IDataConverterContext;
-import org.sablo.websocket.ConversionLocation;
 import org.sablo.websocket.utils.DataConversion;
 import org.sablo.websocket.utils.JSONUtils;
 
@@ -40,6 +39,7 @@ public class DatasetPropertyType implements IConvertedPropertyType<IDataSet>
 {
 
 	public static final DatasetPropertyType INSTANCE = new DatasetPropertyType();
+	public static final String TYPE_NAME = "dataset";
 
 	private DatasetPropertyType()
 	{
@@ -48,7 +48,7 @@ public class DatasetPropertyType implements IConvertedPropertyType<IDataSet>
 	@Override
 	public String getName()
 	{
-		return "dataset";
+		return TYPE_NAME;
 	}
 
 	@Override
@@ -59,9 +59,13 @@ public class DatasetPropertyType implements IConvertedPropertyType<IDataSet>
 	}
 
 	@Override
-	public JSONWriter toJSON(JSONWriter writer, IDataSet value, DataConversion clientConversion) throws JSONException
+	public JSONWriter toJSON(JSONWriter writer, String key, IDataSet value, DataConversion clientConversion) throws JSONException
 	{
-		if (value == null) return writer.value(null);
+		if (value == null)
+		{
+			JSONUtils.addKeyIfPresent(writer, key);
+			return writer.value(null);
+		}
 
 		List<List<Object>> array = new ArrayList<>(value.getRowCount());
 		if (value.getColumnCount() >= 1)
@@ -73,7 +77,7 @@ public class DatasetPropertyType implements IConvertedPropertyType<IDataSet>
 			}
 		}
 
-		return JSONUtils.toJSONValue(writer, array, null, clientConversion, ConversionLocation.BROWSER);
+		return JSONUtils.toBrowserJSONValue(writer, key, array, null, clientConversion);
 	}
 
 	@Override

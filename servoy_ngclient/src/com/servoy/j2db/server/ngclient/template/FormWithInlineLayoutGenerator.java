@@ -50,17 +50,25 @@ import com.servoy.j2db.util.Debug;
 @SuppressWarnings("nls")
 public class FormWithInlineLayoutGenerator
 {
-	public static void generateLayoutContainers(Form form, ServoyDataConverterContext context, PrintWriter writer)
+	public static void generateLayoutContainers(Form form, ServoyDataConverterContext context, PrintWriter writer, boolean design)
 	{
 		try
 		{
 			writer.println(String.format(
 				"<div ng-controller=\"%1$s\" svy-formstyle=\"formStyle\" svyScrollbars='formProperties.scrollbars' svy-layout-update svy-formload>",
 				form.getName()));
-			Iterator<LayoutContainer> it = form.getLayoutContainers();
-			while (it.hasNext())
+			Iterator<IPersist> components = form.getAllObjects(PositionComparator.XY_PERSIST_COMPARATOR);
+			while (components.hasNext())
 			{
-				generateLayoutContainer(it.next(), context, writer);
+				IPersist component = components.next();
+				if (component instanceof LayoutContainer)
+				{
+					generateLayoutContainer((LayoutContainer)component, context, writer, design);
+				}
+				else if (component instanceof IFormElement)
+				{
+					generateFormElement((IFormElement)component, context, writer, design);
+				}
 			}
 			writer.println("</div>");
 		}
@@ -70,7 +78,7 @@ public class FormWithInlineLayoutGenerator
 		}
 	}
 
-	private static void generateLayoutContainer(LayoutContainer container, ServoyDataConverterContext context, PrintWriter writer)
+	private static void generateLayoutContainer(LayoutContainer container, ServoyDataConverterContext context, PrintWriter writer, boolean design)
 	{
 		writer.print("<");
 		writer.print(container.getTagType());
@@ -87,10 +95,10 @@ public class FormWithInlineLayoutGenerator
 			writer.print(container.getStyle());
 			writer.print("' ");
 		}
-		if (container.getCSSClasses() != null)
+		if (container.getCssClasses() != null)
 		{
 			writer.print("class='");
-			writer.print(container.getCSSClasses());
+			writer.print(container.getCssClasses());
 			writer.print("' ");
 		}
 		writer.println(">");
@@ -101,11 +109,11 @@ public class FormWithInlineLayoutGenerator
 			IPersist component = components.next();
 			if (component instanceof LayoutContainer)
 			{
-				generateLayoutContainer((LayoutContainer)component, context, writer);
+				generateLayoutContainer((LayoutContainer)component, context, writer, design);
 			}
 			else if (component instanceof IFormElement)
 			{
-				generateFormElement((IFormElement)component, context, writer);
+				generateFormElement((IFormElement)component, context, writer, design);
 			}
 		}
 		writer.print("</");
@@ -113,9 +121,9 @@ public class FormWithInlineLayoutGenerator
 		writer.print(">");
 	}
 
-	private static void generateFormElement(IFormElement formElement, ServoyDataConverterContext context, PrintWriter writer)
+	private static void generateFormElement(IFormElement formElement, ServoyDataConverterContext context, PrintWriter writer, boolean design)
 	{
-		FormElement fe = ComponentFactory.getFormElement(formElement, context);
+		FormElement fe = ComponentFactory.getFormElement(formElement, context, null);
 		writer.print("<");
 		writer.print(fe.getTagname());
 		writer.print(" name='");
@@ -136,7 +144,16 @@ public class FormWithInlineLayoutGenerator
 		writer.print(" svy-servoyApi='handlers.");
 		writer.print(fe.getName());
 		writer.print(".svy_servoyApi'");
-		writer.print("/>");
+		if (design)
+		{
+			writer.print(" svy-id='");
+			writer.print(fe.getDesignId());
+			writer.print("'");
+		}
+		writer.println(">");
+		writer.print("</");
+		writer.print(fe.getTagname());
+		writer.println(">");
 	}
 
 	/**
@@ -154,7 +171,7 @@ public class FormWithInlineLayoutGenerator
 			while (it.hasNext())
 			{
 				IFormElement element = it.next();
-				FormElement fe = ComponentFactory.getFormElement(element, context);
+				FormElement fe = ComponentFactory.getFormElement(element, context, null);
 				allFormElements.put(element.getUUID().toString(), fe);
 
 				//make life easy if a real name is used

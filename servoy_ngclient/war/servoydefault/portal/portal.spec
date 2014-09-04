@@ -1,7 +1,6 @@
 {
 	"name": "svy-portal",
 	"displayName": "Portal",
-	"categoryName": "Elements",
 	"icon": "servoydefault/portal/portal.gif",
 	"definition": "servoydefault/portal/portal.js",
 	"libraries": ["servoydefault/portal/portal.css"],
@@ -9,7 +8,7 @@
 	{
 	        "background" : "color", 
 	        "borderType" : "border", 
-	        "childElements" : { "type" : "component[]", "forFoundsetTypedProperty": "relatedFoundset" }, 
+	        "childElements" : { "type" : "component[]", "elementConfig" : { "forFoundsetTypedProperty": "relatedFoundset" } }, 
 	        "enabled" : {"type":"boolean", "default":true}, 
 	        "foreground" : "color", 
 	        "initialSort" : "string", 

@@ -1,7 +1,6 @@
 {
 	"name": "svy-typeahead",
-	"displayName": "TypeAhead ",
-	"categoryName": "Elements",
+	"displayName": "Type Ahead ",
 	"icon": "servoydefault/typeahead/bhdropdownlisticon.gif",
 	"definition": "servoydefault/typeahead/typeahead.js",
 	"libraries": [],
@@ -26,7 +25,7 @@
 	        "text" : "tagstring", 
 	        "toolTipText" : "tagstring", 
 	        "transparent" : "boolean", 
-	        "valuelistID" : { "type" : "valuelist", "scope" :"design", "for": "dataProviderID"}, 
+	        "valuelistID" : { "type" : "valuelist", "scope" :"design", "for": "dataProviderID", "default":"autoVL"}, 
 	        "visible" : {"type":"boolean", "default":true} 
 	},
 	"handlers":

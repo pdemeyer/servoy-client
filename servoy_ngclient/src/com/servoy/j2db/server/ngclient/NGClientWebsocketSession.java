@@ -39,7 +39,6 @@ import org.sablo.specification.WebComponentSpecification;
 import org.sablo.specification.WebServiceSpecProvider;
 import org.sablo.specification.property.types.AggregatedPropertyType;
 import org.sablo.websocket.BaseWebsocketSession;
-import org.sablo.websocket.ConversionLocation;
 import org.sablo.websocket.IClientService;
 import org.sablo.websocket.IWebsocketEndpoint;
 import org.sablo.websocket.TypedData;
@@ -55,6 +54,7 @@ import com.servoy.j2db.persistence.Form;
 import com.servoy.j2db.persistence.Media;
 import com.servoy.j2db.persistence.RepositoryException;
 import com.servoy.j2db.persistence.Solution;
+import com.servoy.j2db.persistence.StaticContentSpecLoader;
 import com.servoy.j2db.server.ngclient.eventthread.NGEventDispatcher;
 import com.servoy.j2db.server.ngclient.template.FormTemplateGenerator;
 import com.servoy.j2db.server.shared.ApplicationServerRegistry;
@@ -99,7 +99,7 @@ public class NGClientWebsocketSession extends BaseWebsocketSession implements IN
 	@Override
 	public boolean isValid()
 	{
-		return !client.isShutDown();
+		return client != null && !client.isShutDown();
 	}
 
 	@Override
@@ -271,24 +271,28 @@ public class NGClientWebsocketSession extends BaseWebsocketSession implements IN
 					if (property instanceof CustomValueList)
 					{
 						lstModel = new LookupListModel(client, (CustomValueList)property);
-						webComponent.setProperty(obj.getString("property"), lstModel, ConversionLocation.BROWSER_UPDATE);
+						webComponent.setProperty(obj.getString("property"), lstModel);
 					}
 					else if (property instanceof LookupValueList)
 					{
 						lstModel = new LookupListModel(client, (LookupValueList)property);
-						webComponent.setProperty(obj.getString("property"), lstModel, ConversionLocation.BROWSER_UPDATE);
+						webComponent.setProperty(obj.getString("property"), lstModel);
+					}
+					else if (property instanceof ColumnBasedValueList)
+					{
+						lstModel = ((ColumnBasedValueList)property).getListModel();
+						webComponent.setProperty(obj.getString("property"), lstModel);
 					}
 					else if (property instanceof LookupListModel)
 					{
 						lstModel = (LookupListModel)property;
-						// set the valuelistID property as changed on every letter typing
-						webComponent.setProperty(obj.getString("property"), lstModel, ConversionLocation.BROWSER_UPDATE);
 					}
 
 					if (lstModel != null)
 					{
-						// TODO what is the dataprovider? record could be given through the DataAdapterList..
-						lstModel.fill(null, null, obj.getString("filter"), false);
+						lstModel.fill(webComponent.dataAdapterList.getRecord(),
+							(String)webComponent.getFormElement().getPropertyValue(StaticContentSpecLoader.PROPERTY_DATAPROVIDERID.getPropertyName()),
+							obj.getString("filter"), false);
 					}
 					break;
 				}
@@ -471,7 +475,7 @@ public class NGClientWebsocketSession extends BaseWebsocketSession implements IN
 			{
 				boolean tableview = (form.getView() == IFormConstants.VIEW_TYPE_TABLE || form.getView() == IFormConstants.VIEW_TYPE_TABLE_LOCKED);
 				String view = (tableview ? "tableview" : "recordview");
-				new FormTemplateGenerator(new ServoyDataConverterContext(client), true).generate(form, realFormName, "form_" + view + "_js.ftl", sw);
+				new FormTemplateGenerator(new ServoyDataConverterContext(client), true, false).generate(form, realFormName, "form_" + view + "_js.ftl", sw);
 			}
 			if (client.isEventDispatchThread())
 			{
@@ -607,9 +611,7 @@ public class NGClientWebsocketSession extends BaseWebsocketSession implements IN
 		if (receiver instanceof WebFormComponent && ((WebFormComponent)receiver).getComponentContext() != null)
 		{
 			ComponentContext componentContext = ((WebFormComponent)receiver).getComponentContext();
-			call.put("parentComponentName", receiver.getParent().getName());
-			call.put("parentComponentProperty", componentContext.getParentComponentProperty());
-			call.put("parentComponentIndex", componentContext.getParentComponentIndex());
+			call.put("propertyPath", componentContext.getPropertyPath());
 		}
 		return super.invokeApi(receiver, apiFunction, arguments, argumentTypes, call);
 	}

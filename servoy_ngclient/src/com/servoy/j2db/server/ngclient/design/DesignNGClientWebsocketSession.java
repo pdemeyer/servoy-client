@@ -24,12 +24,14 @@ import java.util.List;
 
 import org.sablo.specification.WebComponentSpecification;
 import org.sablo.websocket.IClientService;
+import org.sablo.websocket.WebsocketEndpoint;
 import org.sablo.websocket.impl.ClientService;
 
 import com.servoy.base.persistence.constants.IFormConstants;
 import com.servoy.j2db.persistence.Form;
 import com.servoy.j2db.server.ngclient.IWebFormController;
 import com.servoy.j2db.server.ngclient.NGClientWebsocketSession;
+import com.servoy.j2db.server.ngclient.NGRuntimeWindow;
 import com.servoy.j2db.server.ngclient.NGRuntimeWindowManager;
 import com.servoy.j2db.server.ngclient.ServoyDataConverterContext;
 import com.servoy.j2db.server.ngclient.template.FormTemplateGenerator;
@@ -69,11 +71,20 @@ public final class DesignNGClientWebsocketSession extends NGClientWebsocketSessi
 	{
 		try
 		{
+			// in design the controller should be quickly set in the current generated window.
+			// (only the first form is set as main, for tabs this should be already set)
+			NGRuntimeWindow currentWindow = getClient().getRuntimeWindowManager().getCurrentWindow();
+			if (currentWindow.getController() == null)
+			{
+				IWebFormController controller = getClient().getFormManager().getForm(realFormName);
+				currentWindow.setController(controller);
+			}
 			String realUrl = formUrl + "?lm:" + System.currentTimeMillis() + "&sessionId=" + getUuid();
 			StringWriter sw = new StringWriter(512);
 			boolean tableview = (form.getView() == IFormConstants.VIEW_TYPE_TABLE || form.getView() == IFormConstants.VIEW_TYPE_TABLE_LOCKED);
 			String view = (tableview ? "tableview" : "recordview");
-			new FormTemplateGenerator(new ServoyDataConverterContext(getClient()), true).generate(form, realFormName, "form_" + view + "_js.ftl", sw);
+			// for al js code design flag should be true.
+			new FormTemplateGenerator(new ServoyDataConverterContext(getClient()), true, true).generate(form, realFormName, "form_" + view + "_js.ftl", sw);
 			getService(NGRuntimeWindowManager.WINDOW_SERVICE).executeAsyncServiceCall("updateController",
 				new Object[] { realFormName, sw.toString(), realUrl, Boolean.valueOf(forceLoad) });
 		}
@@ -104,5 +115,17 @@ public final class DesignNGClientWebsocketSession extends NGClientWebsocketSessi
 	private void formCreatedImp(String formName)
 	{
 		super.formCreated(formName);
+	}
+
+	@Override
+	public void onOpen(String solutionName)
+	{
+		// always generate a new window id. The window session seems to be shared over multiply swt browsers.
+		WebsocketEndpoint.get().setWindowId(getClient().getRuntimeWindowManager().createMainWindow());
+		super.onOpen(solutionName);
+		if (getClient().getSolution() != null)
+		{
+			sendSolutionCSSURL(getClient().getSolution());
+		}
 	}
 }

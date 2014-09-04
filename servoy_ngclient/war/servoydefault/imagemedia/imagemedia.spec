@@ -1,7 +1,6 @@
 {
 	"name": "svy-imagemedia",
 	"displayName": "Image Media",
-	"categoryName": "Elements",
 	"icon": "servoydefault/imagemedia/IMG16.png",
 	"definition": "servoydefault/imagemedia/imagemedia.js",
 	"libraries": [],
@@ -20,7 +19,7 @@
 	        "margin" : {"type" :"insets", "scope" :"design"}, 
 	        "placeholderText" : "tagstring", 
 	        "scrollbars" : {"type" :"int", "scope" :"design"}, 
-	        "size" : {"type" :"dimension",  "default" : {"width":140, "height":20}}, 
+	        "size" : {"type" :"dimension",  "default" : {"width":140, "height":140}}, 
 	        "styleClass" : { "type" :"styleclass", "scope" :"design", "values" :[]}, 
 	        "tabSeq" : {"type" :"tabseq", "scope" :"design"}, 
 	        "text" : "tagstring", 

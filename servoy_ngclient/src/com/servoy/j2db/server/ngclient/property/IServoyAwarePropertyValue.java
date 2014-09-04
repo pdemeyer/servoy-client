@@ -17,7 +17,7 @@
 
 package com.servoy.j2db.server.ngclient.property;
 
-import org.sablo.specification.property.IComplexPropertyValue;
+import org.sablo.specification.property.ISmartPropertyValue;
 
 import com.servoy.j2db.dataprocessing.IRecordInternal;
 
@@ -26,12 +26,12 @@ import com.servoy.j2db.dataprocessing.IRecordInternal;
  * 
  * @author acostescu
  */
-public interface IServoyAwarePropertyValue extends IComplexPropertyValue
+public interface IServoyAwarePropertyValue extends ISmartPropertyValue
 {
 
 	/**
 	 * Called when the record a component is bound to changes.<br/>
-	 * It can only be called after {@link IComplexPropertyValue#attachToComponent(org.sablo.IChangeListener, org.sablo.WebComponent)}
+	 * It can only be called after {@link ISmartPropertyValue#attachToComponent(org.sablo.IChangeListener, org.sablo.WebComponent)}
 	 * @param record the new record
 	 */
 	boolean pushRecord(IRecordInternal record);

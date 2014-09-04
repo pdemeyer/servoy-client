@@ -90,7 +90,10 @@ public class ResourceProvider implements Filter
 	private static void initSpecProvider()
 	{
 		//register the session factory at the manager
-		if (WebsocketSessionManager.getWebsocketSessionFactory() == null) WebsocketSessionManager.setWebsocketSessionFactory(new WebsocketSessionFactory());
+		if (WebsocketSessionManager.getWebsocketSessionFactory(WebsocketSessionFactory.CLIENT_ENDPOINT) == null)
+		{
+			WebsocketSessionManager.setWebsocketSessionFactory(WebsocketSessionFactory.CLIENT_ENDPOINT, new WebsocketSessionFactory());
+		}
 
 		registerTypes();
 

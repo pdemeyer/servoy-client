@@ -136,7 +136,7 @@ public class Activator implements BundleActivator
 
 		/*
 		 * (non-Javadoc)
-		 *
+		 * 
 		 * @see com.servoy.j2db.persistence.IPersistChangeListener#persistChanges(java.util.Collection)
 		 */
 		@Override
@@ -249,31 +249,33 @@ public class Activator implements BundleActivator
 			final IDebugClientHandler service = ApplicationServerRegistry.getServiceRegistry().getService(IDebugClientHandler.class);
 			if (service != null)
 			{
-				WebsocketSessionManager.setWebsocketSessionFactory(new IWebsocketSessionFactory()
+				WebsocketSessionManager.setWebsocketSessionFactory(WebsocketSessionFactory.CLIENT_ENDPOINT, new IWebsocketSessionFactory()
+				{
+					@Override
+					public IWebsocketSession createSession(String uuid) throws Exception
+					{
+						NGClientWebsocketSession wsSession = new NGClientWebsocketSession(uuid);
+						wsSession.setClient((NGClient)service.createDebugNGClient(wsSession));
+						return wsSession;
+					}
+				});
+
+				WebsocketSessionManager.setWebsocketSessionFactory(WebsocketSessionFactory.DESIGN_ENDPOINT, new IWebsocketSessionFactory()
 				{
 					private DesignNGClientWebsocketSession designerSession = null;
 
 					@Override
-					public IWebsocketSession createSession(String endpointType, String uuid) throws Exception
+					public IWebsocketSession createSession(String uuid) throws Exception
 					{
-						switch (endpointType)
+						if (designerSession == null || !designerSession.isValid())
 						{
-							case WebsocketSessionFactory.DESIGN_ENDPOINT :
-								if (designerSession == null || !designerSession.isValid())
-								{
-									final IDesignerSolutionProvider solutionProvider = ApplicationServerRegistry.getServiceRegistry().getService(
-										IDesignerSolutionProvider.class);
-									designerSession = new DesignNGClientWebsocketSession(uuid);
-									DesignNGClient client = new DeveloperDesignClient(designerSession, solutionProvider);
-									designerSession.setClient(client);
-								}
-								return designerSession;
-							case WebsocketSessionFactory.CLIENT_ENDPOINT :
-								NGClientWebsocketSession wsSession = new NGClientWebsocketSession(uuid);
-								wsSession.setClient((NGClient)service.createDebugNGClient(wsSession));
-								return wsSession;
+							final IDesignerSolutionProvider solutionProvider = ApplicationServerRegistry.getServiceRegistry().getService(
+								IDesignerSolutionProvider.class);
+							designerSession = new DesignNGClientWebsocketSession(uuid);
+							DesignNGClient client = new DeveloperDesignClient(designerSession, solutionProvider);
+							designerSession.setClient(client);
 						}
-						return null;
+						return designerSession;
 					}
 				});
 			}

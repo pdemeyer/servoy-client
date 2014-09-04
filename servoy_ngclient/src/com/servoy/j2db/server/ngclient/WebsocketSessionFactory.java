@@ -20,9 +20,6 @@ package com.servoy.j2db.server.ngclient;
 import org.sablo.websocket.IWebsocketSession;
 import org.sablo.websocket.IWebsocketSessionFactory;
 
-import com.servoy.j2db.server.ngclient.design.DesignNGClient;
-import com.servoy.j2db.server.ngclient.design.DesignNGClientWebsocketSession;
-
 /**
  * Create websocket session handler based on endpoint type.
  *
@@ -40,17 +37,19 @@ public class WebsocketSessionFactory implements IWebsocketSessionFactory
 	 */
 	public IWebsocketSession createSession(String uuid) throws Exception
 	{
-		switch (endpointType)
-		{
-			case DESIGN_ENDPOINT :
-				NGClientWebsocketSession wsSession = new DesignNGClientWebsocketSession(uuid);
-				wsSession.setClient(new DesignNGClient(wsSession));
-				return wsSession;
-			case CLIENT_ENDPOINT :
-				wsSession = new NGClientWebsocketSession(uuid);
-				wsSession.setClient(new NGClient(wsSession));
-				return wsSession;
-		}
-		return null;
+		// RAGTEST design client factory
+		NGClientWebsocketSession wsSession;
+//		switch (endpointType)
+//		{
+//			case DESIGN_ENDPOINT :
+//				  wsSession = new DesignNGClientWebsocketSession(uuid);
+//				wsSession.setClient(new DesignNGClient(wsSession));
+//				return wsSession;
+//			case CLIENT_ENDPOINT :
+		wsSession = new NGClientWebsocketSession(uuid);
+		wsSession.setClient(new NGClient(wsSession));
+		return wsSession;
+//		}
+//		return null;
 	}
 }

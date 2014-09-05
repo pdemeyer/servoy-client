@@ -56,7 +56,7 @@ webSocketModule.factory('$webSocket',
 						if (obj.conversions && obj.conversions.services) {
 							obj.services = $sabloConverters.convertFromServerToClient(obj.services, obj.conversions.services)
 						}
-						for ( var index in obj.services) {
+						for (var index in obj.services) {
 							var service = obj.services[index];
 							var serviceInstance = $injector.get(service.name);
 							if (serviceInstance
@@ -93,7 +93,15 @@ webSocketModule.factory('$webSocket',
 			}
 
 			var sendMessageObject = function(obj) {
-				websocket.send(JSON.stringify(obj))
+				var msg = JSON.stringify(obj)
+				if (connected) {
+					websocket.send(msg)
+				}
+				else
+				{
+					pendingMessages = pendingMessages || []
+					pendingMessages.push(msg)
+				}
 			}
 
 			var sendDeferredMessage = function(obj) {
@@ -152,6 +160,7 @@ webSocketModule.factory('$webSocket',
 			};
 			
 			var connected = false;
+			var pendingMessages = undefined
 
 			/**
 			 * The $webSocket service API.
@@ -180,7 +189,7 @@ webSocketModule.factory('$webSocket',
 						}
 					}
 					new_uri += pathname + '/websocket';
-					for (a in args) {
+					for (var a in args) {
 						new_uri += '/' + args[a]
 					}
 
@@ -191,6 +200,12 @@ webSocketModule.factory('$webSocket',
 						$rootScope.$apply(function() {
 							connected = true;
 						})
+						if (pendingMessages) {
+							for (var i in pendingMessages) {
+								websocket.send(pendingMessages[i])
+							}
+							pendingMessages = undefined
+						}
 						if (wsSession.onopen)
 							wsSession.onopen(evt)
 					}
@@ -232,7 +247,7 @@ webSocketModule.factory('$webSocket',
 				   var conversionInfo = serviceStatesConversionInfo[servicename];
 				   var changes = {}, prop;
 
-				   for (prop in fulllist) {
+				   for (var prop in fulllist) {
 					   var changed = false;
 					   if (!prev) {
 						   changed = true;

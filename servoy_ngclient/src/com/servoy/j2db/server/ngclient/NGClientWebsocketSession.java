@@ -40,6 +40,7 @@ import org.sablo.specification.WebServiceSpecProvider;
 import org.sablo.specification.property.types.AggregatedPropertyType;
 import org.sablo.websocket.BaseWebsocketSession;
 import org.sablo.websocket.IClientService;
+import org.sablo.websocket.IServerService;
 import org.sablo.websocket.IWebsocketEndpoint;
 import org.sablo.websocket.TypedData;
 import org.sablo.websocket.WebsocketEndpoint;
@@ -180,6 +181,13 @@ public class NGClientWebsocketSession extends BaseWebsocketSession implements IN
 		{
 			if (!client.isEventDispatchThread()) J2DBGlobals.setServiceProvider(null);
 		}
+	}
+
+	@Override
+	protected IServerService createFormService()
+	{
+		// is handled by NGFormManager. TODO: merge
+		return null;
 	}
 
 	/**
@@ -645,7 +653,7 @@ public class NGClientWebsocketSession extends BaseWebsocketSession implements IN
 
 	/*
 	 * (non-Javadoc)
-	 *
+	 * 
 	 * @see org.sablo.websocket.BaseWebsocketSession#createClientService(java.lang.String)
 	 */
 	@Override

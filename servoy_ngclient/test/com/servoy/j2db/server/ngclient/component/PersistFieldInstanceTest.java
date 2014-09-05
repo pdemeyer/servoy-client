@@ -39,6 +39,7 @@ import org.json.JSONObject;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.sablo.Container;
 import org.sablo.WebComponent;
 import org.sablo.eventthread.IEventDispatcher;
 import org.sablo.specification.PropertyDescription;
@@ -665,6 +666,13 @@ public class PersistFieldInstanceTest
 
 				@Override
 				public IClientService getService(String name)
+				{
+					// TODO Auto-generated method stub
+					return null;
+				}
+
+				@Override
+				public Container getForm(String formName)
 				{
 					// TODO Auto-generated method stub
 					return null;

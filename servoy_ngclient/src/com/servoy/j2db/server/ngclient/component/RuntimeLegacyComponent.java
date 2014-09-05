@@ -28,7 +28,6 @@ import org.mozilla.javascript.Context;
 import org.mozilla.javascript.Scriptable;
 import org.sablo.specification.PropertyDescription;
 import org.sablo.specification.WebComponentSpecification;
-import org.sablo.specification.property.IPropertyType;
 
 import com.servoy.j2db.component.ComponentFactory;
 import com.servoy.j2db.persistence.AbstractBase;
@@ -39,7 +38,7 @@ import com.servoy.j2db.persistence.ISupportName;
 import com.servoy.j2db.persistence.StaticContentSpecLoader;
 import com.servoy.j2db.server.ngclient.WebFormComponent;
 import com.servoy.j2db.server.ngclient.property.types.NGConversions;
-import com.servoy.j2db.server.ngclient.property.types.NGConversions.ISupportsConversion4_1_SabloComponentValueToRhino;
+import com.servoy.j2db.server.ngclient.property.types.NGConversions.ISabloComponentToRhino;
 import com.servoy.j2db.util.Utils;
 
 /**
@@ -144,10 +143,9 @@ public class RuntimeLegacyComponent implements Scriptable
 		Object value;
 
 		PropertyDescription pd = webComponentSpec.getProperties().get(name);
-		IPropertyType< ? > type = pd.getType();
-		if (type instanceof ISupportsConversion4_1_SabloComponentValueToRhino< ? >)
+		if (pd != null && pd.getType() instanceof ISabloComponentToRhino< ? >)
 		{
-			value = ((ISupportsConversion4_1_SabloComponentValueToRhino)type).toRhinoValue(component.getProperty(name), pd, component);
+			value = ((ISabloComponentToRhino)pd.getType()).toRhinoValue(component.getProperty(name), pd, component);
 		}
 		else
 		{
@@ -221,7 +219,7 @@ public class RuntimeLegacyComponent implements Scriptable
 		}
 
 		Object previousVal = component.getProperty(name);
-		Object val = NGConversions.INSTANCE.applyConversion4_2(value, previousVal, webComponentSpec.getProperties().get(name), component);
+		Object val = NGConversions.INSTANCE.convertRhinoToSabloComponentValue(value, previousVal, webComponentSpec.getProperties().get(name), component);
 
 		if (val != previousVal) component.setProperty(name, val);
 	}

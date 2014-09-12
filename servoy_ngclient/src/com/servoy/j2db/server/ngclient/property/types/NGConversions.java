@@ -166,7 +166,7 @@ public class NGConversions
 		 * @param component the component to which the given value belongs to
 		 * @return the converted value, ready to be set in Sablo component/service
 		 */
-		T toSabloComponentValue(Object rhinoValue, Object previousComponentValue, PropertyDescription pd, WebFormComponent component);
+		T toSabloComponentValue(Object rhinoValue, T previousComponentValue, PropertyDescription pd, WebFormComponent component);
 
 	}
 
@@ -275,8 +275,11 @@ public class NGConversions
 		{
 			// TODO this should slowly dissapear as more things are moved to type code
 
-			String name = pd.getName();
-			Object value = component.getConvertedPropertyWithDefault(name, type instanceof DataproviderPropertyType, true);
+//			String name = pd.getName();
+
+			// hmm this is no longer ok now, the property name could be relative to a nested property, not necessarily to a component
+			// we should really implement all types properly as soon as possible
+//			Object value = component.getConvertedPropertyWithDefault(name, type instanceof DataproviderPropertyType, true);
 
 			// TODO if we want to support random objects/array we should create a "AnyJSONValueType" that based on value type
 			// reuses stuff from CustomJSONArrayType, CustomJSONObject type instead of the commented out code below
@@ -287,7 +290,7 @@ public class NGConversions
 //			}
 
 			// hmm getConvertedPropertyWithDefault() above might (or might not) also have done the design conversion already through DataAdapterList call; so it might get called twice DesignConversion.toStringObject which is wrong
-			return DesignConversion.toStringObject(value, pd.getType());
+			return DesignConversion.toStringObject(webComponentValue, pd.getType());
 		}
 
 		return rhinoVal;
@@ -296,18 +299,18 @@ public class NGConversions
 	/**
 	 * Conversion 4.2 as specified in https://wiki.servoy.com/pages/viewpage.action?pageId=8716797.
 	 */
-	public Object convertRhinoToSabloComponentValue(Object rhinoValue, Object previousComponentValue, PropertyDescription pd, WebFormComponent component)
+	public <T> T convertRhinoToSabloComponentValue(Object rhinoValue, T previousComponentValue, PropertyDescription pd, WebFormComponent component)
 	{
-		Object sabloVal;
+		T sabloVal;
 		IPropertyType< ? > type = pd.getType();
 		if (type instanceof IRhinoToSabloComponent< ? >)
 		{
-			sabloVal = ((IRhinoToSabloComponent)type).toSabloComponentValue(rhinoValue, previousComponentValue, pd, component);
+			sabloVal = ((IRhinoToSabloComponent<T>)type).toSabloComponentValue(rhinoValue, previousComponentValue, pd, component);
 		}
 		else
 		{
 			// TODO this should slowly dissapear as more things are moved to type code
-			sabloVal = RhinoConversion.convert(rhinoValue, previousComponentValue, pd, component.getDataConverterContext());
+			sabloVal = (T)RhinoConversion.convert(rhinoValue, previousComponentValue, pd, component.getDataConverterContext());
 		}
 		return sabloVal;
 	}

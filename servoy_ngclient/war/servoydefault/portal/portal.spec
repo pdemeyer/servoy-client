@@ -3,12 +3,12 @@
 	"displayName": "Portal",
 	"icon": "servoydefault/portal/portal.gif",
 	"definition": "servoydefault/portal/portal.js",
-	"libraries": ["servoydefault/portal/portal.css"],
+	"libraries": [{"name":"svy-portal.css", "version":"1", "url":"servoydefault/portal/portal.css", "mimetype":"text/css"}],
 	"model":
 	{
 	        "background" : "color", 
 	        "borderType" : "border", 
-	        "childElements" : { "type" : "component[]", "elementConfig" : { "forFoundsetTypedProperty": "relatedFoundset" } }, 
+	        "childElements" : { "type" : "component[]", "forFoundsetTypedProperty": "relatedFoundset" }, 
 	        "enabled" : {"type":"boolean", "default":true}, 
 	        "foreground" : "color", 
 	        "initialSort" : "string", 

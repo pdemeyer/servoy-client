@@ -21,9 +21,11 @@ import java.rmi.RemoteException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 
 import org.osgi.framework.BundleActivator;
 import org.osgi.framework.BundleContext;
@@ -46,6 +48,7 @@ import com.servoy.j2db.persistence.RepositoryException;
 import com.servoy.j2db.persistence.RootObjectMetaData;
 import com.servoy.j2db.persistence.Solution;
 import com.servoy.j2db.persistence.SolutionMetaData;
+import com.servoy.j2db.persistence.Tab;
 import com.servoy.j2db.server.ngclient.FormElement;
 import com.servoy.j2db.server.ngclient.INGClientWebsocketSession;
 import com.servoy.j2db.server.ngclient.IWebFormUI;
@@ -84,7 +87,7 @@ public class Activator implements BundleActivator
 
 		/*
 		 * (non-Javadoc)
-		 *
+		 * 
 		 * @see com.servoy.j2db.server.ngclient.NGClient#shutDown(boolean)
 		 */
 		@Override
@@ -145,9 +148,14 @@ public class Activator implements BundleActivator
 			final Map<Form, List<IFormElement>> frms = new HashMap<>();
 			for (IPersist persist : changes)
 			{
-				if (persist instanceof IFormElement)
+				if (persist instanceof IFormElement || persist instanceof Tab)
 				{
 					IPersist parent = persist;
+					if (persist instanceof Tab)
+					{
+						parent = ((Tab)persist).getParent();
+						persist = parent;
+					}
 					while (parent != null)
 					{
 						if (parent instanceof Form)
@@ -197,7 +205,10 @@ public class Activator implements BundleActivator
 
 										WebComponentSpecification spec = webComponent.getSpecification();
 										Map<String, PropertyDescription> handlers = spec.getHandlers();
-										for (String property : newFe.getRawPropertyValues().keySet())
+										Set<String> allKeys = new HashSet<>();
+										allKeys.addAll(newFe.getRawPropertyValues().keySet());
+										allKeys.addAll(existingFe.getRawPropertyValues().keySet());
+										for (String property : allKeys)
 										{
 											Object currentPropValue = existingFe.getPropertyValue(property);
 											Object newPropValue = newFe.getPropertyValue(property);
@@ -210,14 +221,17 @@ public class Activator implements BundleActivator
 													break outer;
 												}
 												PropertyDescription prop = spec.getProperty(property);
-												if ("design".equals(prop.getScope()))
+												if (prop != null)
 												{
-													// this is a design property change so a big change
-													bigChange = true;
-													break outer;
+													if ("design".equals(prop.getScope()))
+													{
+														// this is a design property change so a big change
+														bigChange = true;
+														break outer;
+													}
+													webComponent.setFormElement(newFe);
+													webComponent.setProperty(property, newFe.getPropertyValueConvertedForWebComponent(property, webComponent));
 												}
-												webComponent.setFormElement(newFe);
-												webComponent.setProperty(property, newFe.getPropertyValueConvertedForWebComponent(property, webComponent));
 											}
 										}
 									}
@@ -273,15 +287,15 @@ public class Activator implements BundleActivator
 					@Override
 					public IWebsocketSession createSession(String uuid) throws Exception
 					{
-						if (designerSession == null || !designerSession.isValid())
-						{
-							final IDesignerSolutionProvider solutionProvider = ApplicationServerRegistry.getServiceRegistry().getService(
-								IDesignerSolutionProvider.class);
-							designerSession = new DesignNGClientWebsocketSession(uuid);
-							DesignNGClient client = new DeveloperDesignClient(designerSession, solutionProvider);
-							designerSession.setClient(client);
-						}
-						return designerSession;
+								if (designerSession == null || !designerSession.isValid())
+								{
+									final IDesignerSolutionProvider solutionProvider = ApplicationServerRegistry.getServiceRegistry().getService(
+										IDesignerSolutionProvider.class);
+									designerSession = new DesignNGClientWebsocketSession(uuid);
+									DesignNGClient client = new DeveloperDesignClient(designerSession, solutionProvider);
+									designerSession.setClient(client);
+								}
+								return designerSession;
 					}
 				});
 			}

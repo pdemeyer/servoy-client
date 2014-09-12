@@ -35,8 +35,8 @@ import com.servoy.j2db.persistence.Solution;
 import com.servoy.j2db.persistence.SolutionMetaData;
 import com.servoy.j2db.server.ngclient.endpoint.NGClientEndpoint;
 import com.servoy.j2db.server.ngclient.property.types.Types;
+import com.servoy.j2db.server.ngclient.template.FormLayoutGenerator;
 import com.servoy.j2db.server.ngclient.template.FormTemplateGenerator;
-import com.servoy.j2db.server.ngclient.template.FormWithInlineLayoutGenerator;
 import com.servoy.j2db.server.shared.ApplicationServerRegistry;
 import com.servoy.j2db.server.shared.IApplicationServer;
 import com.servoy.j2db.util.Debug;
@@ -182,17 +182,18 @@ public class NGClientEntryFilter extends WebEntry
 									boolean html = uri.endsWith(".html");
 									boolean tableview = (form.getView() == IFormConstants.VIEW_TYPE_TABLE || form.getView() == IFormConstants.VIEW_TYPE_TABLE_LOCKED);
 									PrintWriter w = servletResponse.getWriter();
-									if (!tableview && html && form.getLayoutGrid() != null)
+//									if (!tableview && html && form.getLayoutGrid() != null)
+//									{
+//										((HttpServletResponse)servletResponse).setContentType("text/html");
+//										FormWithInlineLayoutGenerator.generate(form, wsSession != null ? new ServoyDataConverterContext(wsSession.getClient())
+//											: new ServoyDataConverterContext(fs), w);
+//									}
+//									else 
+									if (html && form.getLayoutContainers().hasNext())
 									{
 										((HttpServletResponse)servletResponse).setContentType("text/html");
-										FormWithInlineLayoutGenerator.generate(form, wsSession != null ? new ServoyDataConverterContext(wsSession.getClient())
-											: new ServoyDataConverterContext(fs), w);
-									}
-									else if (html && form.getLayoutContainers().hasNext())
-									{
-										((HttpServletResponse)servletResponse).setContentType("text/html");
-										FormWithInlineLayoutGenerator.generateLayoutContainers(form, wsSession != null ? new ServoyDataConverterContext(
-											wsSession.getClient()) : new ServoyDataConverterContext(fs), w, Utils.getAsBoolean(request.getParameter("design")));
+										FormLayoutGenerator.generateLayout(form, wsSession != null ? new ServoyDataConverterContext(wsSession.getClient())
+											: new ServoyDataConverterContext(fs), w, Utils.getAsBoolean(request.getParameter("design")));
 									}
 									else
 									{

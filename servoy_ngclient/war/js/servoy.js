@@ -415,7 +415,6 @@ angular.module('servoy',['servoyformat','servoytooltip','servoyfileupload','ui.b
         	$utils.attachEventHandler($parse,element,scope,attrs.svyChange,'change',null,100);
         }
       };
-
 }).directive('svyClick',  function ($parse,$utils) {
     return {
         restrict: 'A',

@@ -190,6 +190,7 @@
 		if (firstTime || newVal !== oldVal)
 		{
 			firstTime = false;
+			$timeout(function() {
 			 var currentPageSize = $scope.grid${controllerName}.$gridScope.viewportDimHeight() /  $scope.grid${controllerName}.$gridScope.rowHeight;
 			 var show =  newVal > currentPageSize;
 			 $scope.grid${controllerName}.$gridScope.enablePaging = show;
@@ -198,6 +199,7 @@
 			 {
 			 	$scope.grid${controllerName}.$gridScope.footerRowHeight = show ? $scope.grid${controllerName}.$gridScope.config.footerRowHeight : 0;
 			 }
+			 },1);
 		}
 	}, false);
 	

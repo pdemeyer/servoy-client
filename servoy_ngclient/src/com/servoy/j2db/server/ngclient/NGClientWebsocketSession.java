@@ -30,7 +30,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
-import org.json.JSONStringer;
 import org.sablo.WebComponent;
 import org.sablo.eventthread.IEventDispatcher;
 import org.sablo.specification.PropertyDescription;
@@ -146,8 +145,16 @@ public class NGClientWebsocketSession extends BaseWebsocketSession implements IN
 					if (currentForm != null)
 					{
 						// we have to call setcontroller again so that switchForm is called and the form is loaded into the reloaded/new window.
-						client.getRuntimeWindowManager().getCurrentWindow().setController(currentForm);
-						sendSolutionCSSURL(client.getSolution());
+						startHandlingEvent();
+						try
+						{
+							client.getRuntimeWindowManager().getCurrentWindow().setController(currentForm);
+							sendSolutionCSSURL(client.getSolution());
+						}
+						finally
+						{
+							stopHandlingEvent();
+						}
 						return;
 					}
 				}
@@ -418,6 +425,7 @@ public class NGClientWebsocketSession extends BaseWebsocketSession implements IN
 	{
 		if (form == null) return;
 		ConcurrentMap<String, Pair<String, Boolean>> formsOnClient = endpointForms.get(WebsocketEndpoint.get());
+		if (formsOnClient == null) return; // endpoint is not registered for forms (ex: there is a api call from a scheduler, that will want to touch the form, but there are no forms for that endpoint)
 		String formName = realInstanceName == null ? form.getName() : realInstanceName;
 		String formUrl = "solutions/" + form.getSolution().getName() + "/forms/" + formName + ".html";
 		if (formsOnClient.putIfAbsent(formName, new Pair<String, Boolean>(formUrl, Boolean.FALSE)) == null)
@@ -485,7 +493,7 @@ public class NGClientWebsocketSession extends BaseWebsocketSession implements IN
 				String view = (tableview ? "tableview" : "recordview");
 				new FormTemplateGenerator(new ServoyDataConverterContext(client), true, false).generate(form, realFormName, "form_" + view + "_js.ftl", sw);
 			}
-			if (client.isEventDispatchThread())
+			if (client.isEventDispatchThread() && forceLoad)
 			{
 				getService(NGRuntimeWindowManager.WINDOW_SERVICE).executeServiceCall("updateController",
 					new Object[] { realFormName, sw.toString(), realUrl, Boolean.valueOf(forceLoad) });
@@ -523,17 +531,8 @@ public class NGClientWebsocketSession extends BaseWebsocketSession implements IN
 			Media styleSheetMedia = solution.getMedia(styleSheetID);
 			if (styleSheetMedia != null)
 			{
-				JSONStringer stringer = new JSONStringer();
-				try
-				{
-					stringer.object().key("styleSheetPath").value(
-						"resources/" + MediaResourcesServlet.FLATTENED_SOLUTION_ACCESS + "/" + solution.getName() + "/" + styleSheetMedia.getName());
-					WebsocketEndpoint.get().sendMessage(stringer.endObject().toString());
-				}
-				catch (Exception e)
-				{
-					Debug.error(e);
-				}
+				String path = "resources/" + MediaResourcesServlet.FLATTENED_SOLUTION_ACCESS + "/" + solution.getName() + "/" + styleSheetMedia.getName();
+				getService(NGClient.APPLICATION_SERVICE).executeAsyncServiceCall("setStyleSheet", new Object[] { path });
 			}
 			else
 			{

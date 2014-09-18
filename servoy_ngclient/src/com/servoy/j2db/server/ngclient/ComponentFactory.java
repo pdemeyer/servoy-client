@@ -59,6 +59,7 @@ import com.servoy.j2db.persistence.RepositoryException;
 import com.servoy.j2db.persistence.StaticContentSpecLoader;
 import com.servoy.j2db.persistence.ValueList;
 import com.servoy.j2db.server.ngclient.property.ComponentPropertyType;
+import com.servoy.j2db.server.ngclient.property.types.ISupportTemplateValue;
 import com.servoy.j2db.server.ngclient.property.types.PropertyPath;
 import com.servoy.j2db.server.shared.ApplicationServerRegistry;
 import com.servoy.j2db.util.Debug;
@@ -284,7 +285,10 @@ public class ComponentFactory
 				default :
 					break;
 			}
-			if (propValue != null) putInComponentNode(componentNode, propName, propValue, propertySpec, component); //TODO
+			if (propValue != null)
+			{
+				putInComponentNode(componentNode, propName, propValue, propertySpec, component); //TODO
+			}
 		}
 	}
 
@@ -297,9 +301,19 @@ public class ComponentFactory
 		// TODO should this just a a property.property.property = value called to WebFormComponent?
 		if (componentNode instanceof WebFormComponent)
 		{
-			// TODO this will convert a second time (the first conversion was done in FormElement; is this really needed? cause
-			// converted value reaching conversion again doesn't seem nice
-			((WebFormComponent)componentNode).setProperty(propName, propValue);
+			boolean templatevalue = true;
+			if (propertySpec.getType() instanceof ISupportTemplateValue)
+			{
+				templatevalue = ((ISupportTemplateValue)propertySpec.getType()).valueInTemplate(propValue);
+			}
+			if (templatevalue)
+			{
+				((WebFormComponent)componentNode).setDefaultProperty(propName, propValue);
+			}
+			else
+			{
+				((WebFormComponent)componentNode).setProperty(propName, propValue);
+			}
 		}
 		else
 		{
@@ -486,7 +500,7 @@ public class ComponentFactory
 				}
 				ComponentPropertyType type = ((ComponentPropertyType)pd.getType());
 
-				Map<String, Object> portalFormElementProperties = portalFormElement.getRawPropertyValues();
+				Map<String, Object> portalFormElementProperties = new HashMap<>(portalFormElement.getRawPropertyValues());
 				// now put real child component form element values in "childElements"
 				int startPos = form.getPartStartYPos(bodyPart.getID());
 				int endPos = bodyPart.getHeight();

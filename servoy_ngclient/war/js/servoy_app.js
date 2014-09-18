@@ -76,10 +76,12 @@ angular.module('servoyApp', ['servoy','webStorageModule','ngGrid','servoy-compon
 		   for(var key in beanData) {
 			   // remember conversion info for when it will be sent back to server - it might need special conversion as well
 			   if (newConversionInfo && newConversionInfo[key]) {
-				   beanConversionInfo[key] = newConversionInfo[key];
-				   if (beanModel[key] !== beanData[key] && beanData[key] && beanData[key][$sabloConverters.INTERNAL_IMPL] && beanData[key][$sabloConverters.INTERNAL_IMPL].setChangeNotifier) {
+				   // if the value changed and it wants to be in control of it's changes, or if the conversion info for this value changed (thus possibly preparing an old value for being change-aware without changing the value reference)
+				   if ((beanModel[key] !== beanData[key] || beanConversionInfo[key] !== newConversionInfo[key])
+						   	&& beanData[key] && beanData[key][$sabloConverters.INTERNAL_IMPL] && beanData[key][$sabloConverters.INTERNAL_IMPL].setChangeNotifier) {
 					   beanData[key][$sabloConverters.INTERNAL_IMPL].setChangeNotifier(changeNotifier);
 				   }
+				   beanConversionInfo[key] = newConversionInfo[key];
 			   }
 
 			   // also make location and size available in model
@@ -87,7 +89,7 @@ angular.module('servoyApp', ['servoy','webStorageModule','ngGrid','servoy-compon
 		   }
 
 		   //beanData.anchors means anchors changed or must be initialized
-		   if(beanData.anchors && containerSize) {
+		   if(beanData.anchors && containerSize && $solutionSettings.enableAnchoring) {
 			   var anchoredTop = (beanModel.anchors & $anchorConstants.NORTH) != 0; // north
 			   var anchoredRight = (beanModel.anchors & $anchorConstants.EAST) != 0; // east
 			   var anchoredBottom = (beanModel.anchors & $anchorConstants.SOUTH) != 0; // south
@@ -170,7 +172,7 @@ angular.module('servoyApp', ['servoy','webStorageModule','ngGrid','servoy-compon
 		   }
 
 		   //we set the following properties iff the bean doesn't have anchors
-		   if (!beanModel.anchors)
+		   if (!beanModel.anchors || !$solutionSettings.enableAnchoring)
 		   {
 			   if (beanModel.location)
 			   {
@@ -337,21 +339,6 @@ angular.module('servoyApp', ['servoy','webStorageModule','ngGrid','servoy-compon
 			   if (msg.sessionid) {
 				   webStorage.session.add("sessionid",msg.sessionid);
 			   }
-			   if (msg.styleSheetPath) {
-				   $solutionSettings.styleSheetPath = msg.styleSheetPath;
-			   }	   
-			   /**
-			    * TODO sesionExpired should not be called forom the protocol , 
-			    * it should be a direct call to a service (also check to see if  noLicense and maintenanceMode can be moved to a service)
-			    * */
-			   if(msg.noLicense){
-				   $sessionService.setNoLicense(msg.noLicense)	        		
-			   }	       
-			   if(msg.maintenanceMode){
-				   $sessionService.setMaintenanceMode(msg.maintenanceMode)    		
-			   }
-
-			   /** end TODO*/
 			   if (msg.windowid) {
 				   $solutionSettings.windowName = msg.windowid;
 				   webStorage.session.add("windowid",msg.windowid);
@@ -489,6 +476,18 @@ angular.module('servoyApp', ['servoy','webStorageModule','ngGrid','servoy-compon
 			   return getSession().callService(serviceName, methodName, argsObject, async)
 		   }
 	   }
+}).directive('svyAutosave',  function ($servoyInternal) {
+    return {
+        restrict: 'A',
+        link: function (scope, element, attrs) {
+        	element.on('click', function(event) {
+        		if (event.target.tagName.toLowerCase() == 'div')
+        		{
+           		   $servoyInternal.callService("applicationServerService", "autosave", true);
+        		}
+        	});
+        }
+      };
 }).directive('svyLayoutUpdate', function($servoyInternal,$window,$timeout) {
     return {
       restrict: 'A', // only activate on element attribute
@@ -525,7 +524,8 @@ angular.module('servoyApp', ['servoy','webStorageModule','ngGrid','servoy-compon
 	solutionTitle: "",
 	defaultNavigatorState: {max:0,currentIdx:0,form:'<none>'},
 	styleSheetPath: undefined,
-	ltrOrientation : true
+	ltrOrientation : true,
+	enableAnchoring: true
 }).controller("MainController", function($scope, $solutionSettings, $servoyInternal, $windowService,$rootScope,webStorage) {
 	$servoyInternal.connect();
 	$scope.solutionSettings = $solutionSettings;
@@ -622,7 +622,7 @@ angular.module('servoyApp', ['servoy','webStorageModule','ngGrid','servoy-compon
 			var noLic = {
 					viewUrl : 'templates/serverTooBusyView.html',
 					redirectUrl : $window.location.href,
-					redirectTimeout : 0
+					redirectTimeout : -1
 			}
 			if(noLicense.viewUrl) noLic.viewUrl = noLicense.viewUrl 
 			if(noLicense.redirectUrl) noLic.redirectUrl = noLicense.redirectUrl;
@@ -651,7 +651,7 @@ angular.module('servoyApp', ['servoy','webStorageModule','ngGrid','servoy-compon
 		}
 	}
 }])
-.factory("$applicationService",['$window','$timeout','webStorage','$modal', '$servoyInternal', function($window,$timeout,webStorage,$modal,$servoyInternal) {
+.factory("$applicationService",['$window','$timeout','webStorage','$modal', '$servoyInternal','$solutionSettings', function($window,$timeout,webStorage,$modal,$servoyInternal,$solutionSettings) {
 	var showDefaultLoginWindow = function() {
 			$modal.open({
         	  templateUrl: '/templates/login.html',
@@ -662,6 +662,9 @@ angular.module('servoyApp', ['servoy','webStorageModule','ngGrid','servoy-compon
 			});				
 		}
 	return {
+		setStyleSheet: function(path) {
+			$solutionSettings.styleSheetPath = path;
+		},
 		getUserProperty: function(key) {
 			var json = webStorage.local.get("userProperties");
 			if (json) {

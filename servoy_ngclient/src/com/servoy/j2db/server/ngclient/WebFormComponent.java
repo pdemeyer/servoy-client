@@ -56,7 +56,7 @@ public class WebFormComponent extends Container implements ListDataListener, ICo
 		this.formElement = fe;
 		this.dataAdapterList = dataAdapterList;
 
-		properties.put("markupId", ComponentFactory.getMarkupId(dataAdapterList.getForm().getName(), name));
+		properties.put("svyMarkupId", ComponentFactory.getMarkupId(dataAdapterList.getForm().getName(), name));
 		if (fe.getWebComponentSpec(false) != null)
 		{
 			Map<String, PropertyDescription> tabSeqProps = fe.getWebComponentSpec().getProperties(TypesRegistry.getType("tabseq"));
@@ -383,8 +383,9 @@ public class WebFormComponent extends Container implements ListDataListener, ICo
 	public boolean pushRecord(IRecordInternal record)
 	{
 		boolean changed = false;
-		for (Object x : properties.values())
+		for (String pN : getAllPropertyNames(true))
 		{
+			Object x = getProperty(pN);
 			if (x instanceof IServoyAwarePropertyValue) changed = ((IServoyAwarePropertyValue)x).pushRecord(record) || changed;
 		}
 		return changed;

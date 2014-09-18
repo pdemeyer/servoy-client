@@ -23,6 +23,7 @@ import java.util.List;
 
 import org.json.JSONArray;
 import org.json.JSONException;
+import org.json.JSONObject;
 import org.json.JSONWriter;
 import org.mozilla.javascript.NativeArray;
 import org.mozilla.javascript.NativeJavaArray;
@@ -52,7 +53,7 @@ import com.servoy.j2db.util.Debug;
  */
 public class NGCustomJSONArrayType<SabloT, SabloWT> extends CustomJSONArrayType<SabloT, SabloWT> implements IDesignToFormElement<JSONArray, Object[], Object>,
 	IFormElementToTemplateJSON<Object[], Object>, IFormElementToSabloComponent<Object[], Object>, ISabloComponentToRhino<Object>,
-	IRhinoToSabloComponent<Object>
+	IRhinoToSabloComponent<Object>, ISupportTemplateValue<List<Object>>
 {
 
 	public NGCustomJSONArrayType(PropertyDescription definition)
@@ -93,11 +94,12 @@ public class NGCustomJSONArrayType<SabloT, SabloWT> extends CustomJSONArrayType<
 	{
 		JSONUtils.addKeyIfPresent(writer, key);
 		if (conversionMarkers != null) conversionMarkers.convert(CustomJSONArrayType.TYPE_NAME); // so that the client knows it must use the custom client side JS for what JSON it gets
-		writer.object().key(CONTENT_VERSION).value(0).key(VALUE).array();
-		DataConversion arrayConversionMarkers = new DataConversion();
 
 		if (formElementValue != null)
 		{
+			writer.object().key(CONTENT_VERSION).value(1).key(VALUE).array();
+			DataConversion arrayConversionMarkers = new DataConversion();
+
 			for (int i = 0; i < formElementValue.length; i++)
 			{
 				arrayConversionMarkers.pushNode(String.valueOf(i));
@@ -105,15 +107,19 @@ public class NGCustomJSONArrayType<SabloT, SabloWT> extends CustomJSONArrayType<
 					arrayConversionMarkers);
 				arrayConversionMarkers.popNode();
 			}
-		}
-		writer.endArray();
-		if (arrayConversionMarkers.getConversions().size() > 0)
-		{
-			writer.key("conversions").object();
-			JSONUtils.writeConversions(writer, arrayConversionMarkers.getConversions());
+			writer.endArray();
+			if (arrayConversionMarkers.getConversions().size() > 0)
+			{
+				writer.key("conversions").object();
+				JSONUtils.writeConversions(writer, arrayConversionMarkers.getConversions());
+				writer.endObject();
+			}
 			writer.endObject();
 		}
-		writer.endObject();
+		else
+		{
+			writer.value(JSONObject.NULL);
+		}
 		return writer;
 	}
 
@@ -187,6 +193,28 @@ public class NGCustomJSONArrayType<SabloT, SabloWT> extends CustomJSONArrayType<
 	public Object toRhinoValue(Object webComponentValue, PropertyDescription pd, WebFormComponent component)
 	{
 		return new RhinoMapOrArrayWrapper(webComponentValue, component, pd.getName(), pd, component.getDataConverterContext());
+	}
+
+	@Override
+	public boolean valueInTemplate(List<Object> values)
+	{
+		if (values != null && values.size() > 0)
+		{
+			PropertyDescription desc = getCustomJSONTypeDefinition();
+
+			if (desc.getType() instanceof ISupportTemplateValue)
+			{
+				ISupportTemplateValue<Object> type = (ISupportTemplateValue<Object>)desc.getType();
+				for (Object object : values)
+				{
+					if (!type.valueInTemplate(object))
+					{
+						return false;
+					}
+				}
+			}
+		}
+		return true;
 	}
 
 }

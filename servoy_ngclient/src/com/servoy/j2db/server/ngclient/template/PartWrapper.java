@@ -31,6 +31,7 @@ import com.servoy.j2db.persistence.IFormElement;
 import com.servoy.j2db.persistence.IPersist;
 import com.servoy.j2db.persistence.IRepository;
 import com.servoy.j2db.persistence.Part;
+import com.servoy.j2db.persistence.PositionComparator;
 import com.servoy.j2db.persistence.Solution;
 import com.servoy.j2db.server.headlessclient.dataui.AbstractFormLayoutProvider;
 import com.servoy.j2db.server.headlessclient.dataui.AnchoredFormLayoutProvider;
@@ -86,12 +87,22 @@ public class PartWrapper
 
 	public String getName()
 	{
+		return getName(part);
+	}
+
+	public static String getName(Part part)
+	{
 		String name = Part.getDisplayName(part.getPartType());
 		name = name.replace(" ", ""); //$NON-NLS-1$ //$NON-NLS-2$
 		return name.toLowerCase();
 	}
 
 	public Collection<BaseComponent> getBaseComponents()
+	{
+		return getBaseComponents(part, context, converterContext);
+	}
+
+	public static Collection<BaseComponent> getBaseComponents(Part part, Form context, IServoyDataConverterContext converterContext)
 	{
 		if (part.getPartType() == Part.BODY)
 		{
@@ -109,19 +120,19 @@ public class PartWrapper
 		List<BaseComponent> baseComponents = new ArrayList<>();
 		int startPos = context.getPartStartYPos(part.getID());
 		int endPos = part.getHeight();
-		List<IFormElement> persists = context.getFlattenedObjects();
+		List<IFormElement> persists = context.getFlattenedObjects(PositionComparator.XY_PERSIST_COMPARATOR);
 		for (IFormElement persist : persists)
 		{
 			Point location = persist.getLocation();
 			if (startPos <= location.y && endPos > location.y)
 			{
-				if (isSecurityVisible(persist)) baseComponents.add((BaseComponent)persist);
+				if (isSecurityVisible(persist, converterContext)) baseComponents.add((BaseComponent)persist);
 			}
 		}
 		return baseComponents;
 	}
 
-	public boolean isSecurityVisible(IPersist persist)
+	public static boolean isSecurityVisible(IPersist persist, IServoyDataConverterContext converterContext)
 	{
 		if (converterContext.getApplication() == null) return true;
 		int access = converterContext.getApplication().getFlattenedSolution().getSecurityAccess(persist.getUUID());

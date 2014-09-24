@@ -19,7 +19,6 @@ angular.module('servoyApp', ['servoy','webStorageModule','ngGrid','servoy-compon
 	   }
 
 	   var getComponentChanges = function(now, prev, beanConversionInfo, beanLayout, parentSize, changeNotifier) {
-		   if (ignoreChanges) return false;
 		   // first build up a list of all the properties both have.
 		   var fulllist = $sabloUtils.getCombinedPropertyNames(now,prev);
 		   var changes = {}, prop;
@@ -209,77 +208,73 @@ angular.module('servoyApp', ['servoy','webStorageModule','ngGrid','servoy-compon
 		   
 	   
 		  
-	   var ignoreChanges = false;
 	   var wsSession = null;
 	   function connect() {
-	   // maybe do this with defer ($q)
+		   // maybe do this with defer ($q)
 		   var solName = decodeURIComponent((new RegExp('[?|&]s=' + '([^&;]+?)(&|#|;|$)').exec($window.location.search)||[,""])[1].replace(/\+/g, '%20'))||null
 		   if (!solName) $solutionSettings.solutionName  = /.*\/(\w+)\/.*/.exec($window.location.pathname)[1];
 		   else $solutionSettings.solutionName  = solName;
 		   $solutionSettings.windowName = webStorage.session.get("windowid");
 		   wsSession = $webSocket.connect('/solutions/'+$solutionSettings.solutionName, [webStorage.session.get("sessionid"), $solutionSettings.windowName, $solutionSettings.solutionName])
 		   wsSession.onMessageObject = function (msg, conversionInfo) {
-			   try {
-				   // data got back from the server
-				   if (msg.forms) {
-					   $rootScope.$apply(function() {
-						   ignoreChanges = true;
-						   try {
-							   for(var formname in msg.forms) {
-								   // current model
-								   var formState = formStates[formname];
-								   // if the formState is on the server but not here anymore, skip it. 
-								   // this can happen with a refresh on the browser.
-								   if (!formState) continue;
-								   var formModel = formState.model;
-								   var layout = formState.layout;
-								   var newFormData = msg.forms[formname];
-								   var newFormProperties = newFormData['']; // f form properties
-								   var newFormConversionInfo = (conversionInfo && conversionInfo.forms && conversionInfo.forms[formname]) ? conversionInfo.forms[formname] : undefined;
-
-							   if(newFormProperties) {
-								   if (newFormConversionInfo && newFormConversionInfo['']) newFormProperties = $sabloConverters.convertFromServerToClient(newFormProperties, newFormConversionInfo[''], formModel['']);
-								   if (!formModel['']) formModel[''] = {};
-								   for(var p in newFormProperties) {
-									   formModel[''][p] = newFormProperties[p]; 
-								   } 
+			   // data got back from the server
+			   for(var formname in msg.forms) {
+				   // current model
+				   var formState = formStates[formname];
+				   // if the formState is on the server but not here anymore, skip it. 
+				   // this can happen with a refresh on the browser.
+				   if (!formState) continue;
+				   var formModel = formState.model;
+				   var layout = formState.layout;
+				   var newFormData = msg.forms[formname];
+				   var newFormProperties = newFormData['']; // f form properties
+				   var newFormConversionInfo = (conversionInfo && conversionInfo.forms && conversionInfo.forms[formname]) ? conversionInfo.forms[formname] : undefined;
+	
+				   if(newFormProperties) {
+					   if (newFormConversionInfo && newFormConversionInfo['']) newFormProperties = $sabloConverters.convertFromServerToClient(newFormProperties, newFormConversionInfo[''], formModel['']);
+					   if (!formModel['']) formModel[''] = {};
+					   for(var p in newFormProperties) {
+						   formModel[''][p] = newFormProperties[p]; 
+					   } 
+				   }
+				   
+				   var watchesRemoved = formState.removeWatches(newFormData);
+				   try {
+					   for (var beanname in newFormData) {
+						   // copy over the changes, skip for form properties (beanname empty)
+						   if (beanname != '') {
+							   if (formModel[beanname]!= undefined && (newFormData[beanname].size != undefined ||  newFormData[beanname].location != undefined)) {	
+								   //size or location were changed at runtime, we need to update components with anchors
+								   newFormData[beanname].anchors = formModel[beanname].anchors;
 							   }
-
-							   for (var beanname in newFormData) {
-								   // copy over the changes, skip for form properties (beanname empty)
-								   if (beanname != '') {
-									   if (formModel[beanname]!= undefined && (newFormData[beanname].size != undefined ||  newFormData[beanname].location != undefined)) {	
-										   //size or location were changed at runtime, we need to update components with anchors
-										   newFormData[beanname].anchors = formModel[beanname].anchors;
+		
+							   var newBeanConversionInfo = newFormConversionInfo ? newFormConversionInfo[beanname] : undefined;
+							   var beanConversionInfo = newBeanConversionInfo ? $utils.getOrCreateInDepthProperty(formStatesConversionInfo, formname, beanname) : undefined; // we could do a get instead of undefined, but normally that value is not needed if the new conversion info is undefined
+							   applyBeanData(formModel[beanname], layout[beanname], newFormData[beanname], formState.properties.designSize, getChangeNotifier(formname, beanname), beanConversionInfo, newBeanConversionInfo);
+							   for (var defProperty in deferredProperties) {
+								   for(var key in newFormData[beanname]) {
+									   if (defProperty == (formname + "_" + beanname + "_" + key)) {
+										   deferredProperties[defProperty].resolve(newFormData[beanname][key]);
+										   delete deferredProperties[defProperty];
 									   }
-
-									   var newBeanConversionInfo = newFormConversionInfo ? newFormConversionInfo[beanname] : undefined;
-									   var beanConversionInfo = newBeanConversionInfo ? $utils.getOrCreateInDepthProperty(formStatesConversionInfo, formname, beanname) : undefined; // we could do a get instead of undefined, but normally that value is not needed if the new conversion info is undefined
-									   applyBeanData(formModel[beanname], layout[beanname], newFormData[beanname], formState.properties.designSize, getChangeNotifier(formname, beanname), beanConversionInfo, newBeanConversionInfo);
-									   for (var defProperty in deferredProperties) {
-										   for(var key in newFormData[beanname]) {
-											   if (defProperty == (formname + "_" + beanname + "_" + key)) {
-												   deferredProperties[defProperty].resolve(newFormData[beanname][key]);
-												   delete deferredProperties[defProperty];
-											   }
-										   }
-									   } 
 								   }
-							   }
-							   if(deferredformStates[formname]){
-								   deferredformStates[formname].resolve(formStates[formname])
-								   delete deferredformStates[formname]
-							   }
-							   
-							   if (msg.initialdatarequest)
-							   		formState.addWatches();
+							   } 
 						   }
-					   } finally {
-						   ignoreChanges = false;
 					   }
-				   });
+					   if(deferredformStates[formname]){
+						   deferredformStates[formname].resolve(formStates[formname])
+						   delete deferredformStates[formname]
+					   }
+				   }
+				   finally {
+					   if (watchesRemoved)
+						   formState.addWatches(newFormData);
+					   else if (msg.initialdatarequest)
+					   		formState.addWatches();
+					   formState.$digest();
+				   }
 			   }
-
+	
 			   if (conversionInfo && conversionInfo.call) msg.call = $sabloConverters.convertFromServerToClient(msg.call, conversionInfo.call);
 			   if (msg.call) {
 				   // {"call":{"form":"product","element":"datatextfield1","api":"requestFocus","args":[arg1, arg2]}, // optionally "viewIndex":1 
@@ -328,13 +323,15 @@ angular.module('servoyApp', ['servoy','webStorageModule','ngGrid','servoy-compon
 						   {
 							   formState.model[call.bean].readOnly = formState.model[call.bean].readOnlyBeforeFindMode;
 						   }
+						   formState.$digest();
 					   }
 					   return;
 				   }
-
-				   return $rootScope.$apply(function() {
+				   try {
 					   return func.apply(funcThis, call.args)
-				   })
+				   } finally {
+					   formState.$digest();
+				   }
 			   }
 			   if (msg.sessionid) {
 				   webStorage.session.add("sessionid",msg.sessionid);
@@ -343,10 +340,12 @@ angular.module('servoyApp', ['servoy','webStorageModule','ngGrid','servoy-compon
 				   $solutionSettings.windowName = msg.windowid;
 				   webStorage.session.add("windowid",msg.windowid);
 			   }
-		   } finally {
-			   ignoreChanges = false;
-		   }
-	   };
+		   };
+		   
+		   wsSession.onopen = function(evt) {
+			   // update the main app window with the right size
+			   wsSession.callService("$windowService", "resize", {size:{width:$window.innerWidth,height:$window.innerHeight}},true);  
+		   };
 	   }
 	   function getSession() {
 		   if (wsSession == null) throw "Session is not created yet, first call connect()";
@@ -410,8 +409,6 @@ angular.module('servoyApp', ['servoy','webStorageModule','ngGrid','servoy-compon
 				   applyBeanData(model[beanName], layout[beanName], beanDatas[beanName], formProperties.designSize, getChangeNotifier(formName, beanName), beanConversionInfo, newBeanConversionInfo)
 			   }
 
-
-			   $rootScope.updatingFormUrl = '';
 			   return state;
 		   },
 
@@ -427,7 +424,7 @@ angular.module('servoyApp', ['servoy','webStorageModule','ngGrid','servoy-compon
 					   }
 					   var cmd = {cmd:'event',formname:formName,beanname:beanName,event:eventName,args:newargs,changes:data}
 					   if (rowId) cmd.rowId = rowId
-					   return getSession().sendDeferredMessage(cmd)
+					   return getSession().sendDeferredMessage(cmd,formStates[formName])
 				   },
 			   }
 		   },
@@ -483,12 +480,230 @@ angular.module('servoyApp', ['servoy','webStorageModule','ngGrid','servoy-compon
         	element.on('click', function(event) {
         		if (event.target.tagName.toLowerCase() == 'div')
         		{
-           		   $servoyInternal.callService("applicationServerService", "autosave", true);
+           		   $servoyInternal.callService("applicationServerService", "autosave",{}, true);
         		}
         	});
         }
       };
-}).directive('svyLayoutUpdate', function($servoyInternal,$window,$timeout) {
+}).directive('svyImagemediaid',  function ($utils,$parse,$timeout) {
+    return {
+        restrict: 'A',
+        link: function (scope, element, attrs) {     
+        	
+        	var rollOverImgStyle = null; 
+        	var imgStyle = null;
+        	var clearStyle ={ width:'0px',
+        					  height:'0px',
+        					  backgroundImage:''}
+        	
+        	scope.$watch(attrs.svyImagemediaid,function(newVal){
+        		// the value from model may be incorrect so take value from ui
+        		var setImageStyle = function(){
+        			var componentSize = {width: element[0].parentNode.parentNode.offsetWidth,height: element[0].parentNode.parentNode.offsetHeight};
+            		var image = null;
+             		  var mediaOptions = scope.$eval('model.mediaOptions');
+            		if(newVal.rollOverImg){ 
+            		  rollOverImgStyle= parseImageOptions( newVal.rollOverImg, mediaOptions, componentSize);
+            		}else {
+            		  rollOverImgStyle = null
+            		}
+            		if(newVal.img){
+            		  imgStyle =parseImageOptions( newVal.img, mediaOptions, componentSize)
+              		  element.css(imgStyle)
+            		}else {
+            		  imgStyle = null;
+            		} 	
+        		}
+        		if (element[0].parentNode.parentNode.offsetWidth >0 && element[0].parentNode.parentNode.offsetHeight >0)
+        		{
+        			//dom is ready
+        			setImageStyle();
+        		}
+        		else
+        		{
+        			$timeout(setImageStyle,200);
+        		}
+        	}, true)
+        	
+        	
+       	function parseImageOptions(image,mediaOptions ,componentSize){
+        	  var bgstyle = {};
+        	  bgstyle['background-image'] = "url('" + image + "')"; 
+       		  bgstyle['background-repeat'] = "no-repeat";
+       		  bgstyle['background-position'] = "left";
+       		  bgstyle['display'] = "inline-block";
+       		  bgstyle['vertical-align'] = "middle"; 
+       		  if(mediaOptions == undefined) mediaOptions = 14; // reduce-enlarge & keep aspect ration
+       		  var mediaKeepAspectRatio = mediaOptions == 0 || ((mediaOptions & 8) == 8);
+
+       		  // default  img size values
+       		  var imgWidth = 16;
+       		  var imgHeight = 16;
+       		  
+       		  if (image.indexOf('imageWidth=') > 0 && image.indexOf('imageHeight=') > 0)
+       		  {
+       			  var vars = {};
+       			  var parts = image.replace(/[?&]+([^=&]+)=([^&]*)/gi,    
+       					  function(m,key,value) {
+       				  vars[key] = value;
+       			  });
+       			  imgWidth = vars['imageWidth'];
+       			  imgHeight = vars['imageHeight'];
+       		  }
+       		  
+       		  var widthChange = imgWidth / componentSize.width;
+       		  var heightChange = imgHeight / componentSize.height;
+       		  
+       		  if (widthChange > 1.01 || heightChange > 1.01 || widthChange < 0.99 || heightChange < 0.99) // resize needed
+       		  {
+ 						if ((mediaOptions & 6) == 6) // reduce-enlarge
+	    				{
+	    					if (mediaKeepAspectRatio)
+	    					{
+	    						if (widthChange > heightChange)
+	    						{
+	    							imgWidth = imgWidth / widthChange;
+	    							imgHeight = imgHeight / widthChange;
+	    						}
+	    						else
+	    						{
+	    							imgWidth = imgWidth / heightChange;
+	    							imgHeight = imgHeight / heightChange;
+	    						}
+	    					}
+	    					else
+	    					{
+	    						imgWidth = componentSize.width;
+	    						imgHeight = componentSize.height;
+	    					}
+	    				}        			  
+	  					else if ((mediaOptions & 2) == 2) // reduce
+   					{
+   						if (widthChange > 1.01 && heightChange > 1.01)
+   						{
+   							if (mediaKeepAspectRatio)
+   							{
+   								if (widthChange > heightChange)
+   								{
+   									imgWidth = imgWidth / widthChange;
+   									imgHeight = imgHeight / widthChange;
+   								}
+   								else
+   								{
+   									imgWidth = imgWidth / heightChange;
+   									imgHeight = imgHeight / heightChange;
+   								}
+   							}
+   							else
+   							{
+	    						imgWidth = componentSize.width;
+	    						imgHeight = componentSize.height;
+   							}
+   						}
+   						else if (widthChange > 1.01)
+   						{
+   							imgWidth = imgWidth / widthChange;
+   							if (mediaKeepAspectRatio)
+   							{
+   								imgHeight = imgHeight / widthChange;
+   							}
+   							else
+   							{
+	    						imgHeight = componentSize.height;
+   							}
+   						}
+   						else if (heightChange > 1.01)
+   						{
+   							imgHeight = imgHeight / heightChange;
+   							if (mediaKeepAspectRatio)
+   							{
+   								imgWidth = imgWidth / heightChange;
+   							}
+   							else
+   							{
+	    						imgWidth = componentSize.width;
+   							}
+   						}
+   					}
+   					else if ((mediaOptions & 4) == 4) // enlarge
+   					{
+   						if (widthChange < 0.99 && heightChange < 0.99)
+   						{
+   							if (mediaKeepAspectRatio)
+   							{
+   								if (widthChange > heightChange)
+   								{
+   									imgWidth = imgWidth / widthChange;
+   									imgHeight = imgHeight / widthChange;
+   								}
+   								else
+   								{
+   									imgWidth = imgWidth / heightChange;
+   									imgHeight = imgHeight / heightChange;
+   								}
+   							}
+   							else
+   							{
+	    						imgWidth = componentSize.width;
+	    						imgHeight = componentSize.height;
+   							}
+   						}
+   						else if (widthChange < 0.99)
+   						{
+   							imgWidth = imgWidth / widthChange;
+   							if (mediaKeepAspectRatio)
+   							{
+   								imgHeight = imgHeight / widthChange;
+   							}
+   							else
+   							{
+	    						imgHeight = componentSize.height;
+   							}
+   						}
+   						else if (heightChange < 0.99)
+   						{
+   							imgHeight = imgHeight / heightChange;
+   							if (mediaKeepAspectRatio)
+   							{
+   								imgWidth = imgWidth / heightChange;
+   							}
+   							else
+   							{
+	    						imgWidth = componentSize.width;
+   							}
+   						}
+   					}
+       		  }	  
+       		  
+       		  bgstyle['background-size'] = mediaKeepAspectRatio ? "contain" : "100% 100%";
+   			  bgstyle['width'] = Math.round(imgWidth) + "px";
+       		  bgstyle['height'] = Math.round(imgHeight) + "px";
+        		        		
+       		  return bgstyle;
+        	}
+        	//get component root node
+        	var componentRoot =null;
+        	componentRoot= element;
+        	while(componentRoot.isolateScope()  == null){
+        		componentRoot = componentRoot.parent()
+        	}
+        	componentRoot.hover(function(){
+        		//over
+        		if(rollOverImgStyle){
+        			element.css(rollOverImgStyle)
+        		}
+        	},function(){
+        		//out
+        		if(imgStyle){
+        			element.css(imgStyle)
+        		}else{
+        			element.css(clearStyle)
+        		}        		
+        	})
+         }
+    }
+})
+.directive('svyLayoutUpdate', function($servoyInternal,$window,$timeout) {
     return {
       restrict: 'A', // only activate on element attribute
       controller: function($scope, $element, $attrs) {
@@ -496,22 +711,24 @@ angular.module('servoyApp', ['servoy','webStorageModule','ngGrid','servoy-compon
     	  if($attrs['svyLayoutUpdate'].length == 0) {
     		  compModel = $scope.formProperties;
     	  } else {
-    		  compModel = $scope.model[$attrs['svyLayoutUpdate']];
+    		  //compModel = $scope.model[$attrs['svyLayoutUpdate']];
     	  }
     	  if (!compModel) return; // not found, maybe a missing bean
 
-    	  if(($attrs['svyLayoutUpdate'].length == 0) || (compModel.anchors !== undefined)) {
+    	  if(($attrs['svyLayoutUpdate'].length == 0) || compModel.anchors) {
         	  var resizeTimeoutID = null;
         	  $window.addEventListener('resize',function() { 
         		  if(resizeTimeoutID) $timeout.cancel(resizeTimeoutID);
         		  resizeTimeoutID = $timeout( function() {
-        			  if(compModel.location) {
-        				  compModel.location.x = $element.prop('offsetLeft');
-        				  compModel.location.y = $element.prop('offsetTop');
-        			  }
-        			  if(compModel.size) {
-            			  compModel.size.width = $element.prop('offsetWidth');
-            			  compModel.size.height = $element.prop('offsetHeight');  
+        			  if(compModel.visible) {
+	        			  if(compModel.location) {
+	        				  compModel.location.x = $element.offset().left;
+	        				  compModel.location.y = $element.offset().top;
+	        			  }
+	        			  if(compModel.size) {
+	            			  compModel.size.width = $element.width();
+	            			  compModel.size.height = $element.height();  
+	        			  }
         			  }
         		  }, 1000);
         	  });
@@ -537,9 +754,8 @@ angular.module('servoyApp', ['servoy','webStorageModule','ngGrid','servoy-compon
 			return $windowService.getFormUrl($solutionSettings.navigatorForm.templateURL);
 		}
 		return $solutionSettings.navigatorForm.templateURL;
-	}	
-	$rootScope.updatingFormUrl = '';
-	
+	}
+
 	$scope.getSessionProblemView = function(){
 		if($solutionSettings.noLicense) return $solutionSettings.noLicense.viewUrl;
 		if($solutionSettings.maintenanceMode) return $solutionSettings.maintenanceMode.viewUrl;
@@ -617,6 +833,7 @@ angular.module('servoyApp', ['servoy','webStorageModule','ngGrid','servoy-compon
 			if(sessionExpired.viewUrl)	exp.viewUrl= sessionExpired.viewUrl;
 
 			$solutionSettings.sessionExpired = exp;
+			if (!$rootScope.$$phase) $rootScope.$digest();
 		},
 		setNoLicense: function (noLicense){
 			var noLic = {
@@ -629,6 +846,7 @@ angular.module('servoyApp', ['servoy','webStorageModule','ngGrid','servoy-compon
 			if(noLicense.redirectTimeout) noLic.redirectTimeout = noLicense.redirectTimeout;
 
 			$solutionSettings.noLicense = noLic;
+			if (!$rootScope.$$phase) $rootScope.$digest();
 		},
 		setMaintenanceMode: function (maintenanceMode){
 			var ment = {
@@ -641,13 +859,15 @@ angular.module('servoyApp', ['servoy','webStorageModule','ngGrid','servoy-compon
 			if(msg.maintenanceMode.redirectTimeout)	ment.redirectTimeout = maintenanceMode.redirectTimeout;
 
 			$solutionSettings.maintenanceMode = ment;
+			if (!$rootScope.$$phase) $rootScope.$digest();
 		},
 		setInternalServerError: function(internalServerError){
 			var error = {viewUrl:'templates/serverInternalErrorView.html'}
 			if(internalServerError.viewUrl)  error.viewUrl = internalServerError.viewUrl;
 			if(internalServerError.stack) error.stack = internalServerError.stack;
 
-			$solutionSettings.internalServerError = error;					
+			$solutionSettings.internalServerError = error;		
+			if (!$rootScope.$$phase) $rootScope.$digest();
 		}
 	}
 }])
@@ -664,6 +884,7 @@ angular.module('servoyApp', ['servoy','webStorageModule','ngGrid','servoy-compon
 	return {
 		setStyleSheet: function(path) {
 			$solutionSettings.styleSheetPath = path;
+			if (!$rootScope.$$phase) $rootScope.$digest();
 		},
 		getUserProperty: function(key) {
 			var json = webStorage.local.get("userProperties");

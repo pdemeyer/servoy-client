@@ -95,45 +95,52 @@ public class ComponentFactory
 			Map<String, PropertyDescription> valuelistProps = fe.getWebComponentSpec().getProperties(TypesRegistry.getType("valuelist"));
 			for (PropertyDescription vlProp : valuelistProps.values())
 			{
-				int valuelistID = Utils.getAsInteger(fe.getPropertyValue(vlProp.getName()));
+				ValueList val = null;
+				Object propertyValue = fe.getPropertyValue(vlProp.getName());
+				int valuelistID = Utils.getAsInteger(propertyValue);
 				if (valuelistID > 0)
 				{
-					ValueList val = application.getFlattenedSolution().getValueList(valuelistID);
-					if (val != null)
+					val = application.getFlattenedSolution().getValueList(valuelistID);
+				}
+				else
+				{
+					UUID uuid = Utils.getAsUUID(propertyValue, false);
+					if (uuid != null) val = (ValueList)application.getFlattenedSolution().searchPersist(uuid);
+				}
+				if (val != null)
+				{
+					IValueList valueList;
+					switch (val.getValueListType())
 					{
-						IValueList valueList;
-						switch (val.getValueListType())
-						{
-							case IValueListConstants.GLOBAL_METHOD_VALUES :
-								valueList = new GlobalMethodValueList(application, val);
-								break;
-							case IValueListConstants.CUSTOM_VALUES :
-								String dataproviderID = (String)fe.getPropertyValue((String)vlProp.getConfig());
-								String format = null;
-								if (dataproviderID != null)
+						case IValueListConstants.GLOBAL_METHOD_VALUES :
+							valueList = new GlobalMethodValueList(application, val);
+							break;
+						case IValueListConstants.CUSTOM_VALUES :
+							String dataproviderID = (String)fe.getPropertyValue((String)vlProp.getConfig());
+							String format = null;
+							if (dataproviderID != null)
+							{
+								Map<String, PropertyDescription> properties = fe.getWebComponentSpec().getProperties(TypesRegistry.getType("format"));
+								for (PropertyDescription pd : properties.values())
 								{
-									Map<String, PropertyDescription> properties = fe.getWebComponentSpec().getProperties(TypesRegistry.getType("format"));
-									for (PropertyDescription pd : properties.values())
+									// compare the config objects for Format and Valuelist properties these are both the "for" dataprovider id property
+									if (vlProp.getConfig().equals(pd.getConfig()))
 									{
-										// compare the config objects for Format and Valuelist properties these are both the "for" dataprovider id property
-										if (vlProp.getConfig().equals(pd.getConfig()))
-										{
-											format = (String)fe.getPropertyValue(pd.getName());
-											break;
-										}
+										format = (String)fe.getPropertyValue(pd.getName());
+										break;
 									}
 								}
-								ComponentFormat fieldFormat = ComponentFormat.getComponentFormat(format, dataproviderID,
-									application.getFlattenedSolution().getDataproviderLookup(application.getFoundSetManager(), fe.getForm()), application);
-								valueList = new CustomValueList(application, val, val.getCustomValues(),
-									(val.getAddEmptyValue() == IValueListConstants.EMPTY_VALUE_ALWAYS), fieldFormat.dpType, fieldFormat.parsedFormat);
-								break;
-							default :
-								valueList = val.getDatabaseValuesType() == IValueListConstants.RELATED_VALUES ? new RelatedValueList(application, val)
-									: new DBValueList(application, val);
-						}
-						webComponent.setProperty(vlProp.getName(), valueList);
+							}
+							ComponentFormat fieldFormat = ComponentFormat.getComponentFormat(format, dataproviderID,
+								application.getFlattenedSolution().getDataproviderLookup(application.getFoundSetManager(), fe.getForm()), application);
+							valueList = new CustomValueList(application, val, val.getCustomValues(),
+								(val.getAddEmptyValue() == IValueListConstants.EMPTY_VALUE_ALWAYS), fieldFormat.dpType, fieldFormat.parsedFormat);
+							break;
+						default :
+							valueList = val.getDatabaseValuesType() == IValueListConstants.RELATED_VALUES ? new RelatedValueList(application, val)
+								: new DBValueList(application, val);
 					}
+					webComponent.setProperty(vlProp.getName(), valueList);
 				}
 				else
 				{
@@ -465,11 +472,14 @@ public class ComponentFactory
 			try
 			{
 				String name = "svy_lvp_" + form.getName();
+				int startPos = form.getPartStartYPos(bodyPart.getID());
+				int endPos = bodyPart.getHeight();
+				int bodyheight = endPos - startPos;
 
 				JSONObject portal = new JSONObject();
 				portal.put("name", name);
 				portal.put("multiLine", true);
-				portal.put("rowHeight", bodyPart.getHeight());
+				portal.put("rowHeight", bodyheight);
 				portal.put("anchors", IAnchorConstants.ALL);
 				JSONObject location = new JSONObject();
 				location.put("x", 0);
@@ -477,7 +487,7 @@ public class ComponentFactory
 				portal.put("location", location);
 				JSONObject size = new JSONObject();
 				size.put("width", form.getWidth());
-				size.put("height", bodyPart.getHeight());
+				size.put("height", bodyheight);
 				portal.put("size", size);
 				portal.put("visible", listViewPortal.getVisible());
 				portal.put("enabled", listViewPortal.getEnabled());
@@ -502,8 +512,6 @@ public class ComponentFactory
 
 				Map<String, Object> portalFormElementProperties = new HashMap<>(portalFormElement.getRawPropertyValues());
 				// now put real child component form element values in "childElements"
-				int startPos = form.getPartStartYPos(bodyPart.getID());
-				int endPos = bodyPart.getHeight();
 				Iterator<IPersist> it = form.getAllObjects(PositionComparator.XY_PERSIST_COMPARATOR);
 				List<Object> children = new ArrayList<>(); // contains actually ComponentTypeFormElementValue objects
 				propertyPath.add(portalFormElement.getName());

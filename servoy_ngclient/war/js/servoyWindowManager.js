@@ -127,11 +127,21 @@ angular.module('servoyWindowManager',[])	// TODO Refactor so that window is a co
        return {x:left,y:top}
     };
     
-}]).factory("$windowService", function($servoyWindowManager, $log, $rootScope, $solutionSettings,$solutionSettings, $window, $servoyInternal,webStorage,WindowType) {
+}]).factory("$windowService", function($servoyWindowManager, $log, $rootScope, $solutionSettings,$solutionSettings, $window, $timeout, $servoyInternal,webStorage,WindowType) {
 	var instances = $servoyWindowManager.instances;
 	var formTemplateUrls = {};
 	var storage = webStorage.local;
 	var sol = $solutionSettings.solutionName+'.'
+	
+	// track main app window size change
+	var mwResizeTimeoutID;
+	$window.addEventListener('resize',function() { 
+		if(mwResizeTimeoutID) $timeout.cancel(mwResizeTimeoutID);
+		mwResizeTimeoutID = $timeout( function() {
+			$servoyInternal.callService("$windowService", "resize", {size:{width:$window.innerWidth,height:$window.innerHeight}},true);
+		}, 500);
+	});
+	
 	return {
 		create: function (name,type){
 			// dispose old one
@@ -249,12 +259,14 @@ angular.module('servoyWindowManager',[])	// TODO Refactor so that window is a co
         			$solutionSettings.mainForm = form;
         			$solutionSettings.navigatorForm = navigatorForm;
         		}
+        		if (!$rootScope.$$phase) $rootScope.$digest();
 		},
 		setTitle: function(name,title) {
 				if(instances[name] && instances[name].type!= WindowType.WINDOW){
 					instances[name].title =title;
 	    		}else{
 	    			$solutionSettings.solutionTitle = title;
+	    			if (!$rootScope.$$phase) $rootScope.$digest();
 	    		}
 		},
 		setInitialBounds:function(name,initialBounds){
@@ -321,11 +333,13 @@ angular.module('servoyWindowManager',[])	// TODO Refactor so that window is a co
 				eval(controllerCode);
 				formTemplateUrls[formName] = realFormUrl;
 				if(forceLoad) $rootScope.updatingFormUrl = realFormUrl;
+				if (!$rootScope.$$phase) $rootScope.$digest();
 		},
 		touchForm: function(formName) {
 			var realFormUrl = formTemplateUrls[formName];
 			if (realFormUrl == null) {
 					formTemplateUrls[formName] = "";
+					if (!$rootScope.$$phase) $rootScope.$digest();
 			}
 		},
  		getFormUrl: function(formName) {

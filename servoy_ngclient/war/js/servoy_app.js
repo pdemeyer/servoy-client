@@ -497,31 +497,34 @@ angular.module('servoyApp', ['servoy','webStorageModule','ngGrid','servoy-compon
         					  backgroundImage:''}
         	
         	scope.$watch(attrs.svyImagemediaid,function(newVal){
-        		// the value from model may be incorrect so take value from ui
-        		var setImageStyle = function(){
-        			var componentSize = {width: element[0].parentNode.parentNode.offsetWidth,height: element[0].parentNode.parentNode.offsetHeight};
-            		var image = null;
-             		  var mediaOptions = scope.$eval('model.mediaOptions');
-            		if(newVal.rollOverImg){ 
-            		  rollOverImgStyle= parseImageOptions( newVal.rollOverImg, mediaOptions, componentSize);
-            		}else {
-            		  rollOverImgStyle = null
+        		if (newVal.visible)
+        		{
+        			// the value from model may be incorrect so take value from ui
+            		var setImageStyle = function(){
+            			var componentSize = {width: element[0].parentNode.parentNode.offsetWidth,height: element[0].parentNode.parentNode.offsetHeight};
+                		var image = null;
+                 		  var mediaOptions = scope.$eval('model.mediaOptions');
+                		if(newVal.rollOverImg){ 
+                		  rollOverImgStyle= parseImageOptions( newVal.rollOverImg, mediaOptions, componentSize);
+                		}else {
+                		  rollOverImgStyle = null
+                		}
+                		if(newVal.img){
+                		  imgStyle =parseImageOptions( newVal.img, mediaOptions, componentSize)
+                  		  element.css(imgStyle)
+                		}else {
+                		  imgStyle = null;
+                		} 	
             		}
-            		if(newVal.img){
-            		  imgStyle =parseImageOptions( newVal.img, mediaOptions, componentSize)
-              		  element.css(imgStyle)
-            		}else {
-            		  imgStyle = null;
-            		} 	
-        		}
-        		if (element[0].parentNode.parentNode.offsetWidth >0 && element[0].parentNode.parentNode.offsetHeight >0)
-        		{
-        			//dom is ready
-        			setImageStyle();
-        		}
-        		else
-        		{
-        			$timeout(setImageStyle,200);
+            		if (element[0].parentNode.parentNode.offsetWidth >0 && element[0].parentNode.parentNode.offsetHeight >0)
+            		{
+            			//dom is ready
+            			setImageStyle();
+            		}
+            		else
+            		{
+            			$timeout(setImageStyle,200);
+            		}
         		}
         	}, true)
         	
@@ -735,6 +738,24 @@ angular.module('servoyApp', ['servoy','webStorageModule','ngGrid','servoy-compon
     	  }
       }
     };   
+}).directive('svyFormload',  function ($timeout, $servoyInternal, $windowService, $rootScope) {
+    return {
+        restrict: 'A',
+        link: function (scope, element, attrs) {
+        	var formname = scope.formname;
+			$timeout(function() {
+				// notify that the form has been loaded
+				// NOTE: this call cannot be make as a service call, as a service call may
+				// already be blocked and waiting for the formload event
+				$servoyInternal.sendRequest({cmd:'formloaded',formname:formname})
+				if($windowService.getFormUrl(formname) == $rootScope.updatingFormUrl) {
+					$rootScope.updatingFormUrl = '';
+				}
+				scope.formProperties.size.width = element.prop('offsetWidth');
+				scope.formProperties.size.height = element.prop('offsetHeight');
+			},0);
+        }
+      }
 }).value("$solutionSettings",  {
 	mainForm: {},
 	navigatorForm: {width:0},
@@ -871,7 +892,7 @@ angular.module('servoyApp', ['servoy','webStorageModule','ngGrid','servoy-compon
 		}
 	}
 }])
-.factory("$applicationService",['$window','$timeout','webStorage','$modal', '$servoyInternal','$solutionSettings', function($window,$timeout,webStorage,$modal,$servoyInternal,$solutionSettings) {
+.factory("$applicationService",['$window','$timeout','webStorage','$modal', '$servoyInternal','$solutionSettings','$rootScope', function($window,$timeout,webStorage,$modal,$servoyInternal,$solutionSettings,$rootScope) {
 	var showDefaultLoginWindow = function() {
 			$modal.open({
         	  templateUrl: '/templates/login.html',

@@ -8,24 +8,7 @@ angular.module('servoy',['servoyformat','servoytooltip','servoyfileupload','ui.b
           });
         });
       }
-}]).value("$swingModifiers" ,{
-                      SHIFT_MASK : 1,
-                      CTRL_MASK : 2,
-                      META_MASK : 4,
-                      ALT_MASK : 8,
-                      ALT_GRAPH_MASK : 32,
-                      BUTTON1_MASK : 16,
-                      BUTTON2_MASK : 8,
-                      META_MASK : 4,
-                      SHIFT_DOWN_MASK : 64,
-                      CTRL_DOWN_MASK : 128,
-                      META_DOWN_MASK : 256,
-                      ALT_DOWN_MASK : 512,
-                      BUTTON1_DOWN_MASK : 1024,
-                      BUTTON2_DOWN_MASK : 2048,
-                      DOWN_MASK : 4096,
-                      ALT_GRAPH_DOWN_MASK : 8192
-}).value("$anchorConstants", {
+}]).value("$anchorConstants", {
                       NORTH : 1,
                       EAST : 2,
                       SOUTH : 4,

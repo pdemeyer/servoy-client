@@ -81,15 +81,21 @@ public class WebServiceScriptable implements Scriptable
 			}
 			context.setGeneratingSource(false);
 			Script script = context.compileString(Utils.getURLContent(serverScript), name, 1, null);
-			//TODO can this be done if the context did already exisit (so this call comes from inside a scripting call)
-			// should we just take the toplevel scope of the scriptengine?
-			ScriptableObject topLevel = context.initStandardObjects();
-			Scriptable scopeObject = context.newObject(topLevel);
-			apiObject = context.newObject(topLevel);
+			Scriptable topLevel = ScriptableObject.getTopLevelScope(model);
+			if (topLevel == null)
+			{
+				// This should not really happen anymore.
+				Debug.log("toplevel object not found for creating serverside script: " + serverScript);
+				topLevel = context.initStandardObjects();
+			}
+			Scriptable execScope = context.newObject(topLevel);
+			execScope.setParentScope(topLevel);
+			Scriptable scopeObject = context.newObject(execScope);
+			apiObject = context.newObject(execScope);
 			scopeObject.put("api", scopeObject, apiObject);
 			scopeObject.put("model", scopeObject, model);
-			topLevel.put("$scope", topLevel, scopeObject);
-			script.exec(context, topLevel);
+			execScope.put("$scope", execScope, scopeObject);
+			script.exec(context, execScope);
 			apiObject.setPrototype(model);
 		}
 		catch (Exception ex)
@@ -208,10 +214,10 @@ public class WebServiceScriptable implements Scriptable
 		}
 		else
 		{
-		WebComponentApiDefinition apiFunction = serviceSpecification.getApiFunction(name);
-		// don't allow api to be overwritten.
-		if (apiFunction != null) return;
-		// TODO conversion should happen from string (color representation) to Color object.
+			WebComponentApiDefinition apiFunction = serviceSpecification.getApiFunction(name);
+			// don't allow api to be overwritten.
+			if (apiFunction != null) return;
+			// TODO conversion should happen from string (color representation) to Color object.
 //		DesignConversion.toObject(value, type)
 			service.setProperty(name, value);
 		}

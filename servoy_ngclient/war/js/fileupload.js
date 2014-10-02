@@ -39,7 +39,7 @@ angular.module('servoyfileupload',['webStorageModule','angularFileUpload']).dire
     	        
     	        var formname = parent.formname;
     	        while (!formname) {
-    	        	if (parent) {
+    	        	if (parent.$parent) {
     	        		parent = parent.$parent;
     	        		formname = parent.formname;
     	        	}
@@ -49,7 +49,7 @@ angular.module('servoyfileupload',['webStorageModule','angularFileUpload']).dire
     	        	}
     	        }
     	        
-    	        $scope.uploadURL = "resources/upload/" + webStorage.session.get("svyuuid") + "/" + formname + "/" + beanname + "/" + propertyname;
+    	        $scope.uploadURL = "resources/upload/" + webStorage.session.get("sessionid") + "/" + formname + "/" + beanname + "/" + propertyname;
     	        $scope.uploadFile = null;
     	        $scope.modalInstance = null;
             	

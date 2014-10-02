@@ -34,6 +34,7 @@ import com.servoy.j2db.persistence.AggregateVariable;
 import com.servoy.j2db.persistence.ColumnWrapper;
 import com.servoy.j2db.persistence.IDataProvider;
 import com.servoy.j2db.persistence.IDataProviderLookup;
+import com.servoy.j2db.persistence.ScriptVariable;
 import com.servoy.j2db.query.QueryAggregate;
 import com.servoy.j2db.scripting.FormScope;
 import com.servoy.j2db.scripting.GlobalScope;
@@ -166,11 +167,16 @@ public class DataAdapterList implements IModificationListener, ITagResolver, IDa
 
 	public void add(WebFormComponent component, String recordDataProvider, String beanDataProvider)
 	{
-		List<Pair<WebFormComponent, String>> list = recordDataproviderToComponent.get(recordDataProvider);
+		String dp = recordDataProvider;
+		if (dp.startsWith(ScriptVariable.GLOBALS_DOT_PREFIX))
+		{
+			dp = ScriptVariable.SCOPES_DOT_PREFIX + dp;
+		}
+		List<Pair<WebFormComponent, String>> list = recordDataproviderToComponent.get(dp);
 		if (list == null)
 		{
 			list = new ArrayList<Pair<WebFormComponent, String>>();
-			recordDataproviderToComponent.put(recordDataProvider, list);
+			recordDataproviderToComponent.put(dp, list);
 		}
 		list.add(new Pair<WebFormComponent, String>(component, beanDataProvider));
 
@@ -180,8 +186,8 @@ public class DataAdapterList implements IModificationListener, ITagResolver, IDa
 			map = new HashMap<>();
 			beanToDataHolder.put(component.getFormElement(), map);
 		}
-		map.put(beanDataProvider, recordDataProvider);
-		if (formController != null) setupModificationListener(recordDataProvider);
+		map.put(beanDataProvider, dp);
+		if (formController != null) setupModificationListener(dp);
 	}
 
 	public void addTaggedProperty(final WebFormComponent component, final String beanTaggedProperty, String propertyValue)
@@ -191,11 +197,16 @@ public class DataAdapterList implements IModificationListener, ITagResolver, IDa
 			@Override
 			public String getStringValue(String name)
 			{
-				Map<WebFormComponent, List<String>> map = dataProviderToComponentWithTags.get(name);
+				String dp = name;
+				if (dp.startsWith(ScriptVariable.GLOBALS_DOT_PREFIX))
+				{
+					dp = ScriptVariable.SCOPES_DOT_PREFIX + dp;
+				}
+				Map<WebFormComponent, List<String>> map = dataProviderToComponentWithTags.get(dp);
 				if (map == null)
 				{
 					map = new HashMap<WebFormComponent, List<String>>();
-					dataProviderToComponentWithTags.put(name, map);
+					dataProviderToComponentWithTags.put(dp, map);
 				}
 
 				List<String> props = map.get(component);
@@ -205,8 +216,8 @@ public class DataAdapterList implements IModificationListener, ITagResolver, IDa
 					map.put(component, props);
 				}
 				props.add(beanTaggedProperty);
-				if (formController != null) setupModificationListener(name);
-				return name;
+				if (formController != null) setupModificationListener(dp);
+				return dp;
 			}
 		});
 	}
@@ -423,7 +434,7 @@ public class DataAdapterList implements IModificationListener, ITagResolver, IDa
 		String property = map.get(beanProperty);
 		// TODO should this always be tried? (Calendar field has no push for edit, because it doesn't use svyAutoApply)
 		// but what if it was a global or form variable?
-		if (record.startEditing())
+		if (record == null || record.startEditing())
 		{
 			Object oldValue = com.servoy.j2db.dataprocessing.DataAdapterList.setValueObject(record, formController.getFormScope(), property, newValue);
 			String onDataChange = ((DataproviderConfig)webComponent.getFormElement().getWebComponentSpec().getProperty(beanProperty).getConfig()).getOnDataChange();
@@ -446,7 +457,7 @@ public class DataAdapterList implements IModificationListener, ITagResolver, IDa
 	public void startEdit(WebFormComponent webComponent, String property)
 	{
 		String dataProvider = beanToDataHolder.get(webComponent.getFormElement()).get(property);
-		if (dataProvider != null && !ScopesUtils.isVariableScope(dataProvider))
+		if (record != null && dataProvider != null && !ScopesUtils.isVariableScope(dataProvider))
 		{
 			record.startEditing();
 		}

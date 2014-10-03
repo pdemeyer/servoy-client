@@ -25,7 +25,6 @@ import org.sablo.specification.WebComponentSpecProvider;
 import org.sablo.websocket.IWebsocketSessionFactory;
 import org.sablo.websocket.WebsocketSessionManager;
 
-import com.servoy.base.persistence.constants.IFormConstants;
 import com.servoy.j2db.AbstractActiveSolutionHandler;
 import com.servoy.j2db.FlattenedSolution;
 import com.servoy.j2db.persistence.Form;
@@ -181,7 +180,6 @@ public class NGClientEntryFilter extends WebEntry
 										fs.getLastModifiedTime() / 1000 * 1000)) return;
 
 									boolean html = uri.endsWith(".html");
-									boolean tableview = (form.getView() == IFormConstants.VIEW_TYPE_TABLE || form.getView() == IFormConstants.VIEW_TYPE_TABLE_LOCKED);
 									PrintWriter w = servletResponse.getWriter();
 //									if (!tableview && html && form.getLayoutGrid() != null)
 //									{
@@ -189,7 +187,7 @@ public class NGClientEntryFilter extends WebEntry
 //										FormWithInlineLayoutGenerator.generate(form, wsSession != null ? new ServoyDataConverterContext(wsSession.getClient())
 //											: new ServoyDataConverterContext(fs), w);
 //									}
-//									else 
+//									else
 									if (html && form.getLayoutContainers().hasNext())
 									{
 										((HttpServletResponse)servletResponse).setContentType("text/html");
@@ -197,20 +195,19 @@ public class NGClientEntryFilter extends WebEntry
 											wsSession != null ? new ServoyDataConverterContext(wsSession.getClient()) : new ServoyDataConverterContext(fs), w,
 											Utils.getAsBoolean(request.getParameter("design")));
 									}
-									else if (!tableview && uri.endsWith(".html"))
+									else if (uri.endsWith(".html"))
 									{
 										((HttpServletResponse)servletResponse).setContentType("text/html");
 										FormLayoutGenerator.generateRecordViewForm(w, form,
 											wsSession != null ? new ServoyDataConverterContext(wsSession.getClient()) : new ServoyDataConverterContext(fs),
 											Utils.getAsBoolean(request.getParameter("design")));
 									}
-									else
+									else if (uri.endsWith(".js"))
 									{
 										((HttpServletResponse)servletResponse).setContentType("text/" + (html ? "html" : "javascript"));
-										String view = (tableview ? "tableview" : "recordview");
 										new FormTemplateGenerator(wsSession != null ? new ServoyDataConverterContext(wsSession.getClient())
 											: new ServoyDataConverterContext(fs), false, Utils.getAsBoolean(request.getParameter("design"))).generate(form,
-											formName, "form_" + view + "_" + (html ? "html" : "js") + ".ftl", w);
+											formName, "form_recordview_js.ftl", w);
 									}
 									w.flush();
 									return;

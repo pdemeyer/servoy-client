@@ -42,7 +42,6 @@ import org.sablo.websocket.IServerService;
 import org.sablo.websocket.IWebsocketEndpoint;
 import org.sablo.websocket.WebsocketEndpoint;
 
-import com.servoy.base.persistence.constants.IFormConstants;
 import com.servoy.j2db.FlattenedSolution;
 import com.servoy.j2db.J2DBGlobals;
 import com.servoy.j2db.dataprocessing.CustomValueList;
@@ -237,23 +236,15 @@ public class NGClientWebsocketSession extends BaseWebsocketSession implements IN
 
 								String error = null;
 								Object result = null;
-								if (form instanceof WebGridFormUI && obj.has("rowId") && !((WebGridFormUI)form).setEditingRowByPkHash(obj.getString("rowId")))
+								pushChanges(obj);
+								try
 								{
-									// don't go on if the right row couldn't be selected.
-									error = "Could not select record by rowId " + obj.getString("rowId");
+									result = webComponent.executeEvent(eventType, args);
 								}
-								else
+								catch (Exception e)
 								{
-									pushChanges(obj);
-									try
-									{
-										result = webComponent.executeEvent(eventType, args);
-									}
-									catch (Exception e)
-									{
-										Debug.error(e);
-										error = e.getMessage();
-									}
+									Debug.error(e);
+									error = e.getMessage();
 								}
 								if (obj.has("cmsgid")) // client wants response
 								{
@@ -333,21 +324,6 @@ public class NGClientWebsocketSession extends BaseWebsocketSession implements IN
 				try
 				{
 					IWebFormUI form = client.getFormManager().getFormAndSetCurrentWindow(obj.getString("formname")).getFormUI();
-
-					if (form instanceof WebGridFormUI)
-					{
-						JSONObject changes = obj.getJSONObject("changes");
-						if (changes.has("rowId"))
-						{
-							String pkHash = changes.getString("rowId");
-							changes.remove("rowId");
-							if (!((WebGridFormUI)form).setEditingRowByPkHash(pkHash))
-							{
-								// don't push changes, record couldn't be set
-								return;
-							}
-						}
-					}
 
 					pushChanges(obj);
 					if (apply)
@@ -484,9 +460,7 @@ public class NGClientWebsocketSession extends BaseWebsocketSession implements IN
 			StringWriter sw = new StringWriter(512);
 			if (copy || !Boolean.valueOf(System.getProperty("servoy.generateformscripts", "false")).booleanValue())
 			{
-				boolean tableview = (form.getView() == IFormConstants.VIEW_TYPE_TABLE || form.getView() == IFormConstants.VIEW_TYPE_TABLE_LOCKED);
-				String view = (tableview ? "tableview" : "recordview");
-				new FormTemplateGenerator(new ServoyDataConverterContext(client), true, false).generate(form, realFormName, "form_" + view + "_js.ftl", sw);
+				new FormTemplateGenerator(new ServoyDataConverterContext(client), true, false).generate(form, realFormName, "form_recordview_js.ftl", sw);
 			}
 			if (client.isEventDispatchThread() && forceLoad)
 			{
@@ -545,10 +519,6 @@ public class NGClientWebsocketSession extends BaseWebsocketSession implements IN
 
 		IWebFormController form = client.getFormManager().getForm(receiver.findParent(IWebFormUI.class).getName());
 		touchForm(form.getForm(), form.getName(), false);
-		if (form.getFormUI() instanceof WebGridFormUI)
-		{
-			call.put("viewIndex", Integer.valueOf(((WebGridFormUI)form.getFormUI()).getSelectedViewIndex()));
-		}
 		if (receiver instanceof WebFormComponent && ((WebFormComponent)receiver).getComponentContext() != null)
 		{
 			ComponentContext componentContext = ((WebFormComponent)receiver).getComponentContext();

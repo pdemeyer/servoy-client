@@ -1,7 +1,6 @@
-angular.module('svyImagemedia',['servoy']).directive('svyImagemedia', function($utils, $window, $document) {  
+angular.module('servoydefaultImagemedia',['servoy']).directive('servoydefaultImagemedia', function($utils, $window, $document) {  
     return {
       restrict: 'E',
-      transclude: true,
       scope: {
         model: "=svyModel",
         handlers: "=svyHandlers",
@@ -50,7 +49,6 @@ angular.module('svyImagemedia',['servoy']).directive('svyImagemedia', function($
          	 return $element.scrollTop();
           }
       },
-      templateUrl: 'servoydefault/imagemedia/imagemedia.html',
-      replace: true
+      templateUrl: 'servoydefault/imagemedia/imagemedia.html'
     };
   })

@@ -1,5 +1,5 @@
 {
-	"name": "svy-button",
+	"name": "servoydefault-button",
 	"displayName": "Button",
 	"icon": "servoydefault/button/button.gif",
 	"definition": "servoydefault/button/button.js",
@@ -46,12 +46,12 @@
 								{                                                                 
  								"name":"width",
 								"type":"int",
-			            		"optional":"true"
+			            		"optional":true
 			            		},
              					{                                                                 
  								"name":"height",
 								"type":"int",
-			            		"optional":"true"
+			            		"optional":true
 			            		}             
 							 ]
 	        },
@@ -60,7 +60,7 @@
 								{                                                                 
  								"name":"mustExecuteOnFocusGainedMethod",
 								"type":"boolean",
-			            		"optional":"true"
+			            		"optional":true
 			            		}             
 							 ]
 	        }

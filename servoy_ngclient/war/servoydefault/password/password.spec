@@ -1,5 +1,5 @@
 {
-	"name": "svy-password",
+	"name": "servoydefault-password",
 	"displayName": "Password Field",
 	"icon": "servoydefault/password/password_field_16.png",
 	"definition": "servoydefault/password/password.js",
@@ -42,7 +42,7 @@
 								{                                                                 
  								"name":"mustExecuteOnFocusGainedMethod",
 								"type":"boolean",
-			            		"optional":"true"
+			            		"optional":true
 			            		}             
 							 ]
 	        }

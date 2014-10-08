@@ -1,7 +1,6 @@
-angular.module('svyRadiogroup',['servoy']).directive('svyRadiogroup', function($utils) {  
+angular.module('servoydefaultRadiogroup',['servoy']).directive('servoydefaultRadiogroup', function($utils) {  
     return {
       restrict: 'E',
-      transclude: true,
       scope: {
         model: "=svyModel",
         handlers: "=svyHandlers",
@@ -54,8 +53,7 @@ angular.module('svyRadiogroup',['servoy']).directive('svyRadiogroup', function($
        	 	}
        	 };
       },
-      templateUrl: 'servoydefault/radiogroup/radiogroup.html',
-      replace: true
+      templateUrl: 'servoydefault/radiogroup/radiogroup.html'
     };
   })
 

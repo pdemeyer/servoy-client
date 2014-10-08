@@ -1,5 +1,5 @@
 {
-	"name": "svy-portal",
+	"name": "servoydefault-portal",
 	"displayName": "Portal",
 	"icon": "servoydefault/portal/portal.gif",
 	"definition": "servoydefault/portal/portal.js",
@@ -50,7 +50,7 @@
 								{                                                                 
  								"name":"addOnTop",
 								"type":"boolean",
-			            		"optional":"true"
+			            		"optional":true
 			            		}             
 							 ]
 	        },
@@ -74,7 +74,7 @@
 								{                                                                 
  								"name":"addOnTop",
 								"type":"boolean",
-			            		"optional":"true"
+			            		"optional":true
 			            		}             
 							 ]
 	        },

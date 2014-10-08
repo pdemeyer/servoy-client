@@ -1,7 +1,6 @@
-angular.module('svyNavigator',['servoy','slider']).directive('svyNavigator', function() {  
+angular.module('servoydefaultNavigator',['servoy','ui.slider']).directive('servoydefaultNavigator', function() {  
     return {
       restrict: 'E',
-      transclude: true,
       scope: {
         model: "=svyModel",
         handlers: "=svyHandlers"

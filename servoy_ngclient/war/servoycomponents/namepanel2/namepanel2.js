@@ -1,7 +1,6 @@
-angular.module('namepanel2',['servoy']).directive('namepanel2', function() {  
+angular.module('servoycomponentsNamepanel2',['servoy']).directive('servoycomponentsNamepanel2', function() {  
     return {
       restrict: 'E',
-      transclude: true,
       scope: {
         model: "=svyModel",
        	handlers: "=svyHandlers"

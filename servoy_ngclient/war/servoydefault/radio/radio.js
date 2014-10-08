@@ -1,7 +1,6 @@
-angular.module('svyRadio',['servoy']).directive('svyRadio', function() {  
+angular.module('servoydefaultRadio',['servoy']).directive('servoydefaultRadio', function() {  
     return {
       restrict: 'E',
-      transclude: true,
       scope: {
         name: "=",
         model: "=svyModel",
@@ -46,7 +45,6 @@ angular.module('svyRadio',['servoy']).directive('svyRadio', function() {
        	 	}
        	 }; 
       },
-      templateUrl: 'servoydefault/radio/radio.html',
-      replace: true
+      templateUrl: 'servoydefault/radio/radio.html'
     };
 })

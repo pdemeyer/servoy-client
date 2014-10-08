@@ -1,7 +1,6 @@
-angular.module('svyCalendar',['servoy']).directive('svyCalendar', function(dateFilter,$log) {  
+angular.module('servoydefaultCalendar',['servoy']).directive('servoydefaultCalendar', function(dateFilter,$log) {  
     return {
       restrict: 'E',
-      transclude: true,
       scope: {
       	model: "=svyModel",
         handlers: "=svyHandlers",
@@ -99,7 +98,6 @@ angular.module('svyCalendar',['servoy']).directive('svyCalendar', function(dateF
 				}
 			}
       },
-      templateUrl: 'servoydefault/calendar/calendar.html',
-      replace: true
+      templateUrl: 'servoydefault/calendar/calendar.html'
     };
   })

@@ -1,5 +1,5 @@
 {
-	"name": "svy-htmlarea",
+	"name": "servoydefault-htmlarea",
 	"displayName": "Html Area",
 	"icon": "servoydefault/htmlarea/H1_C16.png",
 	"definition": "servoydefault/htmlarea/htmlarea.js",
@@ -63,7 +63,7 @@
 								{                                                                 
  								"name":"mustExecuteOnFocusGainedMethod",
 								"type":"boolean",
-			            		"optional":"true"
+			            		"optional":true
 			            		}             
 							 ]
 	        },

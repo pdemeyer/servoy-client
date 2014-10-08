@@ -1,7 +1,6 @@
-angular.module('inlineeditfield',['servoy']).directive('inlineeditfield', function($timeout) {  
+angular.module('servoycomponentsInlineeditfield',['servoy']).directive('w', function($timeout) {  
     return {
       restrict: 'E',
-      transclude: true,
       scope: {
     	  model: "=svyModel",
     	  svyApply: '='
@@ -38,8 +37,7 @@ angular.module('inlineeditfield',['servoy']).directive('inlineeditfield', functi
             },0);
          };
       },
-      templateUrl: 'servoycomponents/inlineeditfield/inlineeditfield.html',
-      replace: true
+      templateUrl: 'servoycomponents/inlineeditfield/inlineeditfield.html'
     };
   })
 

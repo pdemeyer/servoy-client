@@ -1,5 +1,5 @@
 {
-	"name": "svy-splitpane",
+	"name": "servoydefault-splitpane",
 	"displayName": "Split Pane",
 	"icon": "servoydefault/splitpane/split.gif",
 	"definition": "servoydefault/splitpane/splitpane.js",
@@ -175,7 +175,7 @@
              					{                                                                 
  								"name":"relation",
 								"type":"object",
-			            		"optional":"true"
+			            		"optional":true
 			            		}             
 							 ]
 	        },
@@ -217,7 +217,7 @@
              					{                                                                 
  								"name":"relation",
 								"type":"object",
-			            		"optional":"true"
+			            		"optional":true
 			            		}             
 							 ]
 	        },
@@ -268,7 +268,6 @@
 	},
 "types": {
   "tab": {
-  	"model": {
   		"name": "string",
   		"containsFormId": "form",
   		"text": "tagstring",
@@ -278,7 +277,6 @@
   		"disabled": "boolean",
   		"mnemonic": "string"
   	}
-  }
 }
 	 
 }

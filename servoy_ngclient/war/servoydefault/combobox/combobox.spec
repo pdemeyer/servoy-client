@@ -1,5 +1,5 @@
 {
-	"name": "svy-combobox",
+	"name": "servoydefault-combobox",
 	"displayName": "Combobox ",
 	"icon": "servoydefault/combobox/SELECT16.png",
 	"definition": "servoydefault/combobox/combobox.js",
@@ -43,7 +43,7 @@
 								{                                                                 
  								"name":"mustExecuteOnFocusGainedMethod",
 								"type":"boolean",
-			            		"optional":"true"
+			            		"optional":true
 			            		}             
 							 ]
 	        },

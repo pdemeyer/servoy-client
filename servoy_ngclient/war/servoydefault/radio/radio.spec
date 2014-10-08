@@ -1,5 +1,5 @@
 {
-	"name": "svy-radio",
+	"name": "servoydefault-radio",
 	"displayName": "Radio",
 	"icon": "servoydefault/radio/RADIO16.png",
 	"definition": "servoydefault/radio/radio.js",
@@ -42,7 +42,7 @@
 								{                                                                 
  								"name":"mustExecuteOnFocusGainedMethod",
 								"type":"boolean",
-			            		"optional":"true"
+			            		"optional":true
 			            		}             
 							 ]
 	        },

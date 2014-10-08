@@ -1,5 +1,5 @@
 {
-	"name": "svy-typeahead",
+	"name": "servoydefault-typeahead",
 	"displayName": "Type Ahead ",
 	"icon": "servoydefault/typeahead/bhdropdownlisticon.gif",
 	"definition": "servoydefault/typeahead/typeahead.js",
@@ -55,7 +55,7 @@
 								{                                                                 
  								"name":"mustExecuteOnFocusGainedMethod",
 								"type":"boolean",
-			            		"optional":"true"
+			            		"optional":true
 			            		}             
 							 ]
 	        },

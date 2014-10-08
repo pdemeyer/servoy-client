@@ -1,4 +1,4 @@
-angular.module('svyLabel',['servoy'])
+angular.module('servoydefaultLabel',['servoy'])
 .run(["$templateCache","$http",function($templateCache,$http){
 	$http.get("servoydefault/label/label.html").then(function(result){
 		$templateCache.put("template/servoydefault/label/label.html", result.data);
@@ -7,10 +7,9 @@ angular.module('svyLabel',['servoy'])
 		$templateCache.put("template/servoydefault/label/labelfor.html", result.data);
     });	
 }])
-.directive('svyLabel', ["formatFilterFilter",'$utils','$parse','$templateCache','$compile',function(formatFilter,$utils,$parse,$templateCache,$compile) {
+.directive('servoydefaultLabel', ["formatFilterFilter",'$utils','$parse','$templateCache','$compile',function(formatFilter,$utils,$parse,$templateCache,$compile) {
     return {
       restrict: 'E',
-      transclude: true,
       scope: {
       	model: "=svyModel",
       	handlers: "=svyHandlers"
@@ -23,7 +22,6 @@ angular.module('svyLabel',['servoy'])
           $scope.containerstyle = {overflow:'hidden',position:'absolute'}
           $scope.contentstyle = {width:'100%',overflow:'hidden',position:'absolute',whiteSpace:'nowrap'}
           
-      },
-      replace: true
+      }
     };
 }])

@@ -1,7 +1,6 @@
-angular.module('svyButton',['servoy']).directive('svyButton', function(formatFilterFilter) {  
+angular.module('servoydefaultButton',['servoy']).directive('servoydefaultButton', function(formatFilterFilter) {  
     return {
       restrict: 'E',
-      transclude: true,
       scope: {
        	model: "=svyModel",
        	handlers: "=svyHandlers"
@@ -10,8 +9,7 @@ angular.module('svyButton',['servoy']).directive('svyButton', function(formatFil
     	  $scope.containerstyle = {overflow:'hidden',position:'absolute'}
           $scope.contentstyle = {width:'100%',overflow:'hidden',position:'relative',whiteSpace:'nowrap'}
       },
-      templateUrl: 'servoydefault/button/button.html',
-      replace: true
+      templateUrl: 'servoydefault/button/button.html'
     };
   })
   

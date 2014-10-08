@@ -1,5 +1,5 @@
 {
-	"name": "svy-calendar",
+	"name": "servoydefault-calendar",
 	"displayName": "Calendar",
 	"icon": "servoydefault/calendar/Calendar_C16.png",
 	"definition": "servoydefault/calendar/calendar.js",
@@ -43,7 +43,7 @@
 								{                                                                 
  								"name":"mustExecuteOnFocusGainedMethod",
 								"type":"boolean",
-			            		"optional":"true"
+			            		"optional":true
 			            		}             
 							 ]
 	        }

@@ -1,7 +1,6 @@
-angular.module('svySplitpane',['servoy']).directive('svySplitpane', function() {  
+angular.module('servoydefaultSplitpane',['servoy']).directive('servoydefaultSplitpane', function() {  
     return {
       restrict: 'E',
-      transclude: true,
       scope: {
         model: "=svyModel",
         svyServoyapi: "=",
@@ -292,7 +291,6 @@ angular.module('svySplitpane',['servoy']).directive('svySplitpane', function() {
         	  $scope.pane2MinSize = minSize;
           }           
       },
-      templateUrl: 'servoydefault/splitpane/splitpane.html',
-      replace: true
+      templateUrl: 'servoydefault/splitpane/splitpane.html'
     };
   })

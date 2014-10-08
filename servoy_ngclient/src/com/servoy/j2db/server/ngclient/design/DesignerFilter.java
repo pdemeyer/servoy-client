@@ -37,12 +37,14 @@ import javax.servlet.annotation.WebFilter;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.json.JSONWriter;
 import org.sablo.specification.PropertyDescription;
 import org.sablo.specification.WebComponentSpecProvider;
 import org.sablo.specification.WebComponentSpecification;
+import org.sablo.specification.property.IPropertyType;
 
 import com.servoy.j2db.server.ngclient.template.FormTemplateGenerator;
 import com.servoy.j2db.util.Debug;
@@ -55,7 +57,7 @@ import com.servoy.j2db.util.Debug;
 @SuppressWarnings("nls")
 public class DesignerFilter implements Filter
 {
-	private static List<String> ignoreList = Arrays.asList(new String[] { "svy-checkgroup", "svy-errorbean", "svy-navigator", "svy-radiogroup", "svy-htmlview", "colorthefoundset" });
+	private static List<String> ignoreList = Arrays.asList(new String[] { "servoydefault-checkgroup", "servoydefault-errorbean", "servoydefault-navigator", "servoydefault-radiogroup", "servoydefault-htmlview", "colorthefoundset" });
 
 	@Override
 	public void doFilter(ServletRequest servletRequest, ServletResponse servletResponse, FilterChain filterChain) throws IOException, ServletException
@@ -118,7 +120,7 @@ public class DesignerFilter implements Filter
 								{
 									model.put("editable", Boolean.TRUE);
 								}
-								if ("svy-label".equals(spec.getName()))
+								if ("servoydefault-label".equals(spec.getName()))
 								{
 									model.put("text", "label");
 								}
@@ -127,6 +129,13 @@ public class DesignerFilter implements Filter
 								{
 									jsonWriter.key("icon").value(spec.getIcon());
 								}
+								Map<String, IPropertyType< ? >> foundTypes = spec.getFoundTypes();
+								ArrayList<String> types = new ArrayList<String>();
+								for (String typeName : foundTypes.keySet())
+								{
+									types.add(typeName);
+								}
+								jsonWriter.key("types").value(new JSONArray(types));
 								jsonWriter.endObject();
 							}
 						}

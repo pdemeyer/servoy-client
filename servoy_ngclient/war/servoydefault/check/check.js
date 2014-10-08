@@ -1,7 +1,6 @@
-angular.module('svyCheck',['servoy']).directive('svyCheck', function() {  
+angular.module('servoydefaultCheck',['servoy']).directive('servoydefaultCheck', function() {  
     return {
       restrict: 'E',
-      transclude: true,
       scope: {
         name: "=",
         model: "=svyModel",
@@ -81,7 +80,6 @@ angular.module('svyCheck',['servoy']).directive('svyCheck', function() {
       	 	}
       	 };              
       },
-      templateUrl: 'servoydefault/check/check.html',
-      replace: true
+      templateUrl: 'servoydefault/check/check.html'
     };
 })

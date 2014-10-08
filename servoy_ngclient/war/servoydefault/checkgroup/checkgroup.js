@@ -1,7 +1,6 @@
-angular.module('svyCheckgroup',['servoy']).directive('svyCheckgroup', function($utils) {  
+angular.module('servoydefaultCheckgroup',['servoy']).directive('servoydefaultCheckgroup', function($utils) {  
     return {
       restrict: 'E',
-      transclude: true,
       scope: {
         name: "=",
         model: "=svyModel",
@@ -112,8 +111,7 @@ angular.module('svyCheckgroup',['servoy']).directive('svyCheckgroup', function($
               else return false
           }
       },
-      templateUrl: 'servoydefault/checkgroup/checkgroup.html',
-      replace: true
+      templateUrl: 'servoydefault/checkgroup/checkgroup.html'
     };
   })
 

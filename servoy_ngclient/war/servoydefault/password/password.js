@@ -1,7 +1,6 @@
-angular.module('svyPassword',['servoy']).directive('svyPassword', function() {  
+angular.module('servoydefaultPassword',['servoy']).directive('servoydefaultPassword', function() {  
     return {
       restrict: 'E',
-      transclude: true,
       scope: {
         model: "=svyModel",
         api: "=svyApi",
@@ -34,8 +33,7 @@ angular.module('svyPassword',['servoy']).directive('svyPassword', function() {
       	 	}
       	 }; 
       },
-      templateUrl: 'servoydefault/password/password.html',
-      replace: true
+      templateUrl: 'servoydefault/password/password.html'
     };
   })
 

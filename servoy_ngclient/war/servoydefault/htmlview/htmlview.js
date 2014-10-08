@@ -1,7 +1,6 @@
-angular.module('svyHtmlview',['servoy']).directive('svyHtmlview', function() {  
+angular.module('servoydefaultHtmlview',['servoy']).directive('servoydefaultHtmlview', function() {  
     return {
       restrict: 'E',
-      transclude: true,
       scope: {
       	model: "=svyModel",
       	api: "=svyApi",
@@ -24,7 +23,6 @@ angular.module('svyHtmlview',['servoy']).directive('svyHtmlview', function() {
       	 return $element.scrollTop();
        }
       },
-      templateUrl: 'servoydefault/htmlview/htmlview.html',
-      replace: true
-    };
+      templateUrl: 'servoydefault/htmlview/htmlview.html'
+ };
 })

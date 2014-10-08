@@ -1,4 +1,4 @@
-angular.module('svyPortal',['servoy']).directive('svyPortal', ['$utils', '$foundsetTypeConstants', '$componentTypeConstants', '$timeout', '$solutionSettings', '$anchorConstants', function($utils, $foundsetTypeConstants, $componentTypeConstants, /*timeout can be removed if it was only used for testing*/ $timeout, $solutionSettings, $anchorConstants) {  
+angular.module('servoydefaultPortal',['servoy']).directive('servoydefaultPortal', ['$utils', '$foundsetTypeConstants', '$componentTypeConstants', '$timeout', '$solutionSettings', '$anchorConstants', function($utils, $foundsetTypeConstants, $componentTypeConstants, /*timeout can be removed if it was only used for testing*/ $timeout, $solutionSettings, $anchorConstants) {  
     return {
       restrict: 'E',
       scope: {
@@ -211,7 +211,7 @@ angular.module('svyPortal',['servoy']).directive('svyPortal', ['$utils', '$found
     	  $scope.$watch('pagingOptions.pageSize', function(newVal, oldVal) {
     		  if (newVal !== oldVal) {
     			  // user requested another page size; get items from server (could be optimised I guess if page size is lower)
-    			  var startIdx = $scope.pagingOptions.currentPage - 1;
+    			  var startIdx = $scope.pagingOptions.currentPage ? $scope.pagingOptions.currentPage - 1 : 0;
     			  foundset.loadRecordsAsync(startIdx * oldVal, newVal);
     			  $scope.pagingOptions.currentPage = Math.floor(startIdx / newVal + 1);
     			  updatePageCount();

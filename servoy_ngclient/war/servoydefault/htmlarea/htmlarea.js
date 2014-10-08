@@ -1,7 +1,6 @@
-angular.module('svyHtmlarea',['servoy','ui.tinymce']).directive('svyHtmlarea', function() {  
+angular.module('servoydefaultHtmlarea',['servoy','ui.tinymce']).directive('servoydefaultHtmlarea', function() {  
 	return {
 		restrict: 'E',
-		transclude: true,
 		scope: {
 			model: "=svyModel",
 			handlers: "=svyHandlers",
@@ -74,8 +73,7 @@ angular.module('svyHtmlarea',['servoy','ui.tinymce']).directive('svyHtmlarea', f
 			};
 
 		},
-		templateUrl: 'servoydefault/htmlarea/htmlarea.html',
-		replace: true
+		templateUrl: 'servoydefault/htmlarea/htmlarea.html'
 	};
 }).run(function(uiTinymceConfig){
 	var ServoyTinyMCESettings = {

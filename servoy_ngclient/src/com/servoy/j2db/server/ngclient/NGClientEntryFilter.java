@@ -32,7 +32,6 @@ import com.servoy.j2db.persistence.IRepository;
 import com.servoy.j2db.persistence.RepositoryException;
 import com.servoy.j2db.persistence.Solution;
 import com.servoy.j2db.persistence.SolutionMetaData;
-import com.servoy.j2db.server.ngclient.endpoint.NGClientEndpoint;
 import com.servoy.j2db.server.ngclient.property.types.Types;
 import com.servoy.j2db.server.ngclient.template.FormLayoutGenerator;
 import com.servoy.j2db.server.ngclient.template.FormLayoutStructureGenerator;
@@ -59,7 +58,7 @@ public class NGClientEntryFilter extends WebEntry
 
 	public NGClientEntryFilter()
 	{
-		super(NGClientEndpoint.NGCLIENT_ENDPOINT);
+		super(WebsocketSessionFactory.CLIENT_ENDPOINT);
 	}
 
 	@Override
@@ -134,7 +133,7 @@ public class NGClientEntryFilter extends WebEntry
 					INGClientWebsocketSession wsSession = null;
 					if (clientUUID != null)
 					{
-						wsSession = (INGClientWebsocketSession)WebsocketSessionManager.getSession(NGClientEndpoint.NGCLIENT_ENDPOINT, clientUUID);
+						wsSession = (INGClientWebsocketSession)WebsocketSessionManager.getSession(WebsocketSessionFactory.CLIENT_ENDPOINT, clientUUID);
 					}
 					FlattenedSolution fs = null;
 					boolean closeFS = false;

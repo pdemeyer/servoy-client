@@ -37,19 +37,8 @@ public class WebsocketSessionFactory implements IWebsocketSessionFactory
 	 */
 	public IWebsocketSession createSession(String uuid) throws Exception
 	{
-		// RAGTEST design client factory
-		NGClientWebsocketSession wsSession;
-//		switch (endpointType)
-//		{
-//			case DESIGN_ENDPOINT :
-//				  wsSession = new DesignNGClientWebsocketSession(uuid);
-//				wsSession.setClient(new DesignNGClient(wsSession));
-//				return wsSession;
-//			case CLIENT_ENDPOINT :
-		wsSession = new NGClientWebsocketSession(uuid);
+		NGClientWebsocketSession wsSession = new NGClientWebsocketSession(uuid);
 		wsSession.setClient(new NGClient(wsSession));
 		return wsSession;
-//		}
-//		return null;
 	}
 }

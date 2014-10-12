@@ -30,6 +30,8 @@ import javax.websocket.server.ServerEndpoint;
 
 import org.sablo.websocket.WebsocketEndpoint;
 
+import com.servoy.j2db.server.ngclient.WebsocketSessionFactory;
+
 /**
  * RAGTEST doc
  * @author rgansevles
@@ -39,11 +41,9 @@ import org.sablo.websocket.WebsocketEndpoint;
 @ServerEndpoint(value = "/websocket/{sessionid}/{windowid}/{solutionName}")
 public class NGClientEndpoint extends WebsocketEndpoint
 {
-	public static final String NGCLIENT_ENDPOINT = "ngclient";
-
 	public NGClientEndpoint()
 	{
-		super(NGCLIENT_ENDPOINT);
+		super(WebsocketSessionFactory.CLIENT_ENDPOINT);
 	}
 
 	@Override

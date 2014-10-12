@@ -49,7 +49,6 @@ import com.servoy.j2db.persistence.IRepository;
 import com.servoy.j2db.persistence.Media;
 import com.servoy.j2db.persistence.RepositoryException;
 import com.servoy.j2db.persistence.SolutionMetaData;
-import com.servoy.j2db.server.ngclient.endpoint.NGClientEndpoint;
 import com.servoy.j2db.server.shared.ApplicationServerRegistry;
 import com.servoy.j2db.server.shared.IApplicationServer;
 import com.servoy.j2db.util.Debug;
@@ -242,7 +241,7 @@ public class MediaResourcesServlet extends HttpServlet
 	private IApplication getClient(String clientUUID)
 	{
 		// try to look it up as clientId. (solution model)
-		INGClientWebsocketSession wsSession = (INGClientWebsocketSession)WebsocketSessionManager.getSession(NGClientEndpoint.NGCLIENT_ENDPOINT, clientUUID);
+		INGClientWebsocketSession wsSession = (INGClientWebsocketSession)WebsocketSessionManager.getSession(WebsocketSessionFactory.CLIENT_ENDPOINT, clientUUID);
 
 		IApplication client = null;
 		if (wsSession == null)

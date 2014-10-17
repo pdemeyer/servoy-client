@@ -33,7 +33,8 @@ import org.sablo.websocket.WebsocketEndpoint;
 import com.servoy.j2db.server.ngclient.WebsocketSessionFactory;
 
 /**
- * RAGTEST doc
+ * WebsocketEndpoint for NGClient.
+ * 
  * @author rgansevles
  *
  */

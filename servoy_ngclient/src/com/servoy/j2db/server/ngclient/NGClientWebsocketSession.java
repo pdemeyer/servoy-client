@@ -69,8 +69,6 @@ import com.servoy.j2db.util.Utils;
  */
 public class NGClientWebsocketSession extends BaseWebsocketSession implements INGClientWebsocketSession
 {
-	private static ThreadLocal<String> currentWindowName = new ThreadLocal<>();
-
 	private NGClient client;
 
 	private final ConcurrentMap<IWebsocketEndpoint, ConcurrentMap<String, Pair<String, Boolean>>> endpointForms = new ConcurrentHashMap<>();

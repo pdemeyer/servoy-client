@@ -1,5 +1,5 @@
 var controllerProvider;
-angular.module('servoyApp', ['servoy','webStorageModule','ngGrid','servoy-components', 'webSocketModule','servoyWindowManager','pasvaz.bindonce']).config(function($controllerProvider) {
+angular.module('servoyApp', ['servoy','webStorageModule','servoy-components', 'webSocketModule','servoyWindowManager','pasvaz.bindonce']).config(function($controllerProvider) {
 	controllerProvider = $controllerProvider;
 }).factory('$servoyInternal', function ($rootScope,$swingModifiers,webStorage,$anchorConstants, $q,$solutionSettings, $window, $webSocket,$sessionService,$sabloConverters,$sabloUtils,$utils) {
 	   // formName:[beanname:{property1:1,property2:"test"}] needs to be synced to and from server
@@ -349,6 +349,34 @@ angular.module('servoyApp', ['servoy','webStorageModule','ngGrid','servoy-compon
 
 		   callService: function(serviceName, methodName, argsObject, async) {
 			   return getSession().callService(serviceName, methodName, argsObject, async)
+		   },
+		   
+		   setFindMode: function(formName, findMode, editable){
+			   
+			   var formState = formStates[formName];
+			   for (beanName in formState.model)
+			   {
+			   		if (beanName != '') 
+			   		{
+			   			if (formState.api[beanName] && formState.api[beanName].setFindMode)
+			   			{
+			   				formState.api[beanName].setFindMode(findMode, editable);
+			   			}
+			   			else
+			   			{
+			   				if (findMode)
+						    {
+							   formState.model[beanName].readOnlyBeforeFindMode = formState.model[beanName].readOnly;
+							   formState.model[beanName].readOnly = true;
+						    }
+						    else
+						    {
+							   formState.model[beanName].readOnly = formState.model[beanName].readOnlyBeforeFindMode;
+						    }
+			   			}
+			   			formState.getScope().$digest();
+			   		}
+			   }
 		   }
 	   }
 }).directive('svyAutosave',  function ($servoyInternal) {

@@ -144,5 +144,12 @@ public class DesignNGClient extends NGClient
 	@Override
 	protected void showInfoPanel()
 	{
+		//ignore
+	}
+
+	@Override
+	public boolean isInDesigner()
+	{
+		return true;
 	}
 }

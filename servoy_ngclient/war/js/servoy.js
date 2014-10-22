@@ -88,39 +88,49 @@ angular.module('servoy',['servoyformat','servoytooltip','servoyfileupload','ui.b
 	}
 	
 	// expression for angular scope.$watch that can watch 1 item multiple levels deep in an object
-	function getInDepthWatchExpression(parentObj, propertyNameOrArrayOfNestedNames) {
+	function getInDepthWatchExpression(parentObj, propertyNameOrArrayOfNestedNamesOrFuncs) {
 		var expression;
-		if ($.isArray(propertyNameOrArrayOfNestedNames)) {
+		if ($.isArray(propertyNameOrArrayOfNestedNamesOrFuncs)) {
 			expression = function() {
 				var r = parentObj;
 				var i = 0;
-				while (i < propertyNameOrArrayOfNestedNames.length && angular.isDefined(r)) {
-					r = r[propertyNameOrArrayOfNestedNames[i]];
+				while (i < propertyNameOrArrayOfNestedNamesOrFuncs.length && angular.isDefined(r)) {
+					var locator = propertyNameOrArrayOfNestedNamesOrFuncs[i];
+					if (typeof locator == "function") locator = locator();
+					r = r[locator];
 					i++;
 				}
 				return r;
 			}
 		}
-		else expression = function() { return parentObj[propertyNameOrArrayOfNestedNames] };
+		else expression = function() { return parentObj[propertyNameOrArrayOfNestedNamesOrFuncs] };
 
 		return expression;
 	};
 	
-	function getInDepthSetter(parentObj, propertyNameOrArrayOfNestedNames) {
+	function getInDepthSetter(parentObj, propertyNameOrArrayOfNestedNamesOrFuncs) {
 		var setterFunc;
-		if ($.isArray(propertyNameOrArrayOfNestedNames)) {
+		if ($.isArray(propertyNameOrArrayOfNestedNamesOrFuncs)) {
 			setterFunc = function(newValue) {
 				var r = parentObj;
 				var i = 0;
-				while (i < propertyNameOrArrayOfNestedNames.length - 1 && angular.isDefined(r)) {
-					r = r[propertyNameOrArrayOfNestedNames[i]];
+				while (i < propertyNameOrArrayOfNestedNamesOrFuncs.length - 1 && angular.isDefined(r)) {
+					var locator = propertyNameOrArrayOfNestedNamesOrFuncs[i];
+					if (typeof locator == "function") locator = locator();
+
+					r = r[locator];
 					i++;
 				}
-				if (angular.isDefined(r)) r[propertyNameOrArrayOfNestedNames[propertyNameOrArrayOfNestedNames.length - 1]] = newValue;
+				if (angular.isDefined(r)) {
+					var locator = propertyNameOrArrayOfNestedNamesOrFuncs[propertyNameOrArrayOfNestedNamesOrFuncs.length - 1];
+					if (typeof locator == "function") locator = locator();
+
+					r[locator] = newValue;
+				}
 				// else auto-create path?
 			}
 		}
-		else setterFunc = function(newValue) { parentObj[propertyNameOrArrayOfNestedNames] = newValue };
+		else setterFunc = function(newValue) { parentObj[propertyNameOrArrayOfNestedNamesOrFuncs] = newValue };
 
 		return setterFunc;
 	};
@@ -377,20 +387,24 @@ angular.module('servoy',['servoyformat','servoytooltip','servoyfileupload','ui.b
 	        }
 
 	        // search for svy-apply attribute on element, within parents (svy-autoapply could be used on a child DOM element of the web component)
-	        var svyApply;
-	        var svyApplyAttrValue = element.attr("svy-apply");
-	        if (! svyApplyAttrValue) {
-		        var applyParentEl = element.parents("[svy-apply]").first(); 
-	        	if (applyParentEl) svyApplyAttrValue = applyParentEl.attr("svy-apply");
+	        function findAttribute(attributeName) {
+	        	var correctScope = parent;
+		        var attrValue = element.attr(attributeName);
+		        if (! attrValue) {
+			        var parentEl = element.parents("[" + attributeName + "]").first(); 
+		        	if (parentEl) {
+		        		attrValue = parentEl.attr(attributeName);
+		        		while (parentEl && !parentEl.scope()) parentEl = parentEl.parent();
+		        		if (parentEl) correctScope = parentEl.scope();
+		        	}
+		        }
+		        if (attrValue) {
+		        	return correctScope.$eval(attrValue);
+		        }
 	        }
-	        if (svyApplyAttrValue) {
-	        	svyApply = parent.$eval(svyApplyAttrValue);
-	        	if (!svyApply && parent.$parent)
-	        	{
-	        		// how do we find the right parent?
-	        		svyApply = parent.$parent.$eval(svyApplyAttrValue);
-	        	}
-	        }
+	        
+	        var svyApply = findAttribute("svy-apply");
+	        var svyServoyApi = findAttribute("svy-servoyApi");
 	        
 	        var formName = null;
 	        
@@ -411,13 +425,19 @@ angular.module('servoy',['servoyformat','servoytooltip','servoyfileupload','ui.b
 		    	        }
 		        	}, 0);
 		     });
+		     
 		     // Listen for start edit
-	  	     element.bind('focus', function() {
-	  	        	setTimeout(function() { 
-	    	        	if (!formName) formName = searchForFormName(); 
-		        		$servoyInternal.callService("formService", "startEdit", {formname:formName,beanname:beanname,property:propertyname},true)
-	  	        	}, 0);
-	  	     });
+		     element.bind('focus', function() {
+		    	 setTimeout(function() {
+		    		 if (svyServoyApi && svyServoyApi.startEdit) {
+		    			 svyServoyApi.startEdit(propertyname);
+		    		 } else {
+		    			 // this shouldn't happen (svy-servoyApi.startEdit not being set on a web-component...)
+		    			 if (!formName) formName = searchForFormName(); 
+		    			 $servoyInternal.callService("formService", "startEdit", {formname:formName,beanname:beanname,property:propertyname},true)
+		    		 }
+		    	 }, 0);
+		     });
 
         }
         else {

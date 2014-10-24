@@ -38,6 +38,7 @@ import org.sablo.specification.WebComponentSpecification;
 import org.sablo.specification.WebServiceSpecProvider;
 import org.sablo.websocket.BaseWebsocketSession;
 import org.sablo.websocket.IClientService;
+import org.sablo.websocket.IServerService;
 import org.sablo.websocket.IWebsocketEndpoint;
 import org.sablo.websocket.WebsocketEndpoint;
 
@@ -179,6 +180,13 @@ public class NGClientWebsocketSession extends BaseWebsocketSession implements IN
 		{
 			if (!client.isEventDispatchThread()) J2DBGlobals.setServiceProvider(null);
 		}
+	}
+
+	@Override
+	protected IServerService createFormService()
+	{
+		// is handled by NGFormManager. TODO: merge
+		return null;
 	}
 
 	/**
@@ -448,7 +456,7 @@ public class NGClientWebsocketSession extends BaseWebsocketSession implements IN
 				realUrl = realUrl + "?sessionId=" + getUuid();
 			}
 			StringWriter sw = new StringWriter(512);
-			if (copy || !Boolean.valueOf(System.getProperty("servoy.generateformscripts", "false")).booleanValue())
+			if (copy || !Boolean.valueOf(System.getProperty("servoy.generateformscripts", "true")).booleanValue()) // RAGTEST 
 			{
 				new FormTemplateGenerator(new ServoyDataConverterContext(client), true, false).generate(form, realFormName, "form_recordview_js.ftl", sw);
 			}

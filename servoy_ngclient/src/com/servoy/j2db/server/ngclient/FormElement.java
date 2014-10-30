@@ -39,6 +39,7 @@ import org.sablo.specification.WebComponentSpecProvider;
 import org.sablo.specification.WebComponentSpecification;
 import org.sablo.specification.property.types.AggregatedPropertyType;
 import org.sablo.specification.property.types.TypesRegistry;
+import org.sablo.websocket.TypedData;
 import org.sablo.websocket.utils.JSONUtils;
 
 import com.servoy.j2db.FlattenedSolution;
@@ -409,7 +410,7 @@ public final class FormElement implements IWebComponentInitializer
 	 *
 	 * This uses 'Conversion 3' (see {@link NGConversions})
 	 */
-	public Object getPropertyValueConvertedForWebComponent(String propertyName, WebFormComponent component)
+	public Object getPropertyValueConvertedForWebComponent(String propertyName, WebFormComponent component, DataAdapterList dal)
 	{
 //		// TODO remove this delegation when going with tree structure , this is needed for DataAdapterList which 'thinks' everything is flat
 //		String[] split = name.split("\\.");
@@ -422,7 +423,7 @@ public final class FormElement implements IWebComponentInitializer
 		if (propertyValues.containsKey(propertyName))
 		{
 			if (propertyDescription != null) return NGConversions.INSTANCE.convertFormElementToSabloComponentValue(getRawPropertyValue(propertyName),
-				propertyDescription, this, component);
+				propertyDescription, this, component, dal);
 			else return getPropertyValue(propertyName); // just in case this method gets called for events for example (which are currently stored in the same map)
 		}
 
@@ -542,6 +543,25 @@ public final class FormElement implements IWebComponentInitializer
 	@SuppressWarnings("nls")
 	public JSONWriter propertiesAsTemplateJSON(JSONWriter writer) throws JSONException
 	{
+		TypedData<Map<String, Object>> propertiesTypedData = propertiesForTemplateJSON();
+
+		JSONWriter propertyWriter = (writer != null ? writer : new JSONStringer());
+		try
+		{
+			propertyWriter.object();
+			JSONUtils.writeDataWithConversions(new FormElementToJSON(getDataConverterContext()), propertyWriter, propertiesTypedData.content,
+				propertiesTypedData.contentType);
+			return propertyWriter.endObject();
+		}
+		catch (JSONException | IllegalArgumentException e)
+		{
+			Debug.error("Problem detected when handling a component's (" + getTagname() + ") properties / events.", e);
+			throw e;
+		}
+	}
+
+	public TypedData<Map<String, Object>> propertiesForTemplateJSON()
+	{
 		Map<String, Object> properties = new HashMap<>();
 
 		WebComponentSpecification componentSpec = getWebComponentSpec();
@@ -579,18 +599,8 @@ public final class FormElement implements IWebComponentInitializer
 		}
 		if (!propertyTypes.hasChildProperties()) propertyTypes = null;
 
-		JSONWriter propertyWriter = (writer != null ? writer : new JSONStringer());
-		try
-		{
-			propertyWriter.object();
-			JSONUtils.writeDataWithConversions(new FormElementToJSON(getDataConverterContext()), propertyWriter, properties, /* null */propertyTypes); // don't use property types here as they aren't yet converted...
-			return propertyWriter.endObject();
-		}
-		catch (JSONException | IllegalArgumentException e)
-		{
-			Debug.error("Problem detected when handling a component's (" + getTagname() + ") properties / events.", e);
-			throw e;
-		}
+		TypedData<Map<String, Object>> propertiesTypedData = new TypedData<>(properties, propertyTypes);
+		return propertiesTypedData;
 	}
 
 	Dimension getDesignSize()

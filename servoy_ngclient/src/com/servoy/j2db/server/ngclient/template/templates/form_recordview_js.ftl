@@ -15,7 +15,7 @@
  Software Foundation,Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301
 -->
 	
-${registerMethod}("${controllerName}", function($scope, $servoyInternal, $sabloInternal, $timeout, $formService) {
+${registerMethod}("${controllerName}", function($scope, $servoyInternal,$timeout,$formService) {
 
 	var beans = {
 	<#list baseComponents as bc>
@@ -36,9 +36,6 @@ ${registerMethod}("${controllerName}", function($scope, $servoyInternal, $sabloI
 
 	var formProperties = ${propertiesString}
 	var formState = $servoyInternal.initFormState("${name}", beans, formProperties, $scope);
-	// send the special request initial data for this form 
-	// this can also make the form (IFormUI instance) on the server if that is not already done
-	$sabloInternal.callService('formService', 'initialrequestdata', {formname:'${name}'},true)
 	
 	$scope.model = formState.model;
 	$scope.api = formState.api;

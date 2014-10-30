@@ -25,15 +25,18 @@ import org.sablo.specification.PropertyDescription;
 import org.sablo.specification.property.IPropertyType;
 import org.sablo.websocket.utils.DataConversion;
 import org.sablo.websocket.utils.JSONUtils;
+import org.sablo.websocket.utils.JSONUtils.FullValueToJSONConverter;
 import org.sablo.websocket.utils.JSONUtils.IToJSONConverter;
 
 import com.servoy.j2db.FlattenedSolution;
+import com.servoy.j2db.server.ngclient.DataAdapterList;
 import com.servoy.j2db.server.ngclient.FormElement;
 import com.servoy.j2db.server.ngclient.IContextProvider;
 import com.servoy.j2db.server.ngclient.IServoyDataConverterContext;
 import com.servoy.j2db.server.ngclient.WebFormComponent;
 import com.servoy.j2db.server.ngclient.component.DesignConversion;
 import com.servoy.j2db.server.ngclient.component.RhinoConversion;
+import com.servoy.j2db.util.Debug;
 
 /**
  * This class does the ng specific conversions for property types.<br>
@@ -120,7 +123,7 @@ public class NGConversions
 		 * @param component the component to which the returned value will be assigned as a property
 		 * @return the converted value, ready to be put in the web component property
 		 */
-		T toSabloComponentValue(F formElementValue, PropertyDescription pd, FormElement formElement, WebFormComponent component);
+		T toSabloComponentValue(F formElementValue, PropertyDescription pd, FormElement formElement, WebFormComponent component, DataAdapterList dataAdapterList);
 
 	}
 
@@ -242,8 +245,43 @@ public class NGConversions
 			else if (type != null)
 			{
 				// use conversion 5.1 to convert from default sablo type value to browser JSON in this case
-				writer = JSONUtils.ToJSONConverter.INSTANCE.toJSONValue(writer, key, type.defaultValue(), valueType, browserConversionMarkers);
+				writer = JSONUtils.FullValueToJSONConverter.INSTANCE.toJSONValue(writer, key, type.defaultValue(), valueType, browserConversionMarkers);
 			}
+			return writer;
+		}
+	}
+
+	public static class InitialToJSONConverter extends FullValueToJSONConverter
+	{
+
+		public static final InitialToJSONConverter INSTANCE = new InitialToJSONConverter();
+
+		@Override
+		public JSONWriter toJSONValue(JSONWriter writer, String key, Object value, PropertyDescription valueType, DataConversion browserConversionMarkers)
+			throws JSONException, IllegalArgumentException
+		{
+			boolean written = false;
+			if (value != null && valueType != null)
+			{
+				IPropertyType< ? > type = valueType.getType();
+				if (type instanceof ITemplateValueUpdaterType)
+				{
+					// good, we now know that this type puts values in template as well and now it only needs to update them to match runtime content
+					try
+					{
+						return ((ITemplateValueUpdaterType)type).initialToJSON(writer, key, value, browserConversionMarkers);
+					}
+					catch (Exception ex)
+					{
+						Debug.error("Error while writing template diff changes for value: " + value + " to type: " + type, ex);
+						return writer;
+					}
+				}
+			}
+
+			// for most values that don't support template value + updates use full value to JSON
+			if (!written) super.toJSONValue(writer, key, value, valueType, browserConversionMarkers);
+
 			return writer;
 		}
 	}
@@ -254,14 +292,15 @@ public class NGConversions
 	/**
 	 * Conversion 3 as specified in https://wiki.servoy.com/pages/viewpage.action?pageId=8716797.
 	 */
-	public Object convertFormElementToSabloComponentValue(Object formElementValue, PropertyDescription pd, FormElement formElement, WebFormComponent component)
+	public Object convertFormElementToSabloComponentValue(Object formElementValue, PropertyDescription pd, FormElement formElement, WebFormComponent component,
+		DataAdapterList dal)
 	{
 		IPropertyType< ? > type = pd.getType();
 		if (formElementValue != IDesignToFormElement.TYPE_DEFAULT_VALUE_MARKER)
 		{
 			if (type instanceof IFormElementToSabloComponent)
 			{
-				return ((IFormElementToSabloComponent)type).toSabloComponentValue(formElementValue, pd, formElement, component);
+				return ((IFormElementToSabloComponent)type).toSabloComponentValue(formElementValue, pd, formElement, component, dal);
 			}
 			return formElementValue;
 		}

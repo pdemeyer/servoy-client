@@ -243,7 +243,7 @@ public class PersistFieldInstanceTest
 
 		Assert.assertEquals(1, changes.content.size());
 
-		String json = JSONUtils.writeDataWithConversions(changes.content, changes.contentType);
+		String json = JSONUtils.writeChangesWithConversions(changes.content, changes.contentType);
 
 		Assert.assertEquals(
 			"{\"tabs\":{\"vEr\":2,\"u\":[{\"i\":0,\"v\":{\"vEr\":2,\"u\":[{\"k\":\"text\",\"v\":\"a test\"}]}}],\"conversions\":{\"0\":{\"v\":\"JSON_obj\"}}},\"conversions\":{\"tabs\":\"JSON_arr\"}}",
@@ -259,7 +259,7 @@ public class PersistFieldInstanceTest
 
 		DataAdapterList dataAdapterList = new DataAdapterList(new TestFormController(form, client));
 
-		Bean bean = form.createNewBean("mycustombean", "TestComponents:mycomponent");
+		Bean bean = form.createNewBean("mycustombean", "my-component");
 		bean.setInnerHTML("{atype:{name:'name',text:'i18n:servoy.button.ok'}}");
 		List<FormElement> formElements = ComponentFactory.getFormElements(form.getAllObjects(), new ServoyDataConverterContext(client));
 		Assert.assertEquals(1, formElements.size());
@@ -290,7 +290,7 @@ public class PersistFieldInstanceTest
 
 		Form tabForm = solution.createNewForm(validator, null, "tabform", null, false, new Dimension(600, 400));
 
-		Bean bean = form.createNewBean("mycustombean", "TestComponents:mycomponent");
+		Bean bean = form.createNewBean("mycustombean", "my-component");
 		bean.setInnerHTML("{atype:{name:'name',form:'tabform'}}");
 		List<FormElement> formElements = ComponentFactory.getFormElements(form.getAllObjects(), new ServoyDataConverterContext(client));
 		Assert.assertEquals(1, formElements.size());

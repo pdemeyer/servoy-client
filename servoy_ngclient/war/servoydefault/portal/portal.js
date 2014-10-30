@@ -166,9 +166,12 @@ angular.module('servoydefaultPortal',['servoy','ui.grid' ,'ui.grid.edit','ui.gri
 					for (var elementIndex in rowProxyObjects[pk])
 						f(rowProxyObjects[pk][elementIndex], pk, elementIndex);
 			}
+			
+			$scope.rowHeight = $scope.model.rowHeight;
 
 			var rowTemplate = ''
 			var rowWidth = 0;
+
 			$scope.columnDefinitions = [];
 			for (var idx = 0; idx < elements.length; idx++) {
 				var el = elements[idx]; 
@@ -193,25 +196,32 @@ angular.module('servoydefaultPortal',['servoy','ui.grid' ,'ui.grid.edit','ui.gri
 					+ ')" svy-apply="getExternalScopes().cellApplyHandlerWrapper(row, ' + idx
 					+ ')" svy-servoyApi="getExternalScopes().cellServoyApiWrapper(row, ' + idx + ')"/>';
 				if($scope.model.multiLine) { 
+					if($scope.rowHeight == undefined || (!$scope.model.rowHeight && ($scope.rowHeight < elY + el.model.size.height))) {
+						$scope.rowHeight = $scope.model.rowHeight ? $scope.model.rowHeight : elY + el.model.size.height;
+					}
 					if (rowWidth < (elX + el.model.size.width) ) {
 						rowWidth = elX + el.model.size.width;
 					}
 					rowTemplate = rowTemplate + '<div ng-style="getExternalScopes().getMultilineComponentWrapperStyle(' + idx + ')" >' + cellTemplate + '</div>';
 				}
 				else {
+					if($scope.rowHeight == undefined) {
+						$scope.rowHeight = el.model.size.height;
+					}
+					var isResizable = ((el.model.anchors & $anchorConstants.EAST) != 0) && ((el.model.anchors & $anchorConstants.WEST) != 0) 
 					$scope.columnDefinitions.push({
 						name:el.name,
 						displayName: columnTitle,
 						cellTemplate: cellTemplate,
 						visible: el.model.visible,
 						width: el.model.size.width,
-						editableCellTemplate: cellTemplate
-					});
-
-					updateColumnVisibility($scope, idx);
+						editableCellTemplate: cellTemplate,
+						enableColumnResizing: isResizable,
+					});					
+					updateColumnDefinition($scope, idx);
 				}
 			}
-
+			
 			if($scope.model.multiLine) {
 				$scope.columnDefinitions.push({
 					width: rowWidth,
@@ -221,9 +231,12 @@ angular.module('servoydefaultPortal',['servoy','ui.grid' ,'ui.grid.edit','ui.gri
 				});
 			}
 
-			function updateColumnVisibility(scope, idx) {
+			function updateColumnDefinition(scope, idx) {
 				scope.$watch('model.childElements[' + idx + '].model.visible', function (newVal, oldVal) {
 					scope.columnDefinitions[idx].visible = scope.model.childElements[idx].model.visible;
+				}, false);
+				scope.$watch('model.childElements[' + idx + '].model.size.width', function (newVal, oldVal) {
+					scope.columnDefinitions[idx].width = scope.model.childElements[idx].model.size.width;
 				}, false);
 			}
 
@@ -534,7 +547,7 @@ angular.module('servoydefaultPortal',['servoy','ui.grid' ,'ui.grid.edit','ui.gri
 				// it is important that at the end of this function, the two arrays are in sync; otherwise, watch loops may happen
 			};
 			$scope.$watchCollection('foundset.selectedRowIndexes', updateGridSelectionFromFoundset);
-
+			
 			$scope.gridOptions = {
 					data: 'foundset.viewPort.rows',
 					enableRowSelection: true,
@@ -548,10 +561,11 @@ angular.module('servoydefaultPortal',['servoy','ui.grid' ,'ui.grid.edit','ui.gri
 					useExternalSorting: true,
 					primaryKey: $foundsetTypeConstants.ROW_ID_COL_KEY, // not currently documented in ngGrid API but is used internally and useful - see ngGrid source code
 					columnDefs: $scope.columnDefinitions,
-					rowHeight: $scope.model.rowHeight ? $scope.model.rowHeight : 20,
+					rowHeight: $scope.rowHeight?$scope.rowHeight:20,
 					hideHeader:$scope.model.headerHeight == 0 || $scope.model.multiLine,
 					headerRowHeight: $scope.model.multiLine ? 0 : $scope.model.headerHeight
 			};
+
 			$scope.gridOptions.onRegisterApi = function( gridApi ) {
 				$scope.gridApi = gridApi;
 				gridApi.selection.on.rowSelectionChanged($scope,function(row){
@@ -564,6 +578,15 @@ angular.module('servoydefaultPortal',['servoy','ui.grid' ,'ui.grid.edit','ui.gri
 					// cal the server (through foundset type)
 					// $scope.foundset.sort(sortColumns[0], sortColumns[0].sort.direction == uiGridConstants.ASC);
 				});
+				gridApi.colResizable.on.columnSizeChanged($scope, function(colDef, deltaChange) {
+					for(var i = 0; i < $scope.model.childElements.length; i++) {
+						if(colDef.name == $scope.model.childElements[i].name) {
+							$scope.model.childElements[i].model.size.width += deltaChange;
+							break;
+						}
+					}
+				});
+
 				var requestViewPortSize = -1;
 				function testNumberOfRows() {
 					if (requestViewPortSize == -1 && $scope.foundset.serverSize > $scope.foundset.viewPort.size) {
@@ -666,12 +689,12 @@ angular.module('servoydefaultPortal',['servoy','ui.grid' ,'ui.grid.edit','ui.gri
 						var isEditable;
 						if (findMode)
 						{
-							$scope.model.childElements[i].model.wasEditable = $scope.model.childElements[i].model.editable;
+							$scope.model.childElements[i].model.svy_wasEditable = $scope.model.childElements[i].model.editable;
 							isEditable = editable;
 						}
 						else
 						{
-							isEditable = $scope.model.childElements[i].model.wasEditable;
+							isEditable = $scope.model.childElements[i].model.svy_wasEditable;
 						}
 						$scope.model.childElements[i].api.setFindMode(findMode, isEditable);
 					}
@@ -679,12 +702,12 @@ angular.module('servoydefaultPortal',['servoy','ui.grid' ,'ui.grid.edit','ui.gri
 					{
 						if (findMode)
 						{
-							$scope.model.childElements[i].model.readOnlyBeforeFindMode = $scope.model.childElements[i].model.readOnly;
+							$scope.model.childElements[i].model.svy_readOnlyBeforeFindMode = $scope.model.childElements[i].model.readOnly;
 							$scope.model.childElements[i].model.readOnly = !editable;
 						}
 						else
 						{
-							$scope.model.childElements[i].model.readOnly = $scope.model.childElements[i].model.readOnlyBeforeFindMode;
+							$scope.model.childElements[i].model.readOnly = $scope.model.childElements[i].model.svy_readOnlyBeforeFindMode;
 						}
 					}
 				}

@@ -1,7 +1,7 @@
 var controllerProvider;
 angular.module('servoyApp', ['sabloApp', 'servoy','webStorageModule','servoy-components', 'webSocketModule','servoyWindowManager','pasvaz.bindonce']).config(function($controllerProvider) {
 	controllerProvider = $controllerProvider;
-}).factory('$servoyInternal', function ($rootScope, $swingModifiers, webStorage, $anchorConstants, $q, $solutionSettings, $window, $sessionService, $sabloConverters, $sabloUtils, $utils, $sabloInternal) {
+}).factory('$servoyInternal', function ($rootScope, webStorage, $anchorConstants, $q, $solutionSettings, $window, $sessionService, $sabloConverters, $sabloUtils, $utils, $sabloInternal) {
 	   
 	   var deferredProperties = {};
 	   
@@ -18,7 +18,7 @@ angular.module('servoyApp', ['sabloApp', 'servoy','webStorageModule','servoy-com
 	   
 	   var sendChanges = function(now, prev, formname, beanname) {
 		   $sabloInternal.getFormState(formname).then(function (formState) {
-			   var changes = getComponentChanges(now, prev, $utils.getInDepthProperty($sabloInternal.getFormStatesConversionInfo(), formname, beanname),
+			   var changes = getComponentChanges(now, prev, $sabloUtils.getInDepthProperty($sabloInternal.getFormStatesConversionInfo(), formname, beanname),
 					   formState.layout[beanname], formState.properties.designSize, $sabloInternal.getChangeNotifier(formname, beanname), formState.getScope());
 			   if (Object.getOwnPropertyNames(changes).length > 0) {
 				   $sabloInternal.sendRequest({cmd:'datapush',formname:formname,beanname:beanname,changes:changes})
@@ -29,6 +29,10 @@ angular.module('servoyApp', ['sabloApp', 'servoy','webStorageModule','servoy-com
 	   var applyBeanData = function(beanModel, beanLayout, beanData, containerSize, changeNotifier, beanConversionInfo, newConversionInfo, componentScope) {
 		   
 		   $sabloInternal.applyBeanData(beanModel, beanData, containerSize, changeNotifier, beanConversionInfo, newConversionInfo, componentScope)
+		   applyBeanLayout(beanModel, beanLayout, beanData, containerSize)
+	   }
+	   
+	   var applyBeanLayout = function(beanModel, beanLayout, beanData, containerSize) {
 		   
 		   //beanData.anchors means anchors changed or must be initialized
 		   if (beanData.anchors && containerSize && $solutionSettings.enableAnchoring) {
@@ -36,18 +40,18 @@ angular.module('servoyApp', ['sabloApp', 'servoy','webStorageModule','servoy-com
 			   var anchoredRight = (beanModel.anchors & $anchorConstants.EAST) != 0; // east
 			   var anchoredBottom = (beanModel.anchors & $anchorConstants.SOUTH) != 0; // south
 			   var anchoredLeft = (beanModel.anchors & $anchorConstants.WEST) != 0; //west
-
+			   
 			   var runtimeChanges = beanData.size != undefined || beanData.location != undefined;
-
+			   
 			   if (!anchoredLeft && !anchoredRight) anchoredLeft = true;
 			   if (!anchoredTop && !anchoredBottom) anchoredTop = true;
-
+			   
 			   if (anchoredTop)
 			   {
 				   if (beanLayout.top == undefined || runtimeChanges && beanModel.location != undefined) beanLayout.top = beanModel.location.y + 'px';
 			   }
 			   else delete beanLayout.top;
-
+			   
 			   if (anchoredBottom)
 			   {
 				   if (beanLayout.bottom == undefined) {
@@ -59,10 +63,10 @@ angular.module('servoyApp', ['sabloApp', 'servoy','webStorageModule','servoy-com
 				   }
 			   }
 			   else delete beanLayout.bottom;
-
+			   
 			   if (!anchoredTop || !anchoredBottom) beanLayout.height = beanModel.size.height + 'px';
 			   else delete beanLayout.height;
-
+			   
 			   if (anchoredLeft)
 			   {
 				   if ( $solutionSettings.ltrOrientation)
@@ -88,7 +92,7 @@ angular.module('servoyApp', ['sabloApp', 'servoy','webStorageModule','servoy-com
 			   {
 				   delete beanLayout.right;
 			   }
-
+			   
 			   if (anchoredRight)
 			   {
 				   if ( $solutionSettings.ltrOrientation)
@@ -108,11 +112,11 @@ angular.module('servoyApp', ['sabloApp', 'servoy','webStorageModule','servoy-com
 			   {
 				   delete beanLayout.left;
 			   }
-
+			   
 			   if (!anchoredLeft || !anchoredRight) beanLayout.width = beanModel.size.width + 'px';
 			   else delete beanLayout.width;
 		   }
-
+		   
 		   //we set the following properties iff the bean doesn't have anchors
 		   if (!beanModel.anchors || !$solutionSettings.enableAnchoring)
 		   {
@@ -128,14 +132,14 @@ angular.module('servoyApp', ['sabloApp', 'servoy','webStorageModule','servoy-com
 				   }
 				   beanLayout.top = beanModel.location.y+'px';
 			   }
-
+			   
 			   if (beanModel.size)
 			   {
 				   beanLayout.width = beanModel.size.width+'px';
 				   beanLayout.height = beanModel.size.height+'px';
 			   }
 		   }
-
+		   
 		   if (beanModel.visible != undefined)
 		   {
 			   if (beanModel.visible == false)
@@ -167,101 +171,30 @@ angular.module('servoyApp', ['sabloApp', 'servoy','webStorageModule','servoy-com
 					   var formModel = formState.model;
 					   var layout = formState.layout;
 					   var newFormData = msg.forms[formname];
-					   var newFormProperties = newFormData['']; // f form properties
-					   var newFormConversionInfo = (conversionInfo && conversionInfo.forms && conversionInfo.forms[formname]) ? conversionInfo.forms[formname] : undefined;
 
-					   if(newFormProperties) {
-						   if (newFormConversionInfo && newFormConversionInfo['']) newFormProperties = $sabloConverters.convertFromServerToClient(newFormProperties, newFormConversionInfo[''], formModel[''], formState.getScope());
-						   if (!formModel['']) formModel[''] = {};
-						   for(var p in newFormProperties) {
-							   formModel[''][p] = newFormProperties[p]; 
-						   } 
-					   }
-
-					   var watchesRemoved = formState.removeWatches(newFormData);
-					   try {
-						   for (var beanname in newFormData) {
-							   // copy over the changes, skip for form properties (beanname empty)
-							   if (beanname != '') {
-								   if (formModel[beanname]!= undefined && (newFormData[beanname].size != undefined ||  newFormData[beanname].location != undefined)) {	
-									   //size or location were changed at runtime, we need to update components with anchors
-									   newFormData[beanname].anchors = formModel[beanname].anchors;
-								   }
-
-								   var newBeanConversionInfo = newFormConversionInfo ? newFormConversionInfo[beanname] : undefined;
-								   var beanConversionInfo = newBeanConversionInfo ? $utils.getOrCreateInDepthProperty($sabloInternal.getFormStatesConversionInfo(), formname, beanname) : undefined; // we could do a get instead of undefined, but normally that value is not needed if the new conversion info is undefined
-								   applyBeanData(formModel[beanname], layout[beanname], newFormData[beanname], formState.properties.designSize, $sabloInternal.getChangeNotifier(formname, beanname), beanConversionInfo, newBeanConversionInfo, formState.getScope());
-								   for (var defProperty in deferredProperties) {
-									   for(var key in newFormData[beanname]) {
-										   if (defProperty == (formname + "_" + beanname + "_" + key)) {
-											   deferredProperties[defProperty].resolve(newFormData[beanname][key]);
-											   delete deferredProperties[defProperty];
-										   }
-									   }
-								   } 
+					   for (var beanname in newFormData) {
+						   // copy over the changes, skip for form properties (beanname empty)
+						   if (beanname != '') {
+							   if (formModel[beanname]!= undefined && (newFormData[beanname].size != undefined ||  newFormData[beanname].location != undefined)) {	
+								   //size or location were changed at runtime, we need to update components with anchors
+								   newFormData[beanname].anchors = formModel[beanname].anchors;
 							   }
+
+							   applyBeanLayout(formModel[beanname], layout[beanname], newFormData[beanname], formState.properties.designSize)
+							   
+							   for (var defProperty in deferredProperties) {
+								   for(var key in newFormData[beanname]) {
+									   if (defProperty == (formname + "_" + beanname + "_" + key)) {
+										   deferredProperties[defProperty].resolve(newFormData[beanname][key]);
+										   delete deferredProperties[defProperty];
+									   }
+								   }
+							   } 
 						   }
-						   $sabloInternal.cleardeferredformState(formname)
-					   }
-					   finally {
-						   if (watchesRemoved)
-							   formState.addWatches(newFormData);
-						   else if (msg.initialdatarequest)
-							   formState.addWatches();
-						   // digest already in progress 
-//						   formState.getScope().$digest();
-//						   if (formState.model.svy_default_navigator) {
-//							   // this form has a default navigator. also make sure those watches are triggered.
-//							   var controllerElement = angular.element('[ng-controller=DefaultNavigatorController]');
-//							   if (controllerElement && controllerElement.scope()) {
-//								   controllerElement.scope().$digest();
-//							   }
-//						   }
 					   }
 				   });
 			   }
 	
-			   if (conversionInfo && conversionInfo.call) msg.call = $sabloConverters.convertFromServerToClient(msg.call, conversionInfo.call, undefined, undefined);
-			   if (msg.call) {
-				   // {"call":{"form":"product","element":"datatextfield1","api":"requestFocus","args":[arg1, arg2]}, // optionally "viewIndex":1 
-				   // "{ conversions: {product: {datatextfield1: {0: "Date"}}} }
-				   var call = msg.call;
-				   $sabloInternal.getFormState(call.form).then(function(formState) {
-				   if (call.viewIndex != undefined) {
-					   var funcThis = formState.api[call.bean][call.viewIndex]; 
-					   if (funcThis)
-					   {
-						   var func = funcThis[call.api];
-					   }
-					   else
-					   {
-						   console.warn("cannot call " + call.api + " on " + call.bean + " because viewIndex "+ call.viewIndex +" api is not found")
-					   }
-				   }
-				   else if (call.propertyPath != undefined)
-				   {
-					   // handle nested components; the property path is an array of string or int keys going
-					   // through the form's model starting with the root bean name, then it's properties (that could be nested)
-					   // then maybe nested child properties and so on 
-					   var obj = formState.model;
-					   var pn;
-					   for (pn in call.propertyPath) obj = obj[call.propertyPath[pn]];
-					   var func = obj.api[call.api];
-				   }
-				   else {
-					   var funcThis = formState.api[call.bean];
-					   var func = funcThis[call.api];
-				   }
-				   if (!func) {
-					   console.warn("bean " + call.bean + " did not provide the api: " + call.api)
-				   }
-				   try {
-					   return func.apply(funcThis, call.args)
-				   } finally {
-					   formState.getScope().$digest();
-				   }
-				   });
-			   }
 			   if (msg.sessionid) {
 				   webStorage.session.add("sessionid",msg.sessionid);
 			   }
@@ -313,25 +246,6 @@ angular.module('servoyApp', ['sabloApp', 'servoy','webStorageModule','servoy-com
 			   return state;
 		   },
 
-		   getExecutor: function(formName) {
-			   return {
-				   on: function(beanName,eventName,property,args,rowId) {
-					   return $sabloInternal.getFormState(formName).then(function (formState) {
-						   // this is onaction, onfocuslost which is really configured in the html so it really 
-						   // is something that goes to the server
-						   var newargs = $utils.getEventArgs(args,eventName);
-						   var data = {}
-						   if (property) {
-							   data[property] = formState.model[beanName][property];
-						   }
-						   var cmd = {cmd:'event',formname:formName,beanname:beanName,event:eventName,args:newargs,changes:data}
-						   if (rowId) cmd.rowId = rowId
-						   return $sabloInternal.sendDeferredMessage(cmd,formState.getScope())
-					   });
-				   },
-			   }
-		   },
-		   
 		   // used by form template js
 		   sendChanges: sendChanges,
 
@@ -411,7 +325,7 @@ angular.module('servoyApp', ['sabloApp', 'servoy','webStorageModule','servoy-com
         	});
         }
       };
-}).directive('svyImagemediaid',  function ($utils,$parse,$timeout) {
+}).directive('svyImagemediaid',  function ($parse,$timeout) {
     return {
         restrict: 'A',
         link: function (scope, element, attrs) {     

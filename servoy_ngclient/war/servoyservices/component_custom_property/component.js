@@ -25,7 +25,7 @@ angular.module('component_custom_property', ['webSocketModule', 'servoyApp', 'fo
 		var newBeanModel = propertyValue.model;
 		if (angular.isUndefined(oldBeanModel)) oldBeanModel = newBeanModel; // for child components who's custom prop. changed
 		var childChangedNotifier = getBeanPropertyChangeNotifier(propertyValue, componentScope); 
-		var beanConversionInfo = $utils.getInDepthProperty(internalState, CONVERSIONS);
+		var beanConversionInfo = $sabloUtils.getInDepthProperty(internalState, CONVERSIONS);
 		
 		// just dummy stuff - currently the parent controls layout, but getComponentChanges needs such args...
 		var containerSize = {width: 0, height: 0};
@@ -106,7 +106,7 @@ angular.module('component_custom_property', ['webSocketModule', 'servoyApp', 'fo
 					var internalState = newValue[$sabloConverters.INTERNAL_IMPL];
 
 					var executeHandler = function(type,event,row) {
-						var newargs = $utils.getEventArgs(event,type);
+						var newargs = $sabloUtils.getEventArgs(event,type);
 						internalState.requests.push({ handlerExec: {
 							eventType: type,
 							args:newargs,

@@ -13,14 +13,17 @@ angular.module('servoyApp', ['sabloApp', 'servoy','webStorageModule','servoy-com
 				   applyBeanData(now, beanLayout, changes, parentSize, changeNotifier, undefined, undefined, componentScope);
 			   }
 		   }
+		 return changes
 	   };
 	   
 	   var sendChanges = function(now, prev, formname, beanname) {
-		   var changes = getComponentChanges(now, prev, $utils.getInDepthProperty(formStatesConversionInfo, formname, beanname),
-				   formStates[formname].layout[beanname], formStates[formname].properties.designSize, getChangeNotifier(formname, beanname), formStates[formname].getScope());
-		   if (Object.getOwnPropertyNames(changes).length > 0) {
-			   getSession().sendMessageObject({cmd:'datapush',formname:formname,beanname:beanname,changes:changes})
-		   }
+		   $sabloInternal.getFormState(formname).then(function (formState) {
+			   var changes = getComponentChanges(now, prev, $utils.getInDepthProperty($sabloInternal.getFormStatesConversionInfo(), formname, beanname),
+					   formState.layout[beanname], formState.properties.designSize, $sabloInternal.getChangeNotifier(formname, beanname), formState.getScope());
+			   if (Object.getOwnPropertyNames(changes).length > 0) {
+				   $sabloInternal.sendRequest({cmd:'datapush',formname:formname,beanname:beanname,changes:changes})
+			   }
+		   })
 	   };
 	   
 	   var applyBeanData = function(beanModel, beanLayout, beanData, containerSize, changeNotifier, beanConversionInfo, newConversionInfo, componentScope) {
@@ -328,6 +331,9 @@ angular.module('servoyApp', ['sabloApp', 'servoy','webStorageModule','servoy-com
 				   },
 			   }
 		   },
+		   
+		   // used by form template js
+		   sendChanges: sendChanges,
 
 		   // for example components that use nested elements/components such as portal can give here the new value
 		   // based on the way they feed the model to child components - so they can use other objects then server known models

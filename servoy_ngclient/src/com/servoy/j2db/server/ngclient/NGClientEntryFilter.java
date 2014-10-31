@@ -99,7 +99,7 @@ public class NGClientEntryFilter extends WebEntry
 	private Collection<String> getFormScriptReferences(FlattenedSolution fs)
 	{
 		List<String> formScripts = new ArrayList<>();
-		if (Boolean.valueOf(System.getProperty("servoy.generateformscripts", "true")).booleanValue()) // RAGTEST 
+		if (Boolean.valueOf(System.getProperty("servoy.generateformscripts", "false")).booleanValue())
 		{
 			Iterator<Form> it = fs.getForms(false);
 			while (it.hasNext())

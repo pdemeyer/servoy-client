@@ -456,7 +456,7 @@ public class NGClientWebsocketSession extends BaseWebsocketSession implements IN
 				realUrl = realUrl + "?sessionId=" + getUuid();
 			}
 			StringWriter sw = new StringWriter(512);
-			if (copy || !Boolean.valueOf(System.getProperty("servoy.generateformscripts", "true")).booleanValue()) // RAGTEST 
+			if (copy || !Boolean.valueOf(System.getProperty("servoy.generateformscripts", "false")).booleanValue())
 			{
 				new FormTemplateGenerator(new ServoyDataConverterContext(client), true, false).generate(form, realFormName, "form_recordview_js.ftl", sw);
 			}

@@ -4,7 +4,7 @@ angular.module('component_custom_property', ['webSocketModule', 'servoyApp', 'fo
     CALL_ON_ONE_SELECTED_RECORD_IF_TEMPLATE : 0,
     CALL_ON_ALL_RECORDS_IF_TEMPLATE : 1
 })
-.run(function ($sabloConverters, $utils, $viewportModule, $servoyInternal, $log, $foundsetTypeConstants) {
+.run(function ($sabloConverters, $sabloUtils, $utils, $viewportModule, $servoyInternal, $log, $foundsetTypeConstants) {
 	var PROPERTY_UPDATES_KEY = "propertyUpdates";
 
 	var MODEL_KEY = "model";
@@ -16,6 +16,8 @@ angular.module('component_custom_property', ['webSocketModule', 'servoyApp', 'fo
 	var VALUE_KEY = "v";
 
 	var CONVERSIONS = 'conversions';
+
+	var NO_OP = "n";
 
 	function getChildPropertyChanges(propertyValue, oldBeanModel, componentScope) {
 		var internalState = propertyValue[$sabloConverters.INTERNAL_IMPL];
@@ -34,7 +36,6 @@ angular.module('component_custom_property', ['webSocketModule', 'servoyApp', 'fo
 	function getBeanPropertyChangeNotifier(propertyValue, componentScope) {
 		var internalState = propertyValue[$sabloConverters.INTERNAL_IMPL];
 		return function (oldBeanModel) { // oldBeanModel is only set when called from bean model in-depth watch; not set for nested comp. custom properties
-			if (!internalState.requests) internalState.requests = [];
 			internalState.requests.push({ propertyChanges : getChildPropertyChanges(propertyValue, oldBeanModel, componentScope) });
 			if (internalState.notifier) internalState.notifier();
 		};
@@ -96,7 +97,7 @@ angular.module('component_custom_property', ['webSocketModule', 'servoyApp', 'fo
 				if (!done) {
 					$log.error("Can't interpret component server update correctly: " + JSON.stringify(serverJSONValue, undefined, 2));
 				}
-			} else {
+			} else if (!angular.isDefined(serverJSONValue) || !serverJSONValue[NO_OP]) {
 				// full contents received
 				newValue = serverJSONValue;
 				
@@ -105,7 +106,6 @@ angular.module('component_custom_property', ['webSocketModule', 'servoyApp', 'fo
 					var internalState = newValue[$sabloConverters.INTERNAL_IMPL];
 
 					var executeHandler = function(type,event,row) {
-						if (!internalState.requests) internalState.requests = [];
 						var newargs = $utils.getEventArgs(event,type);
 						internalState.requests.push({ handlerExec: {
 							eventType: type,
@@ -122,6 +122,7 @@ angular.module('component_custom_property', ['webSocketModule', 'servoyApp', 'fo
 					internalState.isChanged = function() { return internalState.requests && (internalState.requests.length > 0); }
 
 					// private impl
+					internalState.requests = [];
 					internalState.beanLayout = null; // not really useful right now; just to be able to reuse existing form code 
 
 					internalState.modelUnwatch = null;
@@ -163,8 +164,6 @@ angular.module('component_custom_property', ['webSocketModule', 'servoyApp', 'fo
 					
 					/** rowId is only needed if the component is linked to a foundset */
 					serverJSONValue.apply =  function(property, componentModel, rowId) {
-						if (!internalState.requests) internalState.requests = [];
-						
 						var conversionInfo = internalState[CONVERSIONS];
 						var propertyValue = componentModel[property];
 
@@ -190,8 +189,6 @@ angular.module('component_custom_property', ['webSocketModule', 'servoyApp', 'fo
 					serverJSONValue.servoyApi = {
 							/** rowId is only needed if the component is linked to a foundset */
 							startEdit: function(property, rowId) {
-								if (!internalState.requests) internalState.requests = [];
-
 								var req = { svyStartEdit: {} };
 								
 								req.svyStartEdit[$foundsetTypeConstants.ROW_ID_COL_KEY] = rowId;
@@ -223,7 +220,7 @@ angular.module('component_custom_property', ['webSocketModule', 'servoyApp', 'fo
 				var internalState = newClientData[$sabloConverters.INTERNAL_IMPL];
 				if (internalState.isChanged()) {
 					var tmp = internalState.requests;
-					internalState.requests = null;
+					internalState.requests = [];
 					return tmp;
 				}
 			}

@@ -4,11 +4,11 @@
 	"icon": "servoydefault/tabpanel/tabs.gif",
 	"definition": "servoydefault/tabpanel/tabpanel.js",
 	"serverscript": "servoydefault/tabpanel/tabpanel_server.js",
-	"libraries": [{"name":"accordionpanel.css", "version":"1", "url":"servoydefault/tabpanel/accordionpanel.css", "mimetype":"text/css"}],
+	"libraries": [{"name":"accordionpanel", "version":"1", "url":"servoydefault/tabpanel/accordionpanel.css", "mimetype":"text/css"}],
 	"model":
 	{
 	        "background" : "color", 
-	        "borderType" : "border", 
+	        "borderType" : {"type":"border","stringformat":true}, 
 	        "enabled" : {"type":"boolean", "default":true}, 
 	        "fontType" : "font", 
 	        "foreground" : "color", 

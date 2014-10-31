@@ -3,11 +3,11 @@
 	"displayName": "Calendar",
 	"icon": "servoydefault/calendar/Calendar_C16.png",
 	"definition": "servoydefault/calendar/calendar.js",
-	"libraries": [{"name":"moment.js", "version":"2.6.0", "url": "servoydefault/calendar/bootstrap-datetimepicker/js/moment.min.js", "mimetype":"text/javascript"},{"name":"bootstrap-datetimepicker.js", "version":"3.0.0", "url":"servoydefault/calendar/bootstrap-datetimepicker/js/bootstrap-datetimepicker.min.js", "mimetype":"text/javascript"},{"name":"bootstrap-datetimepicker.css", "version":"3.0.0", "url":"servoydefault/calendar/bootstrap-datetimepicker/css/bootstrap-datetimepicker.min.css", "mimetype":"text/css"}],
+	"libraries": [{"name":"moment", "version":"2.6.0", "url": "servoydefault/calendar/bootstrap-datetimepicker/js/moment.min.js", "mimetype":"text/javascript"},{"name":"bootstrap-datetimepicker", "version":"3.0.0", "url":"servoydefault/calendar/bootstrap-datetimepicker/js/bootstrap-datetimepicker.min.js", "mimetype":"text/javascript"},{"name":"bootstrap-datetimepicker", "version":"3.0.0", "url":"servoydefault/calendar/bootstrap-datetimepicker/css/bootstrap-datetimepicker.min.css", "mimetype":"text/css"}],
 	"model":
 	{
 	        "background" : "color", 
-	        "borderType" : "border", 
+	        "borderType" : {"type":"border","stringformat":true}, 
 	        "dataProviderID" : { "type":"dataprovider", "scope" :"design", "ondatachange": { "onchange":"onDataChangeMethodID", "callback":"onDataChangeCallback"}}, 
 	        "editable" : {"type":"boolean", "default":true}, 
 	        "enabled" : {"type":"boolean", "default":true}, 

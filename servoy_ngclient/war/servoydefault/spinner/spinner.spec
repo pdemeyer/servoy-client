@@ -3,11 +3,11 @@
 	"displayName": "Spinner",
 	"icon": "servoydefault/spinner/spinner.png",
 	"definition": "servoydefault/spinner/spinner.js",
-	"libraries": [{"name":"svy-spinner.css", "version":"1", "url":"servoydefault/spinner/spinner.css", "mimetype":"text/css"},{"name":"font-awesome.css", "version":"3.2.1", "url":"//netdna.bootstrapcdn.com/font-awesome/3.2.1/css/font-awesome.css", "mimetype":"text/css"}],
+	"libraries": [{"name":"svy-spinner", "version":"1", "url":"servoydefault/spinner/spinner.css", "mimetype":"text/css"},{"name":"font-awesome", "version":"3.2.1", "url":"servoydefault/spinner/font-awesome.css", "mimetype":"text/css"}],
 	"model":
 	{
 	        "background" : "color", 
-	        "borderType" : "border", 
+	        "borderType" : {"type":"border","stringformat":true}, 
 	        "dataProviderID" : { "type":"dataprovider", "scope" :"design", "ondatachange": { "onchange":"onDataChangeMethodID", "callback":"onDataChangeCallback"}}, 
 	        "editable" : {"type":"boolean", "default":true}, 
 	        "enabled" : {"type":"boolean", "default":true}, 

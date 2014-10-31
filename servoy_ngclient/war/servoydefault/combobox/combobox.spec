@@ -3,11 +3,11 @@
 	"displayName": "Combobox ",
 	"icon": "servoydefault/combobox/SELECT16.png",
 	"definition": "servoydefault/combobox/combobox.js",
-	"libraries": [{"name":"ui-select.js", "version":"0.8.0", "url":"servoydefault/combobox/lib/select.js", "mimetype":"text/javascript"},{"name":"ui-select.css", "version":"0.8.0", "url":"servoydefault/combobox/lib/select.css", "mimetype":"text/css"}],
+	"libraries": [{"name":"ui-select", "version":"0.8.0", "url":"servoydefault/combobox/lib/select.js", "mimetype":"text/javascript"},{"name":"ui-select", "version":"0.8.0", "url":"servoydefault/combobox/lib/select.css", "mimetype":"text/css"}],
 	"model":
 	{
 	        "background" : "color", 
-	        "borderType" : "border", 
+	        "borderType" : {"type":"border","stringformat":true}, 
 	        "dataProviderID" : { "type":"dataprovider", "scope" :"design", "ondatachange": { "onchange":"onDataChangeMethodID", "callback":"onDataChangeCallback"}}, 
 	        "editable" : {"type":"boolean", "default":true}, 
 	        "enabled" : {"type":"boolean", "default":true}, 

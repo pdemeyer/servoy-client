@@ -3,11 +3,11 @@
 	"displayName": "Split Pane",
 	"icon": "servoydefault/splitpane/split.gif",
 	"definition": "servoydefault/splitpane/splitpane.js",
-	"libraries": [{"name":"bg-splitter.js", "version":"1", "url":"servoydefault/splitpane/bg-splitter/js/splitter.js", "mimetype":"text/javascript"},{"name":"bg-splitter.css", "version":"1", "url":"servoydefault/splitpane/bg-splitter/css/style.css", "mimetype":"text/css"}],
+	"libraries": [{"name":"bg-splitter", "version":"1", "url":"servoydefault/splitpane/bg-splitter/js/splitter.js", "mimetype":"text/javascript"},{"name":"bg-splitter", "version":"1", "url":"servoydefault/splitpane/bg-splitter/css/style.css", "mimetype":"text/css"}],
 	"model":
 	{
 	        "background" : "color", 
-	        "borderType" : "border", 
+	        "borderType" : {"type":"border","stringformat":true}, 
 	        "enabled" : {"type":"boolean", "default":true}, 
 	        "fontType" : "font", 
 	        "foreground" : "color", 

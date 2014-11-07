@@ -77,6 +77,11 @@ public class ResourceProvider implements Filter
 		int index = name.lastIndexOf('/');
 		if (index == -1) index = name.lastIndexOf('\\');
 		if (index != -1) name = name.substring(index + 1);
+		// strip off the zip or jar extension
+		if (name.toLowerCase().endsWith(".jar") || name.toLowerCase().endsWith(".zip"))
+		{
+			name = name.substring(0, name.length() - 4);
+		}
 		return name;
 	}
 
@@ -364,6 +369,17 @@ public class ResourceProvider implements Filter
 		public void reportError(String specpath, Exception e)
 		{
 			log.error("Cannot parse spec file '" + specpath + "' from package 'URLPackageReader[ " + urlOfManifest + " ]'. ", e);
+		}
+
+		/*
+		 * (non-Javadoc)
+		 * 
+		 * @see org.sablo.specification.WebComponentPackage.IPackageReader#getPackageURL()
+		 */
+		@Override
+		public URL getPackageURL()
+		{
+			return null;
 		}
 	}
 }

@@ -1,6 +1,6 @@
-angular.module('servoydefaultPortal',['servoy','ui.grid' ,'ui.grid.edit','ui.grid.selection','ui.grid.resizeColumns','ui.grid.infiniteScroll'])
-.directive('servoydefaultPortal', ['$utils', '$foundsetTypeConstants', '$componentTypeConstants', '$timeout', '$solutionSettings', '$anchorConstants', 'gridUtil',
-                                   function($utils, $foundsetTypeConstants, $componentTypeConstants, $timeout, $solutionSettings, $anchorConstants,gridUtil) {  
+angular.module('servoydefaultPortal',['servoy','ui.grid','ui.grid.selection','ui.grid.resizeColumns','ui.grid.infiniteScroll'])
+.directive('servoydefaultPortal', ['$utils', '$foundsetTypeConstants', '$componentTypeConstants', '$timeout', '$solutionSettings', '$anchorConstants', 'gridUtil','uiGridConstants',
+                                   function($utils, $foundsetTypeConstants, $componentTypeConstants, $timeout, $solutionSettings, $anchorConstants,gridUtil,uiGridConstants) {  
 	return {
 		restrict: 'E',
 		scope: {
@@ -175,8 +175,8 @@ angular.module('servoydefaultPortal',['servoy','ui.grid' ,'ui.grid.edit','ui.gri
 			$scope.columnDefinitions = [];
 			for (var idx = 0; idx < elements.length; idx++) {
 				var el = elements[idx]; 
-				var elY = el.model.location.y;
-				var elX = el.model.location.x;
+				var elY = el.model.location.y - $scope.model.location.y;
+				var elX = el.model.location.x - $scope.model.location.x;
 				var columnTitle = el.model.text;
 				if (!columnTitle) {
 					// TODO use beautified dataProvider id or whatever other clients use as default, not directly the dataProvider id
@@ -215,7 +215,7 @@ angular.module('servoydefaultPortal',['servoy','ui.grid' ,'ui.grid.edit','ui.gri
 						cellTemplate: cellTemplate,
 						visible: el.model.visible,
 						width: el.model.size.width,
-						editableCellTemplate: cellTemplate,
+						cellEditableCondition: false,
 						enableColumnResizing: isResizable,
 					});					
 					updateColumnDefinition($scope, idx);
@@ -227,7 +227,7 @@ angular.module('servoydefaultPortal',['servoy','ui.grid' ,'ui.grid.edit','ui.gri
 					width: rowWidth,
 					cellTemplate: rowTemplate,
 					name: "unique",
-					editableCellTemplate: rowTemplate
+					cellEditableCondition: false,
 				});
 			}
 
@@ -331,13 +331,13 @@ angular.module('servoydefaultPortal',['servoy','ui.grid' ,'ui.grid.edit','ui.gri
 				else {
 					if($solutionSettings.ltrOrientation)
 					{
-						elLayout.left = elModel.location.x + 'px';
+						elLayout.left = (elModel.location.x - $scope.model.location.x) + 'px';
 					}
 					else
 					{
-						elLayout.right = elModel.location.x + 'px';
+						elLayout.right = (elModel.location.x - $scope.model.location.x) + 'px';
 					}
-					elLayout.top = elModel.location.y + 'px';
+					elLayout.top = (elModel.location.y - $scope.model.location.y) + 'px';
 					elLayout.width = elModel.size.width + 'px';
 					elLayout.height = elModel.size.height + 'px';		   
 				}
@@ -550,9 +550,8 @@ angular.module('servoydefaultPortal',['servoy','ui.grid' ,'ui.grid.edit','ui.gri
 					enableRowHeaderSelection: false,
 					multiSelect: false,
 					noUnselect: true,
-					enableScrollbars: false,
-					enableVerticalScrollbar: 2,
-					enableHorizontalScrollbar: 2,
+					enableVerticalScrollbar: uiGridConstants.scrollbars.WHEN_NEEDED,
+					enableHorizontalScrollbar: uiGridConstants.scrollbars.ALWAYS,
 					followSourceArray:true,
 					useExternalSorting: true,
 					primaryKey: $foundsetTypeConstants.ROW_ID_COL_KEY, // not currently documented in ngGrid API but is used internally and useful - see ngGrid source code

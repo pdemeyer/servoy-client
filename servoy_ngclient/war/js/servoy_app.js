@@ -1,7 +1,7 @@
 var controllerProvider;
 angular.module('servoyApp', ['sabloApp', 'servoy','webStorageModule','servoy-components', 'webSocketModule','servoyWindowManager','pasvaz.bindonce']).config(function($controllerProvider) {
 	controllerProvider = $controllerProvider;
-}).factory('$servoyInternal', function ($rootScope, webStorage, $anchorConstants, $q, $solutionSettings, $window, $sessionService, $sabloConverters, $sabloUtils, $utils, $sabloInternal) {
+}).factory('$servoyInternal', function ($rootScope, webStorage, $anchorConstants, $q, $solutionSettings, $window, $sessionService, $sabloConverters, $sabloUtils, $sabloInternal) {
 	   
 	   var deferredProperties = {};
 	   
@@ -238,7 +238,7 @@ angular.module('servoyApp', ['sabloApp', 'servoy','webStorageModule','servoy-com
 				   layout[beanName] = { position: 'absolute' }
 				   
 				   var newBeanConversionInfo = beanDatas[beanName].conversions;
-				   var beanConversionInfo = newBeanConversionInfo ? $utils.getOrCreateInDepthProperty($sabloInternal.getFormStatesConversionInfo(), formName, beanName) : undefined; // we could do a get instead of undefined, but normally that value is not needed if the new conversion info is undefined
+				   var beanConversionInfo = newBeanConversionInfo ? $sabloUtils.getOrCreateInDepthProperty($sabloInternal.getFormStatesConversionInfo(), formName, beanName) : undefined; // we could do a get instead of undefined, but normally that value is not needed if the new conversion info is undefined
 				   
 				   applyBeanData(state.model[beanName], layout[beanName], beanDatas[beanName], formProperties.designSize, $sabloInternal.getChangeNotifier(formName, beanName), beanConversionInfo, newBeanConversionInfo, formScope)
 			   }

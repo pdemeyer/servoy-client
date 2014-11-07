@@ -225,29 +225,6 @@ angular.module('servoy',['sabloApp','servoyformat','servoytooltip','servoyfileup
 			        	if (newValue !== oldValue) setA(newValue);
 			        }, useObjectEquality)
 			];
-		},
-		
-		/**
-		 * Receives variable arguments. First is the object obj and the others (for example a, b, c) are used to
-		 * return obj[a][b][c] making sure that if any does not exist or is null (for example b) it will be set to {}.
-		 */
-		getOrCreateInDepthProperty: function() {
-			if (arguments.length == 0) return undefined;
-			
-			var ret = arguments[0];
-			if (ret == undefined || ret === null || arguments.length == 1) return ret;
-			var p;
-			var i;
-			for (i = 1; i < arguments.length; i++) {
-				p = ret;
-				ret = ret[arguments[i]];
-				if (ret === undefined || ret === null) {
-					ret = {};
-					p[arguments[i]] = ret;
-				}
-			}
-			
-			return ret;
 		}
 	}
 }).directive('ngOnChange', function($parse){

@@ -15,7 +15,7 @@
  */
 package com.servoy.j2db.server.ngclient.property.types;
 
-import java.util.Map;
+import java.util.Collection;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -157,8 +157,8 @@ public class ValueListPropertyType implements IConvertedPropertyType<ValueListPr
 					String format = null;
 					if (dataproviderID != null)
 					{
-						Map<String, PropertyDescription> properties = formElement.getWebComponentSpec().getProperties(TypesRegistry.getType("format"));
-						for (PropertyDescription formatPd : properties.values())
+						Collection<PropertyDescription> properties = formElement.getWebComponentSpec().getProperties(TypesRegistry.getType("format"));
+						for (PropertyDescription formatPd : properties)
 						{
 							// compare the config objects for Format and Valuelist properties these are both the "for" dataprovider id property
 							if (pd.getConfig().equals(formatPd.getConfig()))

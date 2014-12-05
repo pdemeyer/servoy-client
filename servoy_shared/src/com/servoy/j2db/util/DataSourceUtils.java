@@ -91,6 +91,18 @@ public class DataSourceUtils extends DataSourceUtilsBase
 		return new StringBuilder().append(INMEM_DATASOURCE_SCHEME_COLON).append(name).toString();
 	}
 
+	/** RAGTEST doc
+	 * Get the server and table name from the datasource (when is is a db datasource)
+	 * 
+	 * @param dataSource the dataSource
+	 * @return the server and table name (or null if not a db datasource)
+	 */
+	public static boolean isInmemDataSource(String dataSource)
+	{
+		// mem:name
+		return dataSource != null && dataSource.startsWith(INMEM_DATASOURCE_SCHEME_COLON);
+	}
+
 	/**
 	 * Get the server and table name from the datasource (when is is a db datasource)
 	 * 
@@ -100,7 +112,7 @@ public class DataSourceUtils extends DataSourceUtilsBase
 	public static String getInmemDataSourceName(String dataSource)
 	{
 		// mem:name
-		if (dataSource != null && dataSource.startsWith(INMEM_DATASOURCE_SCHEME_COLON))
+		if (isInmemDataSource(dataSource))
 		{
 			return dataSource.substring(INMEM_DATASOURCE_SCHEME_COLON.length());
 		}

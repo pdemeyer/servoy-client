@@ -145,23 +145,22 @@ public class FormatPropertyType implements IConvertedPropertyType<Object>/* <Com
 	public Object toSabloComponentValue(Object formElementValue, PropertyDescription pd, FormElement formElement, WebFormComponent component,
 		DataAdapterList dataAdapterList)
 	{
-		return getSabloValue(formElementValue, pd, formElement, component, dataAdapterList);
+		return getSabloValue(formElementValue, pd, formElement, dataAdapterList);
 	}
 
 	@Override
 	public Object toSabloComponentDefaultValue(PropertyDescription pd, FormElement formElement, WebFormComponent component, DataAdapterList dataAdapterList)
 	{
-		return getSabloValue(null, pd, formElement, component, dataAdapterList);
+		return getSabloValue(null, pd, formElement, dataAdapterList);
 	}
 
-	private Object getSabloValue(Object formElementValue, PropertyDescription pd, FormElement formElement, WebFormComponent component,
-		DataAdapterList dataAdapterList)
+	private Object getSabloValue(Object formElementValue, PropertyDescription pd, FormElement formElement, DataAdapterList dataAdapterList)
 	{
 		if (formElementValue == NGConversions.IDesignToFormElement.TYPE_DEFAULT_VALUE_MARKER || formElementValue == DESIGN_DEFAULT)
 		{
 			formElementValue = null;
 		}
-		
+
 		// for now ignore format for elements with valuelist, as those may have different display value type
 		if (formElement.getPropertyValue("valuelistID") == null && (formElementValue instanceof String || formElementValue == null))
 		{

@@ -415,13 +415,6 @@ public final class FormElement implements IWebComponentInitializer
 	 */
 	public Object getPropertyValueConvertedForWebComponent(String propertyName, WebFormComponent component, DataAdapterList dal)
 	{
-//		// TODO remove this delegation when going with tree structure , this is needed for DataAdapterList which 'thinks' everything is flat
-//		String[] split = name.split("\\.");
-//		if (split.length > 1)
-//		{
-//			return ((Map)getProperty(split[0])).get(split[1]);
-//		}// end toRemove
-
 		PropertyDescription propertyDescription = getWebComponentSpec().getProperties().get(propertyName);
 		if (propertyValues.containsKey(propertyName))
 		{
@@ -432,7 +425,7 @@ public final class FormElement implements IWebComponentInitializer
 
 		if (propertyDescription != null)
 		{
-			// we want a defaut value to be set anyway because it was sent into template
+			// we want a default value to be set anyway because it was sent into template
 			return propertyDescription.getType().defaultValue();
 		}
 		return null;
@@ -597,7 +590,7 @@ public final class FormElement implements IWebComponentInitializer
 
 	/*
 	 * (non-Javadoc)
-	 *
+	 * 
 	 * @see java.lang.Object#toString()
 	 */
 	@Override

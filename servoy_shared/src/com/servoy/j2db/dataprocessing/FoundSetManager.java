@@ -2587,6 +2587,12 @@ public class FoundSetManager implements IFoundSetManagerInternal
 
 	public IFoundSetInternal getFoundSet(String dataSource) throws ServoyException
 	{
+	//	if (DataSourceUtils.isInmemDataSource(dataSource))
+	//	{
+			// RAGTEST doc
+	//		return getSharedFoundSet(dataSource);
+	//	}
+
 		IFoundSetInternal fs = getNewFoundSet(dataSource, null, getDefaultPKSortColumns(dataSource));
 		fs.clear();//have to deliver a initialized foundset, user might call new record as next call on this one
 		return fs;

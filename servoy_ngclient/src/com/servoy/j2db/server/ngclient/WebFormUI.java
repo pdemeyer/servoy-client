@@ -8,6 +8,7 @@ import java.awt.Point;
 import java.awt.Rectangle;
 import java.awt.print.PrinterJob;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -165,9 +166,10 @@ public class WebFormUI extends Container implements IWebFormUI
 		}
 	}
 
-	private int contributeComponentToElementsScope(ElementScope elementsScope, int counter, FormElement fe, WebComponentSpecification componentSpec,
+	private int contributeComponentToElementsScope(ElementScope elementsScope, int counterStart, FormElement fe, WebComponentSpecification componentSpec,
 		WebFormComponent component)
 	{
+		int counter = counterStart;
 		if (!fe.getName().startsWith("svy_") && !FormElement.ERROR_BEAN.equals(componentSpec.getName()))
 		{
 			RuntimeWebComponent runtimeComponent = new RuntimeWebComponent(component, componentSpec);
@@ -218,9 +220,9 @@ public class WebFormUI extends Container implements IWebFormUI
 	}
 
 	@Override
-	public WebFormComponent getWebComponent(String name)
+	public WebFormComponent getWebComponent(String compname)
 	{
-		return (WebFormComponent)super.getComponent(name);
+		return (WebFormComponent)super.getComponent(compname);
 	}
 
 	@Override
@@ -313,6 +315,7 @@ public class WebFormUI extends Container implements IWebFormUI
 	@Override
 	public void setComponentEnabled(boolean enabled)
 	{
+		// RAGTEST
 		this.enabled = enabled;
 		propagatePropertyToAllComponents("enabled", enabled);
 	}
@@ -326,18 +329,21 @@ public class WebFormUI extends Container implements IWebFormUI
 	@Override
 	public boolean isReadOnly()
 	{
+		// RAGTEST naar container
 		return readOnly;
 	}
 
 	@Override
 	public void setReadOnly(boolean readOnly)
 	{
+		// RAGTEST
 		this.readOnly = readOnly;
 		propagatePropertyToAllComponents("readOnly", readOnly);
 	}
 
 	private void propagatePropertyToAllComponents(String property, boolean value)
 	{
+		// RAGTEST
 		if ("readOnly".equals(property))
 		{
 			// special case, we have to set editable property for legacy components
@@ -349,11 +355,11 @@ public class WebFormUI extends Container implements IWebFormUI
 				{
 					if (fe.isLegacy())
 					{
-						component.setProperty("editable", !value);
+						component.setProperty("editable", Boolean.valueOf(!value));
 					}
 					else
 					{
-						component.setProperty(property, value);
+						component.setProperty(property, Boolean.valueOf(value));
 					}
 				}
 			}
@@ -362,7 +368,7 @@ public class WebFormUI extends Container implements IWebFormUI
 		{
 			for (WebComponent component : components.values())
 			{
-				component.setProperty(property, value);
+				component.setProperty(property, Boolean.valueOf(value));
 			}
 		}
 	}
@@ -754,8 +760,8 @@ public class WebFormUI extends Container implements IWebFormUI
 		for (WebComponent component : components.values())
 		{
 			WebFormComponent comp = (WebFormComponent)component;
-			Map<String, PropertyDescription> valuelistProps = comp.getFormElement().getWebComponentSpec().getProperties(TypesRegistry.getType("valuelist"));
-			for (PropertyDescription vlProp : valuelistProps.values())
+			Collection<PropertyDescription> valuelistProps = comp.getFormElement().getWebComponentSpec().getProperties(TypesRegistry.getType("valuelist"));
+			for (PropertyDescription vlProp : valuelistProps)
 			{
 				ValueListPropertySabloValue propertyValue = (ValueListPropertySabloValue)comp.getProperty(vlProp.getName());
 				if (propertyValue != null)
@@ -772,9 +778,8 @@ public class WebFormUI extends Container implements IWebFormUI
 
 	protected List<FormElement> getFormElements()
 	{
-		Form form = formController.getForm();
-		List<FormElement> formElements = ComponentFactory.getFormElements(
-			new ArrayList<IPersist>(form.getFlattenedObjects(PositionComparator.XY_PERSIST_COMPARATOR)).iterator(), getDataConverterContext());
-		return formElements;
+		return ComponentFactory.getFormElements(
+			new ArrayList<IPersist>(formController.getForm().getFlattenedObjects(PositionComparator.XY_PERSIST_COMPARATOR)).iterator(),
+			getDataConverterContext());
 	}
 }

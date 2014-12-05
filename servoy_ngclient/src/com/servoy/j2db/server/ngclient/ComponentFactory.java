@@ -51,6 +51,7 @@ import com.servoy.j2db.persistence.Part;
 import com.servoy.j2db.persistence.PositionComparator;
 import com.servoy.j2db.persistence.RepositoryException;
 import com.servoy.j2db.server.ngclient.property.ComponentPropertyType;
+import com.servoy.j2db.server.ngclient.property.types.DataproviderPropertyType;
 import com.servoy.j2db.server.ngclient.property.types.ISupportTemplateValue;
 import com.servoy.j2db.server.ngclient.property.types.PropertyPath;
 import com.servoy.j2db.server.shared.ApplicationServerRegistry;
@@ -150,23 +151,19 @@ public class ComponentFactory
 			for (Object arrayValue : fePropertyArray)
 			{
 				Object propValue = initFormElementProperty(formElNodeForm, fe, arrayValue, arrayElDesc, dal, component, componentNode, level, application, true);
-				switch (type.getName())
+				if (type == DataproviderPropertyType.INSTANCE)
 				{
-					case "dataprovider" : // array of dataprovider is not supported yet (DAL does not support arrays)  , Should be done in initFormElementProperty()
+					// array of dataprovider is not supported yet (DAL does not support arrays)  , Should be done in initFormElementProperty()
+					Debug.error("Array of dataprovider currently not supported dataprovider");
+					Object dataproviderID = propValue;
+					if (dataproviderID instanceof String)
 					{
-						Debug.error("Array of dataprovider currently not supported dataprovider");
-						Object dataproviderID = propValue;
-						if (dataproviderID instanceof String)
-						{
-							dal.add(component, level + (String)dataproviderID, propertySpec.getName());
-						}
-						break;
+						dal.add(component, level + (String)dataproviderID, propertySpec.getName());
 					}
-					default :
-					{
-						processedArray.add(propValue);
-					}
-
+				}
+				else
+				{
+					processedArray.add(propValue);
 				}
 			}
 			if (processedArray.size() > 0)
@@ -179,20 +176,15 @@ public class ComponentFactory
 			Object propValue = initFormElementProperty(formElNodeForm, fe, formElementProperty, propertySpec, dal, component, componentNode, level,
 				application, false);
 			String propName = propertySpec.getName();
-			switch (type.getName())
+			if (type == DataproviderPropertyType.INSTANCE)
 			{
-				case "dataprovider" : // array of dataprovider is not supported yet (DAL does not support arrays)
+				// array of dataprovider is not supported yet (DAL does not support arrays)
+				Object dataproviderID = formElementProperty;
+				if (dataproviderID instanceof String)
 				{
-					Object dataproviderID = formElementProperty;
-					if (dataproviderID instanceof String)
-					{
-						dal.add(component, (String)dataproviderID, level + propName);
-						return;
-					}
-					break;
+					dal.add(component, (String)dataproviderID, level + propName);
+					return;
 				}
-				default :
-					break;
 			}
 			if (propValue != null)
 			{

@@ -1855,6 +1855,13 @@ public class JSDataSet implements Wrapper, IDelegate<IDataSet>, Scriptable, Seri
 
 		public int getRowCount()
 		{
+		//	if (!foundSet.hadMoreRows())
+		//	{
+				// all rows in memory
+		//		rowCount = null;
+		//		return foundSet.getSize();
+		//	}
+
 			if (rowCount == null)
 			{
 				// possibly expensive, so cache the value

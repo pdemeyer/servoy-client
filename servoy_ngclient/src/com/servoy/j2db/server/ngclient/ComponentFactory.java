@@ -34,10 +34,9 @@ import org.sablo.specification.PropertyDescription;
 import org.sablo.specification.WebComponentSpecProvider;
 import org.sablo.specification.WebComponentSpecification;
 import org.sablo.specification.property.CustomJSONArrayType;
-import org.sablo.specification.property.ICustomType;
-import org.sablo.specification.property.IPropertyType;
-import org.sablo.specification.property.ISmartPropertyValue;
 
+import com.servoy.j2db.AbstractActiveSolutionHandler;
+import com.servoy.j2db.FlattenedSolution;
 import com.servoy.j2db.IApplication;
 import com.servoy.j2db.persistence.AbstractPersistFactory;
 import com.servoy.j2db.persistence.BaseComponent;
@@ -47,14 +46,15 @@ import com.servoy.j2db.persistence.IAnchorConstants;
 import com.servoy.j2db.persistence.IFormElement;
 import com.servoy.j2db.persistence.IPersist;
 import com.servoy.j2db.persistence.IRepository;
+import com.servoy.j2db.persistence.ISupportScrollbars;
 import com.servoy.j2db.persistence.Part;
 import com.servoy.j2db.persistence.PositionComparator;
 import com.servoy.j2db.persistence.RepositoryException;
 import com.servoy.j2db.server.ngclient.property.ComponentPropertyType;
-import com.servoy.j2db.server.ngclient.property.types.DataproviderPropertyType;
 import com.servoy.j2db.server.ngclient.property.types.ISupportTemplateValue;
 import com.servoy.j2db.server.ngclient.property.types.PropertyPath;
 import com.servoy.j2db.server.shared.ApplicationServerRegistry;
+import com.servoy.j2db.server.shared.IApplicationServer;
 import com.servoy.j2db.util.Debug;
 import com.servoy.j2db.util.Settings;
 import com.servoy.j2db.util.UUID;
@@ -92,8 +92,7 @@ public class ComponentFactory
 				if (componentSpec.getProperty(propName) == null) continue; //TODO this if should not be necessary. currently in the case of "printable" hidden property
 				Object value = fe.getPropertyValueConvertedForWebComponent(propName, webComponent, (DataAdapterList)dataAdapterList);
 				if (value == null) continue;
-				fillProperties(fe.getForm(), fe, value, componentSpec.getProperty(propName), (DataAdapterList)dataAdapterList, webComponent, webComponent, "",
-					application);
+				fillProperty(value, fe.getPropertyValue(propName), componentSpec.getProperty(propName), webComponent);
 			}
 
 			// overwrite accessible
@@ -127,159 +126,30 @@ public class ComponentFactory
 		return null;
 	}
 
-	/**
-	 *  -fe is only needed because of format . It accesses another property value based on the 'for' property (). TODO this FormElement parameter should be analyzed because format accepts a flat property value.
-	 *
-	 * -level is only needed because the current implementation 'flattens' the dataproviderid's and tagstrings for DAL  .(level should be removed after next changes)
-	 *
-	 *  -component is the whole component for now ,but it should be the current component node in the runtime component tree (instead of flat properties map)
-	 *  -component and componentNode should have been just componentNode (but currently WebCoponent is not nested)
-	 */
-	public static void fillProperties(Form formElNodeForm, FormElement fe, Object formElementProperty, PropertyDescription propertySpec, DataAdapterList dal,
-		WebFormComponent component, Object componentNode, String level, IApplication application)
+	protected static void fillProperty(Object propertyValue, Object formElementValue, PropertyDescription propertySpec, WebFormComponent component)
 	{
-		// TODO This whole method content I think can be removed when dataprovider, tagstring, ... are implemented as complex types and tree JSON handling is also completely working...
-		// except for initial filling of all properties from FormElement into WebComponent
-		IPropertyType< ? > type = propertySpec.getType();
-		if (propertySpec.getType() instanceof CustomJSONArrayType< ? , ? > && formElementProperty instanceof List &&
-			!(formElementProperty instanceof ISmartPropertyValue)) // if it's a special property type that handles directly arrays, it could be a different kind of object
-		{
-			PropertyDescription arrayElDesc = ((CustomJSONArrayType< ? , ? >)propertySpec.getType()).getCustomJSONTypeDefinition();
-			type = arrayElDesc.getType();
-			List<Object> processedArray = new ArrayList<>();
-			List<Object> fePropertyArray = (List<Object>)formElementProperty;
-			for (Object arrayValue : fePropertyArray)
-			{
-				Object propValue = initFormElementProperty(formElNodeForm, fe, arrayValue, arrayElDesc, dal, component, componentNode, level, application, true);
-				if (type == DataproviderPropertyType.INSTANCE)
-				{
-					// array of dataprovider is not supported yet (DAL does not support arrays)  , Should be done in initFormElementProperty()
-					Debug.error("Array of dataprovider currently not supported dataprovider");
-					Object dataproviderID = propValue;
-					if (dataproviderID instanceof String)
-					{
-						dal.add(component, level + (String)dataproviderID, propertySpec.getName());
-					}
-				}
-				else
-				{
-					processedArray.add(propValue);
-				}
-			}
-			if (processedArray.size() > 0)
-			{
-				putInComponentNode(componentNode, propertySpec.getName(), processedArray, propertySpec, component);
-			}
-		}
-		else
-		{
-			Object propValue = initFormElementProperty(formElNodeForm, fe, formElementProperty, propertySpec, dal, component, componentNode, level,
-				application, false);
-			String propName = propertySpec.getName();
-			if (type == DataproviderPropertyType.INSTANCE)
-			{
-				// array of dataprovider is not supported yet (DAL does not support arrays)
-				Object dataproviderID = formElementProperty;
-				if (dataproviderID instanceof String)
-				{
-					dal.add(component, (String)dataproviderID, level + propName);
-					return;
-				}
-			}
-			if (propValue != null)
-			{
-				putInComponentNode(componentNode, propName, propValue, propertySpec, component); //TODO
-			}
-		}
-	}
-
-	/**
-	 * TEMPORARY FUNCTION until we move to nested web component tree , with each node having semantics (PropertyType)
-	 *  Webcomponent will be a tree
-	 */
-	private static void putInComponentNode(Object componentNode, String propName, Object propValue, PropertyDescription propertySpec, WebFormComponent component)
-	{
-		// TODO should this just a a property.property.property = value called to WebFormComponent?
-		if (componentNode instanceof WebFormComponent)
+		String propName = propertySpec.getName();
+		if (propertyValue != null)
 		{
 			boolean templatevalue = true;
 			if (propertySpec.getType() instanceof ISupportTemplateValue)
 			{
-				templatevalue = ((ISupportTemplateValue)propertySpec.getType()).valueInTemplate(propValue);
+				templatevalue = ((ISupportTemplateValue)propertySpec.getType()).valueInTemplate(formElementValue);
 			}
 			if (templatevalue)
 			{
-				((WebFormComponent)componentNode).setDefaultProperty(propName, propValue);
+				component.setDefaultProperty(propName, propertyValue);
 			}
 			else
 			{
-				((WebFormComponent)componentNode).setProperty(propName, propValue);
+				component.setProperty(propName, propertyValue);
 			}
 		}
-		else
-		{
-			// this is now done (the wrapping) inside CustomJSONArrayType and CustomJSONObject type
-//			// now we need to convert it ourselfs. because this map will be internal to the WebFormComponent so has to have wrapper values.
-//			if (propertySpec != null && propertySpec.getType() instanceof IWrapperType< ? , ? >)
-//			{
-//				propValue = ((IWrapperType)propertySpec.getType()).wrap(propValue, null, new DataConverterContext(propertySpec, component));
-//			}
-			((Map)componentNode).put(propName, propValue);
-		}
-	}
-
-	/**
-	 * This method turns a design-time property into a Runtime Object that will be used as that property.
-	 *  TODO merge component and component node remove isarrayElement parameter
-	 * @return
-	 */
-	private static Object initFormElementProperty(Form formElNodeForm, FormElement fe, Object formElementProperty, PropertyDescription propertySpec,
-		DataAdapterList dal, WebFormComponent component, Object componentNode, String level, IApplication application, boolean isArrayElement)
-	{
-		// TODO This whole method I think should be removed when dataprovider, tagstring, ... are implemented as complex types and tree JSON handling is also completely working...
-		Object ret = null;
-		switch (propertySpec.getType().getName())
-		{
-			case "bean" :
-			{
-				Object propValue = formElementProperty;
-				if (propValue instanceof String)
-				{
-					ret = ComponentFactory.getMarkupId(fe.getName(), (String)propValue);
-				}
-				break;
-			}
-			default :
-			{
-				if ((propertySpec.getType() instanceof ICustomType) && ((ICustomType)propertySpec.getType()).getCustomJSONTypeDefinition() != null &&
-					formElementProperty instanceof Map && !(formElementProperty instanceof ISmartPropertyValue))
-				{
-					// TODO Remove this when pure tree-like JSON properties which use complex types in leafs are operational (so no need for flattening them any more)
-					String innerLevelpropName = level + propertySpec.getName();
-					Map<String, PropertyDescription> props = ((Map<String, PropertyDescription>)formElementProperty);
-					Map<String, Object> newComponentNode = new HashMap<>();
-					PropertyDescription localPropertyType = ((ICustomType)propertySpec.getType()).getCustomJSONTypeDefinition();
-
-					for (String prop : props.keySet())
-					{
-						PropertyDescription localPropertyDescription = localPropertyType.getProperty(prop);
-						fillProperties(formElNodeForm, fe, props.get(prop), localPropertyDescription, dal, component, newComponentNode, isArrayElement ? ""
-							: innerLevelpropName + ".", application);
-					}
-					ret = newComponentNode;
-					break;
-				}
-				else
-				{
-					ret = formElementProperty;
-				}
-			}
-		}
-		return ret;
 	}
 
 	// todo identity key? SolutionModel persist shouldn't be cached at all?
-	private static ConcurrentMap<IPersist, FormElement> persistWrappers = new ConcurrentHashMap<IPersist, FormElement>();
+	private static ConcurrentMap<IPersist, FormElement> persistWrappers = new ConcurrentHashMap<>();
+	private static ConcurrentMap<String, FlattenedSolution> globalFlattendSolutions = new ConcurrentHashMap<>();
 
 	/**
 	 * @param iterator
@@ -302,18 +172,56 @@ public class ComponentFactory
 		return lst;
 	}
 
+	private static FlattenedSolution getSharedFlattenedSolution(FlattenedSolution fs)
+	{
+		FlattenedSolution flattenedSolution = globalFlattendSolutions.get(fs.getName());
+		if (flattenedSolution == null)
+		{
+			try
+			{
+				flattenedSolution = new FlattenedSolution(true);
+				flattenedSolution.setSolution(fs.getMainSolutionMetaData(), false, true,
+					new AbstractActiveSolutionHandler(ApplicationServerRegistry.getService(IApplicationServer.class))
+					{
+						@Override
+						public IRepository getRepository()
+						{
+							return ApplicationServerRegistry.get().getLocalRepository();
+						}
+					});
+				FlattenedSolution alreadyCreated = globalFlattendSolutions.putIfAbsent(flattenedSolution.getName(), flattenedSolution);
+				if (alreadyCreated != null)
+				{
+					flattenedSolution.close(null);
+					flattenedSolution = alreadyCreated;
+				}
+			}
+			catch (Exception e)
+			{
+				throw new RuntimeException("Can't create FlattenedSolution for: " + fs, e);
+			}
+		}
+		return flattenedSolution;
+	}
+
 	public static FormElement getFormElement(IFormElement formElement, IServoyDataConverterContext context, PropertyPath propertyPath)
 	{
+		return getFormElement(formElement, context.getSolution(), propertyPath, (context.getApplication() != null && context.getApplication().isInDesigner()));
+	}
+
+	public static FormElement getFormElement(IFormElement formElement, FlattenedSolution fs, PropertyPath propertyPath, final boolean designer)
+	{
+
 		// dont cache if solution model is used (media,valuelist,relations can be changed for a none changed element)
-		if ((context.getApplication() != null && context.getApplication().isInDesigner()) || (context.getSolution().getSolutionCopy(false) != null))
+		if (designer || (fs.getSolutionCopy(false) != null))
 		{
 			if (propertyPath == null)
 			{
 				propertyPath = new PropertyPath();
 				propertyPath.setShouldAddElementName();
 			}
-			if (formElement instanceof BodyPortal) return createBodyPortalFormElement((BodyPortal)formElement, context);
-			else return new FormElement(formElement, context, propertyPath);
+			if (formElement instanceof BodyPortal) return createBodyPortalFormElement((BodyPortal)formElement, fs, designer);
+			else return new FormElement(formElement, fs, propertyPath, designer);
 		}
 		FormElement persistWrapper = persistWrappers.get(formElement);
 		if (persistWrapper == null)
@@ -323,22 +231,20 @@ public class ComponentFactory
 				propertyPath = new PropertyPath();
 				propertyPath.setShouldAddElementName();
 			}
-			if (formElement instanceof BodyPortal) persistWrapper = createBodyPortalFormElement((BodyPortal)formElement, context);
-			else persistWrapper = new FormElement(formElement, context, propertyPath);
+			if (formElement instanceof BodyPortal) persistWrapper = createBodyPortalFormElement((BodyPortal)formElement, getSharedFlattenedSolution(fs),
+				designer);
+			else persistWrapper = new FormElement(formElement, getSharedFlattenedSolution(fs), propertyPath, false);
 			FormElement existing = persistWrappers.putIfAbsent(formElement, persistWrapper);
 			if (existing != null)
 			{
 				persistWrapper = existing;
 			}
 		}
-		else
-		{
-			if (context != persistWrapper.getDataConverterContext()) persistWrapper.setDataConverterContext(context);
-		}
 		return persistWrapper;
+
 	}
 
-	private static FormElement createBodyPortalFormElement(BodyPortal listViewPortal, IServoyDataConverterContext context)
+	private static FormElement createBodyPortalFormElement(BodyPortal listViewPortal, FlattenedSolution fs, final boolean isInDesginer)
 	{
 		Form form = listViewPortal.getForm();
 		Part bodyPart = null;
@@ -358,6 +264,7 @@ public class ComponentFactory
 				int startPos = form.getPartStartYPos(bodyPart.getID());
 				int endPos = bodyPart.getHeight();
 				int bodyheight = endPos - startPos;
+				boolean fillsWidth = fillsWidth(form);
 
 				JSONObject portal = new JSONObject();
 				portal.put("name", name);
@@ -374,15 +281,14 @@ public class ComponentFactory
 					portal.put("headerHeight", headerHeight);
 				}
 
-				portal.put("anchors", listViewPortal.isTableview() ? (IAnchorConstants.NORTH + IAnchorConstants.WEST + IAnchorConstants.SOUTH)
-					: IAnchorConstants.ALL);
-				boolean isInDesginer = (context.getApplication() != null && context.getApplication().isInDesigner());
+				portal.put("anchors", listViewPortal.isTableview() ? (fillsWidth ? IAnchorConstants.ALL
+					: (IAnchorConstants.NORTH + IAnchorConstants.WEST + IAnchorConstants.SOUTH)) : IAnchorConstants.ALL);
 				JSONObject location = new JSONObject();
 				location.put("x", 0);
 				location.put("y", isInDesginer ? startPos : 0);
 				portal.put("location", location);
 				JSONObject size = new JSONObject();
-				size.put("width", listViewPortal.isTableview() ? getGridWidth(form) : form.getWidth());
+				size.put("width", (listViewPortal.isTableview() && !fillsWidth) ? getGridWidth(form) : form.getWidth());
 				size.put("height", bodyheight);
 				portal.put("size", size);
 				portal.put("visible", listViewPortal.getVisible());
@@ -395,8 +301,7 @@ public class ComponentFactory
 
 				PropertyPath propertyPath = new PropertyPath();
 				propertyPath.setShouldAddElementName();
-				FormElement portalFormElement = new FormElement("servoydefault-portal", portal, form, name, context, propertyPath);
-
+				FormElement portalFormElement = new FormElement("servoydefault-portal", portal, form, name, fs, propertyPath, isInDesginer);
 				PropertyDescription pd = portalFormElement.getWebComponentSpec().getProperties().get("childElements");
 				if (pd != null) pd = ((CustomJSONArrayType< ? , ? >)pd.getType()).getCustomJSONTypeDefinition();
 				if (pd == null)
@@ -424,8 +329,8 @@ public class ComponentFactory
 						{
 							if (listViewPortal.isTableview() && persist instanceof GraphicalComponent && ((GraphicalComponent)persist).getLabelFor() != null) continue;
 							propertyPath.add(children.size());
-							FormElement fe = ComponentFactory.getFormElement((IFormElement)persist, context, propertyPath);
-							children.add(type.getFormElementValue(null, pd, propertyPath, fe, context.getSolution()));
+							FormElement fe = ComponentFactory.getFormElement((IFormElement)persist, fs, propertyPath, isInDesginer);
+							children.add(type.getFormElementValue(null, pd, propertyPath, fe, fs));
 							propertyPath.backOneLevel();
 						}
 					}
@@ -499,6 +404,31 @@ public class ComponentFactory
 		return rowWidth;
 	}
 
+	private static boolean fillsWidth(Form form)
+	{
+		if ((form.getScrollbars() & ISupportScrollbars.HORIZONTAL_SCROLLBAR_NEVER) == ISupportScrollbars.HORIZONTAL_SCROLLBAR_NEVER)
+		{
+			Part part = getBodyPart(form);
+			int startPos = form.getPartStartYPos(part.getID());
+			int endPos = part.getHeight();
+			Iterator<IPersist> it = form.getAllObjects(PositionComparator.XY_PERSIST_COMPARATOR);
+			while (it.hasNext())
+			{
+				IPersist persist = it.next();
+				if (persist instanceof GraphicalComponent && ((GraphicalComponent)persist).getLabelFor() != null) continue;
+				if (persist instanceof BaseComponent)
+				{
+					BaseComponent bc = (BaseComponent)persist;
+					if ((bc.getAnchors() & (IAnchorConstants.WEST + IAnchorConstants.EAST)) == (IAnchorConstants.WEST + IAnchorConstants.EAST))
+					{
+						return true;
+					}
+				}
+			}
+		}
+		return false;
+	}
+
 	public static Part getBodyPart(Form form)
 	{
 		for (Part prt : Utils.iterate(form.getParts()))
@@ -519,6 +449,11 @@ public class ComponentFactory
 	public static void reload()
 	{
 		persistWrappers.clear();
+		for (FlattenedSolution fs : globalFlattendSolutions.values())
+		{
+			fs.close(null);
+		}
+		globalFlattendSolutions.clear();
 		WebComponentSpecProvider.reload();
 	}
 

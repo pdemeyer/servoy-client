@@ -33,13 +33,13 @@ import org.sablo.specification.PropertyDescription;
 import org.sablo.specification.property.ChangeAwareList;
 import org.sablo.specification.property.CustomJSONArrayType;
 import org.sablo.specification.property.DataConverterContext;
+import org.sablo.specification.property.IDataConverterContext;
 import org.sablo.websocket.utils.DataConversion;
 import org.sablo.websocket.utils.JSONUtils;
 
 import com.servoy.j2db.FlattenedSolution;
 import com.servoy.j2db.server.ngclient.DataAdapterList;
 import com.servoy.j2db.server.ngclient.FormElement;
-import com.servoy.j2db.server.ngclient.IServoyDataConverterContext;
 import com.servoy.j2db.server.ngclient.WebFormComponent;
 import com.servoy.j2db.server.ngclient.component.RhinoMapOrArrayWrapper;
 import com.servoy.j2db.server.ngclient.property.types.NGConversions.IDesignToFormElement;
@@ -58,7 +58,7 @@ import com.servoy.j2db.util.Debug;
  */
 public class NGCustomJSONArrayType<SabloT, SabloWT> extends CustomJSONArrayType<SabloT, SabloWT> implements IDesignToFormElement<JSONArray, Object[], Object>,
 	IFormElementToTemplateJSON<Object[], Object>, IFormElementToSabloComponent<Object[], Object>, ISabloComponentToRhino<Object>,
-	IRhinoToSabloComponent<Object>, ISupportTemplateValue<List<Object>>, ITemplateValueUpdaterType<ChangeAwareList<SabloT, SabloWT>>
+	IRhinoToSabloComponent<Object>, ISupportTemplateValue<Object[]>, ITemplateValueUpdaterType<ChangeAwareList<SabloT, SabloWT>>
 {
 
 	public NGCustomJSONArrayType(PropertyDescription definition)
@@ -97,15 +97,15 @@ public class NGCustomJSONArrayType<SabloT, SabloWT> extends CustomJSONArrayType<
 	}
 
 	@Override
-	public JSONWriter initialToJSON(JSONWriter writer, String key, ChangeAwareList<SabloT, SabloWT> changeAwareList, DataConversion conversionMarkers)
-		throws JSONException
+	public JSONWriter initialToJSON(JSONWriter writer, String key, ChangeAwareList<SabloT, SabloWT> changeAwareList, DataConversion conversionMarkers,
+		IDataConverterContext dataConverterContext) throws JSONException
 	{
-		return toJSON(writer, key, changeAwareList, conversionMarkers, true, InitialToJSONConverter.INSTANCE);
+		return toJSON(writer, key, changeAwareList, conversionMarkers, true, InitialToJSONConverter.INSTANCE, dataConverterContext.getWebObject());
 	}
 
 	@Override
 	public JSONWriter toTemplateJSONValue(JSONWriter writer, String key, Object[] formElementValue, PropertyDescription pd, DataConversion conversionMarkers,
-		IServoyDataConverterContext servoyDataConverterContext) throws JSONException
+		FlattenedSolution fs) throws JSONException
 	{
 		JSONUtils.addKeyIfPresent(writer, key);
 		if (conversionMarkers != null) conversionMarkers.convert(CustomJSONArrayType.TYPE_NAME); // so that the client knows it must use the custom client side JS for what JSON it gets
@@ -119,7 +119,7 @@ public class NGCustomJSONArrayType<SabloT, SabloWT> extends CustomJSONArrayType<
 			{
 				arrayConversionMarkers.pushNode(String.valueOf(i));
 				NGConversions.INSTANCE.convertFormElementToTemplateJSONValue(writer, null, formElementValue[i], getCustomJSONTypeDefinition(),
-					arrayConversionMarkers, servoyDataConverterContext);
+					arrayConversionMarkers, fs);
 				arrayConversionMarkers.popNode();
 			}
 			writer.endArray();
@@ -225,9 +225,9 @@ public class NGCustomJSONArrayType<SabloT, SabloWT> extends CustomJSONArrayType<
 	}
 
 	@Override
-	public boolean valueInTemplate(List<Object> values)
+	public boolean valueInTemplate(Object[] values)
 	{
-		if (values != null && values.size() > 0)
+		if (values != null && values.length > 0)
 		{
 			PropertyDescription desc = getCustomJSONTypeDefinition();
 

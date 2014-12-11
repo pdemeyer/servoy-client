@@ -97,7 +97,8 @@ public class FormatPropertyType implements IConvertedPropertyType<Object>/* <Com
 	}
 
 	@Override
-	public JSONWriter toJSON(JSONWriter writer, String key, Object/* ComponentFormat */formatValue, DataConversion clientConversion) throws JSONException
+	public JSONWriter toJSON(JSONWriter writer, String key, Object/* ComponentFormat */formatValue, DataConversion clientConversion,
+		IDataConverterContext dataConverterContext) throws JSONException
 	{
 		ComponentFormat format;
 		if (formatValue == null || formatValue instanceof String)
@@ -132,7 +133,7 @@ public class FormatPropertyType implements IConvertedPropertyType<Object>/* <Com
 		map.put("allowedCharacters", format.parsedFormat.getAllowedCharacters());
 		map.put("display", format.parsedFormat.getDisplayFormat());
 
-		return JSONUtils.toBrowserJSONFullValue(writer, key, map, null, clientConversion);
+		return JSONUtils.toBrowserJSONFullValue(writer, key, map, null, clientConversion, null);
 	}
 
 	@Override

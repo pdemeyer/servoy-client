@@ -151,8 +151,7 @@ public class RuntimeLegacyComponent implements Scriptable
 		}
 		else
 		{
-			value = convertValue(name, component.getConvertedPropertyWithDefault(convertName(name),
-				StaticContentSpecLoader.PROPERTY_DATAPROVIDERID.getPropertyName().equals(name), !needsValueConversion(name)));
+			value = convertValue(name, component.getProperty(convertName(name)));
 		}
 
 		if (isReadonly && value instanceof Boolean)

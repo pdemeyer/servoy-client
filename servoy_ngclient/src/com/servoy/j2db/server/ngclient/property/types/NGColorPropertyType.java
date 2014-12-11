@@ -19,21 +19,25 @@ import java.awt.Color;
 
 import org.json.JSONException;
 import org.json.JSONWriter;
+import org.mozilla.javascript.Scriptable;
+import org.sablo.BaseWebObject;
 import org.sablo.specification.PropertyDescription;
 import org.sablo.specification.property.types.ColorPropertyType;
 import org.sablo.websocket.utils.DataConversion;
 
 import com.servoy.j2db.FlattenedSolution;
 import com.servoy.j2db.server.ngclient.FormElement;
-import com.servoy.j2db.server.ngclient.IServoyDataConverterContext;
 import com.servoy.j2db.server.ngclient.property.types.NGConversions.IDesignToFormElement;
 import com.servoy.j2db.server.ngclient.property.types.NGConversions.IFormElementToTemplateJSON;
+import com.servoy.j2db.server.ngclient.property.types.NGConversions.ISabloComponentToRhino;
+import com.servoy.j2db.util.PersistHelper;
 
 /**
  *
  * @author acostescu
  */
-public class NGColorPropertyType extends ColorPropertyType implements IDesignToFormElement<Object, Color, Color>, IFormElementToTemplateJSON<Color, Color>
+public class NGColorPropertyType extends ColorPropertyType implements IDesignToFormElement<Object, Color, Color>, IFormElementToTemplateJSON<Color, Color>,
+	ISabloComponentToRhino<Color>
 {
 
 	public final static NGColorPropertyType NG_INSTANCE = new NGColorPropertyType();
@@ -47,9 +51,21 @@ public class NGColorPropertyType extends ColorPropertyType implements IDesignToF
 
 	@Override
 	public JSONWriter toTemplateJSONValue(JSONWriter writer, String key, Color formElementValue, PropertyDescription pd,
-		DataConversion browserConversionMarkers, IServoyDataConverterContext servoyDataConverterContext) throws JSONException
+		DataConversion browserConversionMarkers, FlattenedSolution fs) throws JSONException
 	{
-		return toJSON(writer, key, formElementValue, browserConversionMarkers);
+		return toJSON(writer, key, formElementValue, browserConversionMarkers, null);
+	}
+
+	@Override
+	public boolean isValueAvailableInRhino(Color webComponentValue, PropertyDescription pd, BaseWebObject componentOrService)
+	{
+		return true;
+	}
+
+	@Override
+	public Object toRhinoValue(Color webComponentValue, PropertyDescription pd, BaseWebObject componentOrService, Scriptable startScriptable)
+	{
+		return PersistHelper.createColorString(webComponentValue);
 	}
 
 

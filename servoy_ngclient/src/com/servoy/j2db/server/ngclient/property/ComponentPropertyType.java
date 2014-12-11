@@ -42,9 +42,9 @@ import org.sablo.websocket.utils.JSONUtils;
 import com.servoy.j2db.FlattenedSolution;
 import com.servoy.j2db.server.ngclient.DataAdapterList;
 import com.servoy.j2db.server.ngclient.FormElement;
-import com.servoy.j2db.server.ngclient.IServoyDataConverterContext;
 import com.servoy.j2db.server.ngclient.WebFormComponent;
 import com.servoy.j2db.server.ngclient.property.types.IDataLinkedType;
+import com.servoy.j2db.server.ngclient.property.types.IDataLinkedType.TargetDataLinks;
 import com.servoy.j2db.server.ngclient.property.types.ITemplateValueUpdaterType;
 import com.servoy.j2db.server.ngclient.property.types.NGConversions.FormElementToJSON;
 import com.servoy.j2db.server.ngclient.property.types.NGConversions.IDesignToFormElement;
@@ -103,7 +103,7 @@ public class ComponentPropertyType extends CustomJSONPropertyType<ComponentTypeS
 		try
 		{
 			FormElement element = new FormElement((String)designValue.get(TYPE_NAME_KEY), (JSONObject)designValue.get(DEFINITION_KEY), fe.getForm(),
-				fe.getName() + (uniqueId++), fe.getDataConverterContext(), propertyPath);
+				fe.getName() + (uniqueId++), flattenedSolution, propertyPath, fe.getDesignId() != null);
 
 			return getFormElementValue(designValue.optJSONArray(API_CALL_TYPES_KEY), pd, propertyPath, element, flattenedSolution);
 		}
@@ -152,9 +152,11 @@ public class ComponentPropertyType extends CustomJSONPropertyType<ComponentTypeS
 		{
 			if (propertyDescriptorEntry.getValue().getType() instanceof IDataLinkedType)
 			{
-				IDataLinkedType type = (IDataLinkedType< ? >)propertyDescriptorEntry.getValue().getType();
-				if (type.isLinkedToData(formElement.getPropertyValue(propertyDescriptorEntry.getKey()), propertyDescriptorEntry.getValue(), flattenedSolution,
-					formElement))
+				IDataLinkedType type = (IDataLinkedType< ? , ? >)propertyDescriptorEntry.getValue().getType();
+				TargetDataLinks dataLinks = type.getDataLinks(formElement.getPropertyValue(propertyDescriptorEntry.getKey()),
+					propertyDescriptorEntry.getValue(), flattenedSolution, formElement);
+				boolean recordAware = false;
+				if (dataLinks != TargetDataLinks.NOT_LINKED_TO_DATA && dataLinks != null && dataLinks.recordLinked)
 				{
 					m.add(propertyDescriptorEntry.getKey());
 				}
@@ -184,7 +186,7 @@ public class ComponentPropertyType extends CustomJSONPropertyType<ComponentTypeS
 
 	@Override
 	public JSONWriter toTemplateJSONValue(JSONWriter writer, String key, ComponentTypeFormElementValue formElementValue, PropertyDescription pd,
-		DataConversion conversionMarkers, IServoyDataConverterContext servoyDataConverterContext) throws JSONException
+		DataConversion conversionMarkers, FlattenedSolution fs) throws JSONException
 	{
 		if (conversionMarkers != null) conversionMarkers.convert(ComponentPropertyType.TYPE_NAME); // so that the client knows it must use the custom client side JS for what JSON it gets
 
@@ -211,8 +213,8 @@ public class ComponentPropertyType extends CustomJSONPropertyType<ComponentTypeS
 		try
 		{
 			writer.object();
-			JSONUtils.writeDataWithConversions(new FormElementToJSON(fe.getDataConverterContext()), writer, propertiesTypedData.content,
-				propertiesTypedData.contentType);
+			JSONUtils.writeDataWithConversions(new FormElementToJSON(fe.getFlattendSolution()), writer, propertiesTypedData.content,
+				propertiesTypedData.contentType, null);
 			writer.endObject();
 		}
 		catch (JSONException | IllegalArgumentException e)
@@ -278,7 +280,8 @@ public class ComponentPropertyType extends CustomJSONPropertyType<ComponentTypeS
 	}
 
 	@Override
-	public JSONWriter initialToJSON(JSONWriter writer, String key, ComponentTypeSabloValue sabloValue, DataConversion clientConversion) throws JSONException
+	public JSONWriter initialToJSON(JSONWriter writer, String key, ComponentTypeSabloValue sabloValue, DataConversion clientConversion,
+		IDataConverterContext dataConverterContext) throws JSONException
 	{
 		// this sends a diff update between the value it has in the template and the initial data requested after runtime components were created or during a page refresh.
 		if (sabloValue != null)
@@ -290,7 +293,8 @@ public class ComponentPropertyType extends CustomJSONPropertyType<ComponentTypeS
 	}
 
 	@Override
-	public JSONWriter changesToJSON(JSONWriter writer, String key, ComponentTypeSabloValue sabloValue, DataConversion clientConversion) throws JSONException
+	public JSONWriter changesToJSON(JSONWriter writer, String key, ComponentTypeSabloValue sabloValue, DataConversion clientConversion,
+		IDataConverterContext dataConverterContext) throws JSONException
 	{
 		if (sabloValue != null)
 		{
@@ -301,7 +305,8 @@ public class ComponentPropertyType extends CustomJSONPropertyType<ComponentTypeS
 	}
 
 	@Override
-	public JSONWriter toJSON(JSONWriter writer, String key, ComponentTypeSabloValue sabloValue, DataConversion clientConversion) throws JSONException
+	public JSONWriter toJSON(JSONWriter writer, String key, ComponentTypeSabloValue sabloValue, DataConversion clientConversion,
+		IDataConverterContext dataConverterContext) throws JSONException
 	{
 		if (sabloValue != null)
 		{

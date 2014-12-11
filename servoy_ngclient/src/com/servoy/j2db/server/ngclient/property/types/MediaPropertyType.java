@@ -77,7 +77,8 @@ public class MediaPropertyType implements IWrapperType<Object, MediaWrapper>, IS
 	}
 
 	@Override
-	public JSONWriter toJSON(JSONWriter writer, String key, MediaWrapper object, DataConversion clientConversion) throws JSONException
+	public JSONWriter toJSON(JSONWriter writer, String key, MediaWrapper object, DataConversion clientConversion, IDataConverterContext dataConverterContext)
+		throws JSONException
 	{
 		if (object != null)
 		{
@@ -166,26 +167,17 @@ public class MediaPropertyType implements IWrapperType<Object, MediaWrapper>, IS
 		}
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see com.servoy.j2db.server.ngclient.property.types.NGConversions.IFormElementToTemplateJSON#toTemplateJSONValue(org.json.JSONWriter, java.lang.String,
-	 * java.lang.Object, org.sablo.specification.PropertyDescription, org.sablo.websocket.utils.DataConversion)
-	 */
 	@Override
 	public JSONWriter toTemplateJSONValue(JSONWriter writer, String key, Object formElementValue, PropertyDescription pd,
-		DataConversion browserConversionMarkers, IServoyDataConverterContext servoyDataConverterContext) throws JSONException
+		DataConversion browserConversionMarkers, FlattenedSolution fs) throws JSONException
 	{
-		if (servoyDataConverterContext != null)
+		if (fs != null)
 		{
-			FlattenedSolution flattenedSolution = servoyDataConverterContext.getSolution();
-			INGApplication application = servoyDataConverterContext.getApplication();
-
-			String url = getMediaUrl(formElementValue, flattenedSolution, application);
+			String url = getMediaUrl(formElementValue, fs, null);
 
 			if (url != null)
 			{
-				return toJSON(writer, key, new MediaWrapper(formElementValue, url), browserConversionMarkers);
+				return toJSON(writer, key, new MediaWrapper(formElementValue, url), browserConversionMarkers, null);
 			}
 		}
 

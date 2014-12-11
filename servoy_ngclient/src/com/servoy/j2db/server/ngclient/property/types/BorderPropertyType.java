@@ -43,7 +43,6 @@ import org.sablo.websocket.utils.JSONUtils;
 
 import com.servoy.j2db.FlattenedSolution;
 import com.servoy.j2db.server.ngclient.FormElement;
-import com.servoy.j2db.server.ngclient.IServoyDataConverterContext;
 import com.servoy.j2db.server.ngclient.property.types.NGConversions.IDesignToFormElement;
 import com.servoy.j2db.server.ngclient.property.types.NGConversions.IFormElementToTemplateJSON;
 import com.servoy.j2db.util.ComponentFactoryHelper;
@@ -224,10 +223,11 @@ public class BorderPropertyType implements IConvertedPropertyType<Border>, IDesi
 	}
 
 	@Override
-	public JSONWriter toJSON(JSONWriter writer, String key, Border value, DataConversion clientConversion) throws JSONException
+	public JSONWriter toJSON(JSONWriter writer, String key, Border value, DataConversion clientConversion, IDataConverterContext dataConverterContext)
+		throws JSONException
 	{
 		Map<String, Object> javaResult = writeBorderToJson(value);
-		return JSONUtils.toBrowserJSONFullValue(writer, key, javaResult, null, clientConversion);
+		return JSONUtils.toBrowserJSONFullValue(writer, key, javaResult, null, clientConversion, null);
 	}
 
 	private Map<String, Object> writeBorderToJson(Border value)
@@ -412,9 +412,9 @@ public class BorderPropertyType implements IConvertedPropertyType<Border>, IDesi
 
 	@Override
 	public JSONWriter toTemplateJSONValue(JSONWriter writer, String key, Border formElementValue, PropertyDescription pd,
-		DataConversion browserConversionMarkers, IServoyDataConverterContext servoyDataConverterContext) throws JSONException
+		DataConversion browserConversionMarkers, FlattenedSolution fs) throws JSONException
 	{
-		return toJSON(writer, key, formElementValue, browserConversionMarkers);
+		return toJSON(writer, key, formElementValue, browserConversionMarkers, null);
 	}
 
 	@Override

@@ -22,6 +22,7 @@ import org.json.JSONObject;
 import org.json.JSONWriter;
 import org.sablo.specification.property.IConvertedPropertyType;
 import org.sablo.specification.property.IDataConverterContext;
+import org.sablo.specification.property.types.DefaultPropertyType;
 import org.sablo.websocket.utils.DataConversion;
 
 import com.servoy.j2db.server.ngclient.component.RuntimeWebComponent;
@@ -30,7 +31,7 @@ import com.servoy.j2db.server.ngclient.component.RuntimeWebComponent;
  * @author lvostinar
  *
  */
-public class RuntimeComponentPropertyType implements IConvertedPropertyType<RuntimeWebComponent>
+public class RuntimeComponentPropertyType extends DefaultPropertyType<RuntimeWebComponent> implements IConvertedPropertyType<RuntimeWebComponent>
 {
 	public static final RuntimeComponentPropertyType INSTANCE = new RuntimeComponentPropertyType();
 	public static final String TYPE_NAME = "runtimecomponent";
@@ -48,13 +49,8 @@ public class RuntimeComponentPropertyType implements IConvertedPropertyType<Runt
 	@Override
 	public Object parseConfig(JSONObject json)
 	{
+		// RAGTEST check
 		return json;
-	}
-
-	@Override
-	public RuntimeWebComponent defaultValue()
-	{
-		return null;
 	}
 
 	@Override

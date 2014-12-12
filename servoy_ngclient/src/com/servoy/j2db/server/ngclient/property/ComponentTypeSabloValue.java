@@ -229,7 +229,7 @@ public class ComponentTypeSabloValue implements ISmartPropertyValue
 	{
 		if (conversionMarkers != null) conversionMarkers.convert(ComponentPropertyType.TYPE_NAME); // so that the client knows it must use the custom client side JS for what JSON it gets
 
-		TypedData<Map<String, Object>> changes = childComponent.getChanges();
+		TypedData<Map<String, Object>> changes = childComponent.getAndClearChanges();
 
 		removeRecordDependentProperties(changes);
 
@@ -336,7 +336,7 @@ public class ComponentTypeSabloValue implements ISmartPropertyValue
 		// get template values
 		TypedData<Map<String, Object>> modelProperties = fe.propertiesForTemplateJSON();
 		// update them with runtime values
-		TypedData<Map<String, Object>> changes = childComponent.getChanges();
+		TypedData<Map<String, Object>> changes = childComponent.getAndClearChanges();
 		removeRecordDependentProperties(changes);
 		for (Entry<String, Object> changeEntry : changes.content.entrySet())
 		{

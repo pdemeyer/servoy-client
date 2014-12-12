@@ -16,12 +16,12 @@
 package com.servoy.j2db.server.ngclient.property.types;
 
 import org.json.JSONObject;
-import org.sablo.specification.property.IPropertyType;
+import org.sablo.specification.property.types.DefaultPropertyType;
 
 /**
  * @author jcompagner
  */
-public class MediaOptionsPropertyType implements IPropertyType<Integer>
+public class MediaOptionsPropertyType extends DefaultPropertyType<Integer>
 {
 
 	public static final MediaOptionsPropertyType INSTANCE = new MediaOptionsPropertyType();
@@ -40,12 +40,7 @@ public class MediaOptionsPropertyType implements IPropertyType<Integer>
 	@Override
 	public Object parseConfig(JSONObject json)
 	{
+		// RAGTEST check
 		return json;
-	}
-
-	@Override
-	public Integer defaultValue()
-	{
-		return null;
 	}
 }

@@ -83,15 +83,6 @@ public class WebFormUI extends Container implements IWebFormUI
 		return formController.getApplication();
 	}
 
-	/*
-	 * Called from constructor
-	 */
-	@Override
-	public final void setVisible(boolean v)
-	{
-		super.setVisible(v);
-	}
-
 	/**
 	 * this is a full recreate ui.
 	 *
@@ -211,7 +202,7 @@ public class WebFormUI extends Container implements IWebFormUI
 	}
 
 	@Override
-	public Object executeEvent(String eventType, Object[] args)
+	public Object doExecuteEvent(String eventType, Object[] args)
 	{
 		Integer eventId = events.get(eventType);
 		if (eventId != null)
@@ -265,12 +256,13 @@ public class WebFormUI extends Container implements IWebFormUI
 	}
 
 	@Override
-	public void putBrowserProperty(String propertyName, Object propertyValue) throws JSONException
+	public void doPutBrowserProperty(String propertyName, Object propertyValue) throws JSONException
 	{
+		// TODO: convert this to property change listener
 		if ("size".equals(propertyName))
 		{
 			Dimension prev = (Dimension)properties.get("size");
-			super.putBrowserProperty(propertyName, propertyValue);
+			super.doPutBrowserProperty(propertyName, propertyValue);
 			Dimension newSize = (Dimension)properties.get("size");
 			if (!Utils.equalObjects(prev, newSize))
 			{
@@ -279,7 +271,7 @@ public class WebFormUI extends Container implements IWebFormUI
 		}
 		else
 		{
-			super.putBrowserProperty(propertyName, propertyValue);
+			super.doPutBrowserProperty(propertyName, propertyValue);
 		}
 	}
 

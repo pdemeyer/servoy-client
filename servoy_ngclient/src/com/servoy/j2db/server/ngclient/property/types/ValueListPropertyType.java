@@ -23,6 +23,7 @@ import org.json.JSONWriter;
 import org.sablo.specification.PropertyDescription;
 import org.sablo.specification.property.IConvertedPropertyType;
 import org.sablo.specification.property.IDataConverterContext;
+import org.sablo.specification.property.types.DefaultPropertyType;
 import org.sablo.specification.property.types.TypesRegistry;
 import org.sablo.websocket.utils.DataConversion;
 
@@ -54,7 +55,7 @@ import com.servoy.j2db.util.Utils;
  * @author acostescu
  * @author jcompagner
  */
-public class ValueListPropertyType implements IConvertedPropertyType<ValueListPropertySabloValue>,
+public class ValueListPropertyType extends DefaultPropertyType<ValueListPropertySabloValue> implements IConvertedPropertyType<ValueListPropertySabloValue>,
 	IFormElementToSabloComponent<Object, ValueListPropertySabloValue>, ISupportTemplateValue<Object>, IDataLinkedType<Object, ValueListPropertySabloValue>
 {
 
@@ -74,30 +75,13 @@ public class ValueListPropertyType implements IConvertedPropertyType<ValueListPr
 	@Override
 	public Object parseConfig(JSONObject json)
 	{
-		if (json != null && json.has("for"))
-		{
-			try
-			{
-				return json.getString("for");
-			}
-			catch (JSONException e)
-			{
-				Debug.error("JSONException", e);
-			}
-		}
-		return "";
+		return json == null ? "" : json.optString("for");
 	}
 
 	@Override
 	public boolean valueInTemplate(Object object)
 	{
 		return false;
-	}
-
-	@Override
-	public ValueListPropertySabloValue defaultValue()
-	{
-		return null;
 	}
 
 	@Override

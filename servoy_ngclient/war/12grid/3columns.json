@@ -1,14 +1,24 @@
 {
+	"layoutName":"row",
 	"class":"row",
 	"children" : [
 		{
-			"class":"col-md-4"
+			"layoutName":"column",
+			"model": {
+				"class":"col-md-4"
+			}
 		},
 		{
-			"class":"col-md-4"
+			"layoutName":"column",
+			"model": {
+				"class":"col-md-4"
+			}
 		},
 		{
-			"class":"col-md-4"
+			"layoutName":"column",
+			"model": {
+				"class":"col-md-4"
+			}
 		}
 	]
 }

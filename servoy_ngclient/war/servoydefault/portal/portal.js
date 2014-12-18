@@ -28,7 +28,7 @@ angular.module('servoydefaultPortal',['servoy','ui.grid','ui.grid.selection','ui
 			$scope.foundset = null;
 			var elements = $scope.model.childElements;
 			$scope.$watch('model.relatedFoundset', function(newVal, oldVal) {
-				if (!$scope.foundset && newVal.viewPort.size > 0){
+				if (!$scope.foundset && newVal && newVal.viewPort && newVal.viewPort.size > 0){
 					// this is the first time after a tab switch, there is data but the portal is not showing yet.
 					$scope.foundset = {viewPort:{rows:[]}}
 					$timeout(function() {
@@ -65,61 +65,65 @@ angular.module('servoydefaultPortal',['servoy','ui.grid','ui.grid.selection','ui
 			var rowWidth = 0;
 
 			$scope.columnDefinitions = [];
-			for (var idx = 0; idx < elements.length; idx++) {
-				var el = elements[idx]; 
-				var elY = el.model.location.y - $scope.model.location.y;
-				var elX = el.model.location.x - $scope.model.location.x;
-				var columnTitle = el.model.text;
-//				if (!columnTitle) {
-//					// TODO use beautified dataProvider id or whatever other clients use as default, not directly the dataProvider id
-//					if (el.forFoundset && el.forFoundset.recordBasedProperties && el.forFoundset.recordBasedProperties.length > 0) {
-//						columnTitle = el.forFoundset.recordBasedProperties[0];
-//						if (columnTitle && columnTitle.indexOf('.') >= 0) {
-//							columnTitle = columnTitle.substring(columnTitle.lastIndexOf('.'));
+			if (elements)
+			{
+				for (var idx = 0; idx < elements.length; idx++) {
+					var el = elements[idx]; 
+					var elY = el.model.location.y - $scope.model.location.y;
+					var elX = el.model.location.x - $scope.model.location.x;
+					var columnTitle = el.model.text;
+//					if (!columnTitle) {
+//						// TODO use beautified dataProvider id or whatever other clients use as default, not directly the dataProvider id
+//						if (el.forFoundset && el.forFoundset.recordBasedProperties && el.forFoundset.recordBasedProperties.length > 0) {
+//							columnTitle = el.forFoundset.recordBasedProperties[0];
+//							if (columnTitle && columnTitle.indexOf('.') >= 0) {
+//								columnTitle = columnTitle.substring(columnTitle.lastIndexOf('.'));
+//							}
 //						}
+//						if (!columnTitle) columnTitle = "";
 //					}
-//					if (!columnTitle) columnTitle = "";
-//				}
-				if (!columnTitle) columnTitle = "";
+					if (!columnTitle) columnTitle = "";
 
-				var portal_svy_name = $element[0].getAttribute('data-svy-name');
-				var cellTemplate = '<' + el.componentDirectiveName + ' name="' + el.name
-					+ '" svy-model="getExternalScopes().getMergedCellModel(row, ' + idx
-					+ ')" svy-api="getExternalScopes().cellApiWrapper(row, ' + idx
-					+ ')" svy-handlers="getExternalScopes().cellHandlerWrapper(row, ' + idx
-					+ ')" svy-apply="getExternalScopes().cellApplyHandlerWrapper(row, ' + idx
-					+ ')" svy-servoyApi="getExternalScopes().cellServoyApiWrapper(row, ' + idx + ')"';
-				if (portal_svy_name) cellTemplate += " data-svy-name='" + portal_svy_name + "." + el.name + "'";
-				cellTemplate += '/>';
-				if($scope.model.multiLine) { 
-					if($scope.rowHeight == undefined || (!$scope.model.rowHeight && ($scope.rowHeight < elY + el.model.size.height))) {
-						$scope.rowHeight = $scope.model.rowHeight ? $scope.model.rowHeight : elY + el.model.size.height;
+					var portal_svy_name = $element[0].getAttribute('data-svy-name');
+					var cellTemplate = '<' + el.componentDirectiveName + ' name="' + el.name
+						+ '" svy-model="getExternalScopes().getMergedCellModel(row, ' + idx
+						+ ')" svy-api="getExternalScopes().cellApiWrapper(row, ' + idx
+						+ ')" svy-handlers="getExternalScopes().cellHandlerWrapper(row, ' + idx
+						+ ')" svy-apply="getExternalScopes().cellApplyHandlerWrapper(row, ' + idx
+						+ ')" svy-servoyApi="getExternalScopes().cellServoyApiWrapper(row, ' + idx + ')"';
+					if (portal_svy_name) cellTemplate += " data-svy-name='" + portal_svy_name + "." + el.name + "'";
+					cellTemplate += '/>';
+					if($scope.model.multiLine) { 
+						if($scope.rowHeight == undefined || (!$scope.model.rowHeight && ($scope.rowHeight < elY + el.model.size.height))) {
+							$scope.rowHeight = $scope.model.rowHeight ? $scope.model.rowHeight : elY + el.model.size.height;
+						}
+						if (rowWidth < (elX + el.model.size.width) ) {
+							rowWidth = elX + el.model.size.width;
+						}
+						rowTemplate = rowTemplate + '<div ng-style="getExternalScopes().getMultilineComponentWrapperStyle(' + idx + ')" >' + cellTemplate + '</div>';
 					}
-					if (rowWidth < (elX + el.model.size.width) ) {
-						rowWidth = elX + el.model.size.width;
+					else {
+						if($scope.rowHeight == undefined || ($scope.model.rowHeight == 0 && $scope.rowHeight < el.model.size.height)) {
+							$scope.rowHeight = el.model.size.height;
+						}
+						var isResizable = ((el.model.anchors & $anchorConstants.EAST) != 0) && ((el.model.anchors & $anchorConstants.WEST) != 0) 
+						var isMovable = ((el.model.anchors & $anchorConstants.NORTH) === 0) || ((el.model.anchors & $anchorConstants.SOUTH) === 0) 
+						$scope.columnDefinitions.push({
+							name:el.name,
+							displayName: columnTitle,
+							cellTemplate: cellTemplate,
+							visible: el.model.visible,
+							width: el.model.size.width,
+							minWidth: el.model.size.width,
+							cellEditableCondition: false,
+							enableColumnMoving: isMovable,
+							enableColumnResizing: isResizable,
+						});					
+						updateColumnDefinition($scope, idx);
 					}
-					rowTemplate = rowTemplate + '<div ng-style="getExternalScopes().getMultilineComponentWrapperStyle(' + idx + ')" >' + cellTemplate + '</div>';
 				}
-				else {
-					if($scope.rowHeight == undefined || ($scope.model.rowHeight == 0 && $scope.rowHeight < el.model.size.height)) {
-						$scope.rowHeight = el.model.size.height;
-					}
-					var isResizable = ((el.model.anchors & $anchorConstants.EAST) != 0) && ((el.model.anchors & $anchorConstants.WEST) != 0) 
-					var isMovable = ((el.model.anchors & $anchorConstants.NORTH) === 0) || ((el.model.anchors & $anchorConstants.SOUTH) === 0) 
-					$scope.columnDefinitions.push({
-						name:el.name,
-						displayName: columnTitle,
-						cellTemplate: cellTemplate,
-						visible: el.model.visible,
-						width: el.model.size.width,
-						minWidth: el.model.size.width,
-						cellEditableCondition: false,
-						enableColumnMoving: isMovable,
-						enableColumnResizing: isResizable,
-					});					
-					updateColumnDefinition($scope, idx);
-				}
-			}
+			}	
+			
 			
 			if($scope.model.multiLine) {
 				$scope.columnDefinitions.push({
@@ -359,7 +363,50 @@ angular.module('servoydefaultPortal',['servoy','ui.grid','ui.grid.selection','ui
 					return retValForSelectedStored ? retValForSelectedCell : retVal;
 				}
 			}
+			
+			function setElementFindMode(element,findMode, editable)
+			{
+				if (element.api.setFindMode)
+				{
+					if (!findMode && element.model.svy_wasEditable == undefined) return;
+					var isEditable;
+					if (findMode)
+					{
+						element.model.svy_wasEditable = element.model.editable;
+						isEditable = editable;
+					}
+					else
+					{
+						isEditable = element.model.svy_wasEditable;
+						delete element.model.svy_wasEditable;
+					}
+					element.api.setFindMode(findMode, isEditable);
+				}
+				else
+				{
+					if (!findMode && element.model.svy_readOnlyBeforeFindMode == undefined) return;
+					if (findMode)
+					{
+						element.model.svy_readOnlyBeforeFindMode = element.model.readOnly;
+						element.model.readOnly = !editable;
+					}
+					else
+					{
+						element.model.readOnly = element.model.svy_readOnlyBeforeFindMode;
+						delete element.model.svy_readOnlyBeforeFindMode;
+					}
+				}
 
+			}
+
+			function setElementsFindMode(findMode, editable)
+			{
+				for (var i =0; i < $scope.model.childElements.length; i++)
+				{
+					setElementFindMode($scope.model.childElements[i], findMode, editable);
+				}
+			}
+			
 			// cells provide API calls; one API call (from server) should execute on all cells of that element's column.
 			// so any API provided by a cell is added to the server side controlled API object; when server calls that API method,
 			// it will execute on all cells
@@ -368,12 +415,15 @@ angular.module('servoydefaultPortal',['servoy','ui.grid','ui.grid.selection','ui
 
 				if (!cellProxies.cellApi) {
 					if (!angular.isDefined(cellProxies.unwatchFuncs)) cellProxies.unwatchFuncs = [];
-					
 					var columnApi = elements[elementIndex].api;
 					cellProxies.cellApi = {}; // new cell API object
 					cellProxies.unwatchFuncs.push($scope.$watchCollection(function() { return cellProxies.cellApi; }, function(newCellAPI) {
 						updateColumnAPIFromCell(columnApi, newCellAPI, elementIndex);
-					}));
+						if ($scope.model.svy_findMode!=undefined)
+						{
+							setElementFindMode($scope.model.childElements[elementIndex], $scope.model.svy_findMode, $scope.model.svy_editable);
+						}
+				}));
 				}
 				return cellProxies.cellApi;
 			}
@@ -445,18 +495,21 @@ angular.module('servoydefaultPortal',['servoy','ui.grid','ui.grid.selection','ui
 				// it is important that at the end of this function, the two arrays are in sync; otherwise, watch loops may happen
 			}
 			var updateGridSelectionFromFoundset = function() {
-				$scope.$evalAsync(function () { 
-					var rows = $scope.foundset.viewPort.rows;
-					updatingGridSelection = true;
-					if (rows.length > 0 && $scope.foundset.selectedRowIndexes.length > 0) {
-						for (var idx = 0;  idx < $scope.foundset.selectedRowIndexes.length; idx++) {
-							var rowIdx = $scope.foundset.selectedRowIndexes[idx];
-							if (isInViewPort(rowIdx)) $scope.gridApi.selection.selectRow(rows[rowIdx]);
+				$scope.$evalAsync(function () {
+					if ($scope.foundset)
+					{
+						var rows = $scope.foundset.viewPort.rows;
+						updatingGridSelection = true;
+						if (rows.length > 0 && $scope.foundset.selectedRowIndexes.length > 0) {
+							for (var idx = 0;  idx < $scope.foundset.selectedRowIndexes.length; idx++) {
+								var rowIdx = $scope.foundset.selectedRowIndexes[idx];
+								if (isInViewPort(rowIdx)) $scope.gridApi.selection.selectRow(rows[rowIdx]);
+							}
+						} else if (rows.length > 0) {
+							$scope.gridApi.selection.selectRow(rows[0]);
 						}
-					} else if (rows.length > 0) {
-						$scope.gridApi.selection.selectRow(rows[0]);
+						updatingGridSelection = false;
 					}
-					updatingGridSelection = false;
 				});
 				// it is important that at the end of this function, the two arrays are in sync; otherwise, watch loops may happen
 			};
@@ -466,6 +519,7 @@ angular.module('servoydefaultPortal',['servoy','ui.grid','ui.grid.selection','ui
 					data: 'foundset.viewPort.rows',
 					enableRowSelection: true,
 					enableRowHeaderSelection: false,
+					excludeProperties: [$foundsetTypeConstants.ROW_ID_COL_KEY],
 					multiSelect: false,
 					modifierKeysToMultiSelect: true,
 					noUnselect: true,
@@ -521,8 +575,13 @@ angular.module('servoydefaultPortal',['servoy','ui.grid','ui.grid.selection','ui
 					}
 				});
 				gridApi.core.on.sortChanged ($scope, function( grid, sortColumns ) {
-					// cal the server (through foundset type)
-					// $scope.foundset.sort(sortColumns[0], sortColumns[0].sort.direction == uiGridConstants.ASC);
+					// call the server (through foundset type)
+					var columns = [];
+					for (var i = 0; i < sortColumns.length; i++)
+					{
+						columns[i] = {name: sortColumns[i].name, direction : sortColumns[i].sort.direction};
+					}
+					$scope.foundset.sort(columns);
 				});
 				gridApi.colResizable.on.columnSizeChanged ($scope, function(colDef, deltaChange) {
 					for(var i = 0; i < $scope.model.childElements.length; i++) {
@@ -535,19 +594,22 @@ angular.module('servoydefaultPortal',['servoy','ui.grid','ui.grid.selection','ui
 
 				var requestViewPortSize = -1;
 				function testNumberOfRows() {
-					if (requestViewPortSize == -1 && $scope.foundset.serverSize > $scope.foundset.viewPort.size) {
-						var numberOfRows = $scope.gridApi.grid.gridHeight/$scope.gridOptions.rowHeight;
-						if ($scope.foundset.viewPort.size  == 0) {
-							// its a full reload because viewPort size = 0
-							requestViewPortSize = 0;
-							$scope.foundset.loadRecordsAsync(0, Math.min($scope.foundset.serverSize, numberOfRows+$scope.pageSize));
+					if ($scope.foundset)
+					{
+						if (requestViewPortSize == -1 && $scope.foundset.serverSize > $scope.foundset.viewPort.size) {
+							var numberOfRows = $scope.gridApi.grid.gridHeight/$scope.gridOptions.rowHeight;
+							if ($scope.foundset.viewPort.size  == 0) {
+								// its a full reload because viewPort size = 0
+								requestViewPortSize = 0;
+								$scope.foundset.loadRecordsAsync(0, Math.min($scope.foundset.serverSize, numberOfRows+$scope.pageSize));
+							}
+							else if ($scope.foundset.viewPort.size < numberOfRows) {
+								// only add extra recors
+								requestViewPortSize = $scope.foundset.viewPort.size;
+								$scope.foundset.loadExtraRecordsAsync(Math.min($scope.foundset.serverSize- $scope.foundset.viewPort.size, (numberOfRows + $scope.pageSize) - $scope.foundset.viewPort.size));
+							}
 						}
-						else if ($scope.foundset.viewPort.size < numberOfRows) {
-							// only add extra recors
-							requestViewPortSize = $scope.foundset.viewPort.size;
-							$scope.foundset.loadExtraRecordsAsync(Math.min($scope.foundset.serverSize- $scope.foundset.viewPort.size, (numberOfRows + $scope.pageSize) - $scope.foundset.viewPort.size));
-						}
-					}
+					}	
 				}
 				$timeout(function(){
 					$scope.gridApi.grid.gridWidth = gridUtil.elementWidth($element);
@@ -660,39 +722,17 @@ angular.module('servoydefaultPortal',['servoy','ui.grid','ui.grid.selection','ui
 				}
 				return cellProxies.cellHandlers;
 			}
+			
 
 			// special method that servoy calls when this component goes into find mode.
-			// special method that servoy calls when this component goes into find mode.
 			$scope.api.setFindMode = function(findMode, editable) {
-				for (var i =0; i < $scope.model.childElements.length; i++)
-				{
-					if ($scope.model.childElements[i].api.setFindMode)
-					{
-						var isEditable;
-						if (findMode)
-						{
-							$scope.model.childElements[i].model.svy_wasEditable = $scope.model.childElements[i].model.editable;
-							isEditable = editable;
-						}
-						else
-						{
-							isEditable = $scope.model.childElements[i].model.svy_wasEditable;
-						}
-						$scope.model.childElements[i].api.setFindMode(findMode, isEditable);
-					}
-					else
-					{
-						if (findMode)
-						{
-							$scope.model.childElements[i].model.svy_readOnlyBeforeFindMode = $scope.model.childElements[i].model.readOnly;
-							$scope.model.childElements[i].model.readOnly = !editable;
-						}
-						else
-						{
-							$scope.model.childElements[i].model.readOnly = $scope.model.childElements[i].model.svy_readOnlyBeforeFindMode;
-						}
-					}
-				}
+				
+				$scope.model.svy_findMode = findMode;
+				$scope.model.svy_editable = editable;
+				
+				$timeout(function(){
+					setElementsFindMode($scope.model.svy_findMode, $scope.model.svy_editable);
+				},1);
 			};
 		},
 		templateUrl: 'servoydefault/portal/portal.html',

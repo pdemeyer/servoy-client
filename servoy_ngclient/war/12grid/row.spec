@@ -1,6 +1,8 @@
 {
 	"name": "row",
-	"displayName": "row div",
+	"displayName": "Row",
 	"version": 1,
-	"definition": "row.json"
+	"definition": "row.json",
+	"contains": ["column"],
+	"parents": ["form","container"]
 }

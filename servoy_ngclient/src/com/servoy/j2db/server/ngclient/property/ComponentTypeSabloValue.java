@@ -19,6 +19,7 @@ package com.servoy.j2db.server.ngclient.property;
 
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -47,6 +48,8 @@ import com.servoy.j2db.server.ngclient.IDirtyPropertyListener;
 import com.servoy.j2db.server.ngclient.IWebFormUI;
 import com.servoy.j2db.server.ngclient.WebFormComponent;
 import com.servoy.j2db.server.ngclient.property.FoundsetTypeChangeMonitor.RowData;
+import com.servoy.j2db.server.ngclient.property.types.DataproviderPropertyType;
+import com.servoy.j2db.server.ngclient.property.types.DataproviderTypeSabloValue;
 import com.servoy.j2db.server.ngclient.property.types.NGConversions.InitialToJSONConverter;
 import com.servoy.j2db.util.Debug;
 import com.servoy.j2db.util.Pair;
@@ -107,6 +110,28 @@ public class ComponentTypeSabloValue implements ISmartPropertyValue
 					if (evt.getNewValue() != null) createComponentIfNeededAndPossible();
 				}
 			});
+		}
+		setDataproviderNameToFoundset();
+	}
+
+
+	private void setDataproviderNameToFoundset()
+	{
+		FoundsetTypeSabloValue foundsetPropValue = getFoundsetValue();
+		if (foundsetPropValue != null)
+		{
+			Collection<PropertyDescription> dp = childComponent.getSpecification().getProperties(DataproviderPropertyType.INSTANCE);
+			if (dp.size() > 0)
+			{
+				//get the first dataprovider property for now
+				PropertyDescription propertyDesc = dp.iterator().next();
+				Object propertyValue = childComponent.getProperty(propertyDesc.getName());
+				if (propertyValue != null)
+				{
+					String dataprovider = ((DataproviderTypeSabloValue)propertyValue).getDataProviderID();
+					foundsetPropValue.setColumnDataprovider(childComponent.getName(), dataprovider);
+				}
+			}
 		}
 	}
 

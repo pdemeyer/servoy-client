@@ -159,7 +159,7 @@ public class SpecGenerator
 			"spinner.png",
 			IRepository.FIELDS,
 			com.servoy.j2db.ui.runtime.IRuntimeSpinner.class,
-			new String[] { "{\"name\":\"svy-spinner\", \"version\":\"1\", \"url\":\"servoydefault/spinner/spinner.css\", \"mimetype\":\"text/css\"}", "{\"name\":\"font-awesome\", \"version\":\"3.2.1\", \"url\":\"servoydefault/spinner/font-awesome.css\", \"mimetype\":\"text/css\"}" }));
+			new String[] { "{\"name\":\"svy-spinner\", \"version\":\"1\", \"url\":\"servoydefault/spinner/spinner.css\", \"mimetype\":\"text/css\"}", "{\"name\":\"font-awesome\", \"version\":\"4.2.0\", \"url\":\"servoydefault/spinner/css/font-awesome.css\", \"mimetype\":\"text/css\"}" }));
 		specTemplateList.add(new SpecTemplateModel("listbox", "ListBox", "listbox.png", IRepository.FIELDS, com.servoy.j2db.ui.runtime.IRuntimeListBox.class,
 			new String[0]));
 		specTemplateList.add(new SpecTemplateModel("rectangle", "Rectangle", "rectangle.gif", IRepository.RECTSHAPES,
@@ -485,7 +485,7 @@ public class SpecGenerator
 
 		HashMap<String, String> htmlAreaMapping = new HashMap<String, String>();
 		htmlAreaMapping.put(StaticContentSpecLoader.PROPERTY_STYLECLASS.getPropertyName(), "{ \"type\" :\"styleclass\", \"scope\" :\"design\", \"values\" :[]}");
-		htmlAreaMapping.put(StaticContentSpecLoader.PROPERTY_SIZE.getPropertyName(), "{\"type\" :\"dimension\",  \"default\" : {\"width\":140, \"height\":140}}");
+		htmlAreaMapping.put(StaticContentSpecLoader.PROPERTY_SIZE.getPropertyName(), "{\"type\" :\"dimension\",  \"default\" : {\"width\":370, \"height\":250}}");
 		componentRepoTypeMappingExceptions.put("htmlarea", htmlAreaMapping);
 
 		HashMap<String, String> imageMediaMapping = new HashMap<String, String>();

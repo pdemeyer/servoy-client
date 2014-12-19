@@ -310,7 +310,6 @@ public class WebFormUI extends Container implements IWebFormUI
 	@Override
 	public void setComponentEnabled(boolean enabled)
 	{
-		// RAGTEST
 		this.enabled = enabled;
 		propagatePropertyToAllComponents("enabled", enabled);
 	}
@@ -324,21 +323,18 @@ public class WebFormUI extends Container implements IWebFormUI
 	@Override
 	public boolean isReadOnly()
 	{
-		// RAGTEST naar container
 		return readOnly;
 	}
 
 	@Override
 	public void setReadOnly(boolean readOnly)
 	{
-		// RAGTEST
 		this.readOnly = readOnly;
 		propagatePropertyToAllComponents("readOnly", readOnly);
 	}
 
 	private void propagatePropertyToAllComponents(String property, boolean value)
 	{
-		// RAGTEST
 		if ("readOnly".equals(property))
 		{
 			// special case, we have to set editable property for legacy components

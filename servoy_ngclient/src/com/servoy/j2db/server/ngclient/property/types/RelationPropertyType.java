@@ -41,7 +41,6 @@ public class RelationPropertyType extends DefaultPropertyType<RelatedFoundSet>
 	@Override
 	public Object parseConfig(JSONObject json)
 	{
-		// RAGTEST check
 		return json;
 	}
 }

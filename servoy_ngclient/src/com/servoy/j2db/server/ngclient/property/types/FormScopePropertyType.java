@@ -43,7 +43,6 @@ public class FormScopePropertyType extends DefaultPropertyType<String>
 	@Override
 	public Object parseConfig(JSONObject json)
 	{
-		// RAGTEST
 		return json;
 	}
 }

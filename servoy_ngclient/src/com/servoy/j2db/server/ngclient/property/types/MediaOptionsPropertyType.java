@@ -40,7 +40,6 @@ public class MediaOptionsPropertyType extends DefaultPropertyType<Integer>
 	@Override
 	public Object parseConfig(JSONObject json)
 	{
-		// RAGTEST check
 		return json;
 	}
 }

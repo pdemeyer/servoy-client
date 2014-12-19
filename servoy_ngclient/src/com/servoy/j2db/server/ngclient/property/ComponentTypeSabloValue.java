@@ -180,24 +180,27 @@ public class ComponentTypeSabloValue implements ISmartPropertyValue
 		childComponent.setDirtyPropertyListener(new IDirtyPropertyListener()
 		{
 			@Override
-			public void propertyFlaggedAsDirty(String propertyName)
+			public void propertyFlaggedAsDirty(String propertyName, boolean dirty)
 			{
-				// this gets called whenever a property is flagged as dirty/changed/to be sent to browser
-				if (forFoundsetTypedPropertyName != null && formElementValue.recordBasedProperties.contains(propertyName))
+				if (dirty)
 				{
-					if (!((FoundsetDataAdapterList)dal).isQuietRecordChangeInProgress()) // if forFoundsetTypedPropertyName != null we are using a foundset DAL, so just cast
+					// this gets called whenever a property is flagged as dirty/changed/to be sent to browser
+					if (forFoundsetTypedPropertyName != null && formElementValue.recordBasedProperties.contains(propertyName))
 					{
-						// for example valuelist properties can get filtered based on client sent filter in which case the property does change without
-						// any actual change in the record; in this case we need to mark it correctly in viewport as a change
-						int idx = foundsetPropValue.getFoundset().getRecordIndex(dal.getRecord());
-						int relativeIdx = idx - foundsetPropValue.getViewPort().getStartIndex();
-						viewPortChangeMonitor.queueCellChange(relativeIdx, idx, propertyName, foundsetPropValue.getFoundset());
-					} // else this change was probably determined by the fact that we reuse components, changing the record in the DAL to get data for a specific row
-				}
-				else
-				{
-					// non-record related prop. changed...
-					monitor.valueChanged();
+						if (!((FoundsetDataAdapterList)dal).isQuietRecordChangeInProgress()) // if forFoundsetTypedPropertyName != null we are using a foundset DAL, so just cast
+						{
+							// for example valuelist properties can get filtered based on client sent filter in which case the property does change without
+							// any actual change in the record; in this case we need to mark it correctly in viewport as a change
+							int idx = foundsetPropValue.getFoundset().getRecordIndex(dal.getRecord());
+							int relativeIdx = idx - foundsetPropValue.getViewPort().getStartIndex();
+							viewPortChangeMonitor.queueCellChange(relativeIdx, idx, propertyName, foundsetPropValue.getFoundset());
+						} // else this change was probably determined by the fact that we reuse components, changing the record in the DAL to get data for a specific row
+					}
+					else
+					{
+						// non-record related prop. changed...
+						monitor.valueChanged();
+					}
 				}
 			}
 		});

@@ -49,7 +49,6 @@ public class RuntimeComponentPropertyType extends DefaultPropertyType<RuntimeWeb
 	@Override
 	public Object parseConfig(JSONObject json)
 	{
-		// RAGTEST check
 		return json;
 	}
 

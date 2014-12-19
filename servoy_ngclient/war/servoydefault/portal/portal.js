@@ -20,7 +20,7 @@ angular.module('servoydefaultPortal',['servoy','ui.grid','ui.grid.selection','ui
 			//                                  .mergedCellModel  - is the actual cell element svyModel cache
 			//                                  .cellApi          - is the actual cell element API cache
 			//                                  .cellHandlers     - is the actual cell element handlers cache
-			//                                  .cellApplyHandler - is the actual cell element apply handler cache
+			//                                  .cellServoyApi 	  - is the actual cell element Servoy Api cache
 			var rowProxyObjects = {};
 
 			$scope.pageSize = 25;
@@ -89,7 +89,6 @@ angular.module('servoydefaultPortal',['servoy','ui.grid','ui.grid.selection','ui
 						+ '" svy-model="getExternalScopes().getMergedCellModel(row, ' + idx
 						+ ')" svy-api="getExternalScopes().cellApiWrapper(row, ' + idx
 						+ ')" svy-handlers="getExternalScopes().cellHandlerWrapper(row, ' + idx
-						+ ')" svy-apply="getExternalScopes().cellApplyHandlerWrapper(row, ' + idx
 						+ ')" svy-servoyApi="getExternalScopes().cellServoyApiWrapper(row, ' + idx + ')"';
 					if (portal_svy_name) cellTemplate += " data-svy-name='" + portal_svy_name + "." + el.name + "'";
 					cellTemplate += '/>';
@@ -108,6 +107,7 @@ angular.module('servoydefaultPortal',['servoy','ui.grid','ui.grid.selection','ui
 						}
 						var isResizable = ((el.model.anchors & $anchorConstants.EAST) != 0) && ((el.model.anchors & $anchorConstants.WEST) != 0) 
 						var isMovable = ((el.model.anchors & $anchorConstants.NORTH) === 0) || ((el.model.anchors & $anchorConstants.SOUTH) === 0) 
+						var isSortable = el.forFoundset.recordBasedProperties.length > 0;
 						$scope.columnDefinitions.push({
 							name:el.name,
 							displayName: columnTitle,
@@ -118,6 +118,9 @@ angular.module('servoydefaultPortal',['servoy','ui.grid','ui.grid.selection','ui
 							cellEditableCondition: false,
 							enableColumnMoving: isMovable,
 							enableColumnResizing: isResizable,
+							enableColumnMenu: isSortable,
+							enableSorting:isSortable,
+							enableHiding: false
 						});					
 						updateColumnDefinition($scope, idx);
 					}
@@ -438,19 +441,6 @@ angular.module('servoydefaultPortal',['servoy','ui.grid','ui.grid.selection','ui
 				}
 			}
 
-			$scope.exScope.cellApplyHandlerWrapper = function(ngGridRow, elementIndex) {
-				var rowId = ngGridRow.entity[$foundsetTypeConstants.ROW_ID_COL_KEY];
-				var cellProxies = getOrCreateElementProxies(rowId, elementIndex);
-
-				if (!cellProxies.cellApplyHandler) {
-					var columnApplyHandler = elements[elementIndex].apply;
-					cellProxies.cellApplyHandler = function(property) {
-						return columnApplyHandler(property,cellProxies.mergedCellModel,rowId);
-					};
-				}
-				return cellProxies.cellApplyHandler;
-			}
-
 			$scope.exScope.cellServoyApiWrapper = function(ngGridRow, elementIndex) {
 				var rowId = ngGridRow.entity[$foundsetTypeConstants.ROW_ID_COL_KEY];
 				var cellProxies = getOrCreateElementProxies(rowId, elementIndex);
@@ -465,6 +455,10 @@ angular.module('servoydefaultPortal',['servoy','ui.grid','ui.grid.selection','ui
 							getFormUrl: $scope.servoyApi.getFormUrl,
 							startEdit: function(property) {
 								return columnServoyApi.startEdit(property,rowId);
+							},
+							apply: function(property)
+							{
+								return columnServoyApi.apply(property,cellProxies.mergedCellModel,rowId);
 							}
 					}
 				}

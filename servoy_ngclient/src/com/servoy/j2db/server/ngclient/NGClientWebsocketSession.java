@@ -242,6 +242,7 @@ public class NGClientWebsocketSession extends BaseWebsocketSession implements IN
 		if (formsOnClient == null) return; // endpoint is not registered for forms (ex: there is a api call from a scheduler, that will want to touch the form, but there are no forms for that endpoint)
 		String formName = realInstanceName == null ? form.getName() : realInstanceName;
 		String formUrl = "solutions/" + form.getSolution().getName() + "/forms/" + formName + ".html";
+		getService(SABLO_SERVICE).executeAsyncServiceCall("setCurrentFormUrl", new Object[] { "RAGTEST" });
 		if (formsOnClient.putIfAbsent(formName, new Pair<String, Boolean>(formUrl, Boolean.FALSE)) == null)
 		{
 			// form is not yet on the client, send over the controller

@@ -20,3 +20,16 @@ Web-Component: True
 
 Name: checkbox/checkbox.spec
 Web-Component: True
+
+Name: choicegroup/choicegroup.spec
+Web-Component: True
+
+Name: select/select.spec
+Web-Component: True
+
+Name: calendar/calendar.spec
+Web-Component: True
+
+Name: typeahead/typeahead.spec
+Web-Component: True
+

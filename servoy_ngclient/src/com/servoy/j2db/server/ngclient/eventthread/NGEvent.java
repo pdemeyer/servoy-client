@@ -18,7 +18,7 @@
 package com.servoy.j2db.server.ngclient.eventthread;
 
 import org.sablo.eventthread.Event;
-import org.sablo.websocket.WebsocketEndpoint;
+import org.sablo.eventthread.WebsocketSessionWindows;
 
 import com.servoy.j2db.server.ngclient.INGApplication;
 
@@ -46,7 +46,14 @@ public class NGEvent extends Event
 	{
 		super.beforeExecute();
 		previous = client.getRuntimeWindowManager().getCurrentWindowName();
-		client.getRuntimeWindowManager().setCurrentWindowName(WebsocketEndpoint.get().getWindowId());
+		if (true) throw new RuntimeException("RAGTEST");
+//		client.getRuntimeWindowManager().setCurrentWindowName(CurrentWindow.get().getEndpoint().getWindowId());
+	}
+
+	@Override
+	protected WebsocketSessionWindows createWebsocketSessionWindows()
+	{
+		return new NGClientWebsocketSessionWindows(getSession());
 	}
 
 	@Override

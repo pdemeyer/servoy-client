@@ -38,6 +38,7 @@ import com.servoy.j2db.server.ngclient.IDataAdapterList;
 import com.servoy.j2db.server.ngclient.INGApplication;
 import com.servoy.j2db.server.ngclient.IWebFormController;
 import com.servoy.j2db.server.ngclient.IWebFormUI;
+import com.servoy.j2db.server.ngclient.NGClientWindow;
 import com.servoy.j2db.server.ngclient.NGRuntimeWindow;
 import com.servoy.j2db.server.ngclient.WebFormComponent;
 import com.servoy.j2db.server.ngclient.WebFormUI;
@@ -308,7 +309,7 @@ public class WebFormController extends BasicFormController implements IWebFormCo
 		Form f = application.getFlattenedSolution().getForm(form.getName());
 		form = application.getFlattenedSolution().getFlattenedForm(f);
 		getFormUI().init();
-		((INGApplication)application).getWebsocketSession().updateForm(form, getName());
+		NGClientWindow.getCurrentWindow().updateForm(form, getName());
 		return true;
 	}
 

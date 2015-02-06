@@ -20,12 +20,11 @@ import org.apache.wicket.util.string.AppendingStringBuffer;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.sablo.IChangeListener;
-import org.sablo.eventthread.WebsocketSessionEndpoints;
 import org.sablo.specification.WebComponentSpecification;
 import org.sablo.specification.WebServiceSpecProvider;
+import org.sablo.websocket.CurrentWindow;
 import org.sablo.websocket.IServerService;
-import org.sablo.websocket.IWebsocketEndpoint;
-import org.sablo.websocket.WebsocketEndpoint;
+import org.sablo.websocket.IWindow;
 
 import com.servoy.base.persistence.constants.IValueListConstants;
 import com.servoy.j2db.ApplicationException;
@@ -48,6 +47,7 @@ import com.servoy.j2db.scripting.IExecutingEnviroment;
 import com.servoy.j2db.scripting.PluginScope;
 import com.servoy.j2db.server.headlessclient.AbstractApplication;
 import com.servoy.j2db.server.ngclient.component.WebFormController;
+import com.servoy.j2db.server.ngclient.eventthread.NGClientWebsocketSessionWindows;
 import com.servoy.j2db.server.ngclient.scripting.WebServiceScriptable;
 import com.servoy.j2db.server.shared.ApplicationServerRegistry;
 import com.servoy.j2db.server.shared.IApplicationServer;
@@ -409,14 +409,14 @@ public class NGClient extends AbstractApplication implements INGApplication, ICh
 	{
 		if (!force)
 		{
-			IWebsocketEndpoint current = WebsocketEndpoint.set(new WebsocketSessionEndpoints(getWebsocketSession()));
+			IWindow current = CurrentWindow.set(new NGClientWebsocketSessionWindows(getWebsocketSession()));
 			try
 			{
 				getWebsocketSession().getService(NGRuntimeWindowManager.WINDOW_SERVICE).executeAsyncServiceCall("reload", new Object[0]);
 			}
 			finally
 			{
-				WebsocketEndpoint.set(current);
+				CurrentWindow.set(current);
 			}
 		}
 		return super.closeSolution(force, args);

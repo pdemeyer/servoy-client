@@ -45,23 +45,16 @@ import com.servoy.j2db.util.Utils;
  */
 public class NGFormServiceHandler extends FormServiceHandler
 {
-	/**
-	 * @param websocketSession
-	 */
-	public NGFormServiceHandler(INGClientWebsocketSession websocketSession)
-	{
-		super(websocketSession);
-	}
+	private final INGApplication client;
 
-	@Override
-	public INGClientWebsocketSession getWebsocketSession()
+	public NGFormServiceHandler(INGApplication client)
 	{
-		return (INGClientWebsocketSession)super.getWebsocketSession();
+		this.client = client;
 	}
 
 	protected INGApplication getApplication()
 	{
-		return getWebsocketSession().getClient();
+		return client;
 	}
 
 	@Override
@@ -78,7 +71,7 @@ public class NGFormServiceHandler extends FormServiceHandler
 			case "svyPush" :
 			{
 				String formName = args.getString("formname");
-				IWebFormUI form = (IWebFormUI)getWebsocketSession().getForm(formName);
+				IWebFormUI form = (IWebFormUI)NGClientWindow.getCurrentWindow().getForm(formName);
 				if (form == null)
 				{
 					log.warn("svyPush for unknown form '" + formName + "'");
@@ -185,13 +178,13 @@ public class NGFormServiceHandler extends FormServiceHandler
 				}
 				Utils.invokeLater(getApplication(), invokeLaterRunnables);
 				Form form = getApplication().getFormManager().getPossibleForm(formName);
-				if (form != null) getWebsocketSession().touchForm(getApplication().getFlattenedSolution().getFlattenedForm(form), formName, true);
+				if (form != null) NGClientWindow.getCurrentWindow().touchForm(getApplication().getFlattenedSolution().getFlattenedForm(form), formName, true);
 				return Boolean.valueOf(ok);
 			}
 			case "formLoaded" :
 			{
 				// "requestData" was already treated by "super" call; just let the system know that this form is now ready for use client-side
-				getWebsocketSession().formCreated(args.optString("formname"));
+				NGClientWindow.getCurrentWindow().formCreated(args.optString("formname"));
 				break;
 			}
 
@@ -203,6 +196,7 @@ public class NGFormServiceHandler extends FormServiceHandler
 
 		return null;
 	}
+
 
 	@Override
 	protected JSONString requestData(String formName) throws JSONException

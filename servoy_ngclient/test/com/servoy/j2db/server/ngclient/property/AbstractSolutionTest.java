@@ -46,7 +46,6 @@ import org.sablo.specification.WebComponentPackage;
 import org.sablo.specification.WebComponentPackage.IPackageReader;
 import org.sablo.specification.WebComponentSpecProvider;
 import org.sablo.specification.WebServiceSpecProvider;
-import org.sablo.websocket.WebsocketEndpoint;
 
 import com.servoy.j2db.J2DBGlobals;
 import com.servoy.j2db.persistence.ChangeHandler;
@@ -100,6 +99,7 @@ public abstract class AbstractSolutionTest
 	};
 	protected Solution solution;
 	protected TestNGClient client;
+	protected NGClientEndpoint endpoint;
 
 	/**
 	 *
@@ -155,7 +155,7 @@ public abstract class AbstractSolutionTest
 			};
 			J2DBGlobals.setServiceProvider(client);
 			client.setUseLoginSolution(false);
-			NGClientEndpoint endpoint = new NGClientEndpoint();
+			endpoint = new NGClientEndpoint();
 			endpoint.start(new Session()
 			{
 
@@ -442,8 +442,7 @@ public abstract class AbstractSolutionTest
 					// TODO Auto-generated method stub
 
 				}
-			}, "1", null, "Test");
-			WebsocketEndpoint.set(endpoint);
+			}, "test", "1", null, "Test");
 		}
 		catch (RepositoryException e)
 		{

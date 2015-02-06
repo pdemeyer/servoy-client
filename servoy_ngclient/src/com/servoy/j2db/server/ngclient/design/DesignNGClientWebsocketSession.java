@@ -17,25 +17,12 @@
 
 package com.servoy.j2db.server.ngclient.design;
 
-import java.io.IOException;
-import java.io.StringWriter;
-import java.util.ArrayList;
-import java.util.List;
-
 import org.sablo.specification.WebComponentSpecification;
 import org.sablo.websocket.IClientService;
-import org.sablo.websocket.WebsocketEndpoint;
+import org.sablo.websocket.IWindow;
 import org.sablo.websocket.impl.ClientService;
 
-import com.servoy.j2db.persistence.Form;
-import com.servoy.j2db.server.ngclient.IWebFormController;
 import com.servoy.j2db.server.ngclient.NGClientWebsocketSession;
-import com.servoy.j2db.server.ngclient.NGRuntimeWindow;
-import com.servoy.j2db.server.ngclient.NGRuntimeWindowManager;
-import com.servoy.j2db.server.ngclient.ServoyDataConverterContext;
-import com.servoy.j2db.server.ngclient.template.FormTemplateGenerator;
-import com.servoy.j2db.util.Debug;
-import com.servoy.j2db.util.Utils;
 
 /**
  * @author jcompagner
@@ -66,60 +53,17 @@ public final class DesignNGClientWebsocketSession extends NGClientWebsocketSessi
 	}
 
 	@Override
-	protected void updateController(Form form, String realFormName, String formUrl, boolean forceLoad)
+	public IWindow createWindow(String windowName)
 	{
-		try
-		{
-			// in design the controller should be quickly set in the current generated window.
-			// (only the first form is set as main, for tabs this should be already set)
-			NGRuntimeWindow currentWindow = getClient().getRuntimeWindowManager().getCurrentWindow();
-			if (currentWindow != null && currentWindow.getController() == null)
-			{
-				IWebFormController controller = getClient().getFormManager().getForm(realFormName);
-				currentWindow.setController(controller);
-			}
-			String realUrl = formUrl + "?lm:" + System.currentTimeMillis() + "&sessionId=" + getUuid();
-			StringWriter sw = new StringWriter(512);
-			// for al js code design flag should be true.
-			new FormTemplateGenerator(new ServoyDataConverterContext(getClient()), true, true).generate(form, realFormName, "form_recordview_js.ftl", sw);
-			getService(NGRuntimeWindowManager.WINDOW_SERVICE).executeAsyncServiceCall("updateController",
-				new Object[] { realFormName, sw.toString(), realUrl, Boolean.valueOf(forceLoad) });
-		}
-		catch (IOException e)
-		{
-			Debug.error(e);
-		}
+		return new DesignNGClientWindow(this, windowName);
 	}
 
-	@Override
-	public void formCreated(final String formName)
-	{
-		getEventDispatcher().addEvent(new Runnable()
-		{
-			@Override
-			public void run()
-			{
-				IWebFormController form = getClient().getFormManager().getForm(formName);
-				List<Runnable> invokeLaterRunnables = new ArrayList<Runnable>();
-				form.notifyVisible(true, invokeLaterRunnables);
-				Utils.invokeLater(getClient(), invokeLaterRunnables);
-				touchForm(form.getForm(), form.getForm().getName(), true);
-				formCreatedImp(formName);
-			}
-		});
-	}
-
-	private void formCreatedImp(String formName)
-	{
-		super.formCreated(formName);
-	}
 
 	@Override
 	public void onOpen(String solutionName)
 	{
-
-		// always generate a new window id. The window session seems to be shared over multiply swt browsers.
-		WebsocketEndpoint.get().setWindowId(getClient().getRuntimeWindowManager().createMainWindow());
+		// always generate a new window id. The window session seems to be shared over multiple swt browsers.
+// RAGTEST		CurrentWindow.get().getEndpoint().setWindowId(getClient().getRuntimeWindowManager().createMainWindow());
 		super.onOpen(solutionName);
 		if (getClient().getSolution() != null)
 		{

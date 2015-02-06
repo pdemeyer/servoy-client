@@ -36,9 +36,8 @@ import org.apache.wicket.util.upload.FileItemIterator;
 import org.apache.wicket.util.upload.FileItemStream;
 import org.apache.wicket.util.upload.FileUploadException;
 import org.apache.wicket.util.upload.ServletFileUpload;
-import org.sablo.eventthread.WebsocketSessionEndpoints;
-import org.sablo.websocket.IWebsocketEndpoint;
-import org.sablo.websocket.WebsocketEndpoint;
+import org.sablo.websocket.CurrentWindow;
+import org.sablo.websocket.IWindow;
 import org.sablo.websocket.WebsocketSessionManager;
 
 import com.servoy.j2db.AbstractActiveSolutionHandler;
@@ -50,6 +49,7 @@ import com.servoy.j2db.persistence.IRepository;
 import com.servoy.j2db.persistence.Media;
 import com.servoy.j2db.persistence.RepositoryException;
 import com.servoy.j2db.persistence.SolutionMetaData;
+import com.servoy.j2db.server.ngclient.eventthread.NGClientWebsocketSessionWindows;
 import com.servoy.j2db.server.shared.ApplicationServerRegistry;
 import com.servoy.j2db.server.shared.IApplicationServer;
 import com.servoy.j2db.ui.IMediaFieldConstants;
@@ -315,7 +315,7 @@ public class MediaResourcesServlet extends HttpServlet
 
 							IWebFormUI form = wsSession.getClient().getFormManager().getForm(formName).getFormUI();
 							WebFormComponent webComponent = form.getWebComponent(elementName);
-							IWebsocketEndpoint previous = WebsocketEndpoint.set(new WebsocketSessionEndpoints(wsSession));
+							IWindow previous = CurrentWindow.set(new NGClientWebsocketSessionWindows(wsSession));
 							try
 							{
 
@@ -324,7 +324,7 @@ public class MediaResourcesServlet extends HttpServlet
 							}
 							finally
 							{
-								WebsocketEndpoint.set(previous);
+								CurrentWindow.set(previous);
 							}
 						}
 					}

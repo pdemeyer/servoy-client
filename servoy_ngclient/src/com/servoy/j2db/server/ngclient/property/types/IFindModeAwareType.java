@@ -18,7 +18,6 @@
 package com.servoy.j2db.server.ngclient.property.types;
 
 import org.sablo.specification.PropertyDescription;
-import org.sablo.specification.property.IDataConverterContext;
 import org.sablo.specification.property.IPropertyType;
 
 import com.servoy.j2db.FlattenedSolution;
@@ -33,15 +32,6 @@ import com.servoy.j2db.server.ngclient.FormElement;
  */
 public interface IFindModeAwareType<FormElementT, T> extends IPropertyType<T>
 {
-
-	/**
-	 * Gets called when the find mode has changed for the foundset used by this property's component.
-	 *
-	 * @param sabloValue the current value of this property.
-	 * @param dataConverterContext the component/property description.
-	 * @param then new find mode state.
-	 */
-	void findModeChanged(boolean newFindMode, T sabloValue, IDataConverterContext dataConverterContext);
 
 	/**
 	 * Returns true if this property type is interested in find mode state or false otherwise.

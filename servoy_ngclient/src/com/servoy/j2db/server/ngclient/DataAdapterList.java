@@ -11,10 +11,10 @@ import java.util.WeakHashMap;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.sablo.Container;
 import org.sablo.WebComponent;
 import org.sablo.specification.PropertyDescription;
 import org.sablo.specification.WebComponentApiDefinition;
-import org.sablo.specification.property.DataConverterContext;
 import org.sablo.specification.property.types.TypesRegistry;
 
 import com.servoy.base.util.ITagResolver;
@@ -35,10 +35,10 @@ import com.servoy.j2db.scripting.GlobalScope;
 import com.servoy.j2db.scripting.ScopesScope;
 import com.servoy.j2db.server.ngclient.component.EventExecutor;
 import com.servoy.j2db.server.ngclient.property.DataproviderConfig;
-import com.servoy.j2db.server.ngclient.property.IServoyAwarePropertyValue;
+import com.servoy.j2db.server.ngclient.property.IDataLinkedPropertyValue;
+import com.servoy.j2db.server.ngclient.property.IFindModeAwarePropertyValue;
 import com.servoy.j2db.server.ngclient.property.types.DataproviderTypeSabloValue;
 import com.servoy.j2db.server.ngclient.property.types.IDataLinkedType.TargetDataLinks;
-import com.servoy.j2db.server.ngclient.property.types.IFindModeAwareType;
 import com.servoy.j2db.server.ngclient.property.types.NGConversions;
 import com.servoy.j2db.util.Debug;
 import com.servoy.j2db.util.Pair;
@@ -49,12 +49,12 @@ public class DataAdapterList implements IModificationListener, ITagResolver, IDa
 {
 
 	// properties that are interested in a specific dataproviderID chaning
-	protected final Map<String, List<Pair<WebFormComponent, String>>> dataProviderToLinkedComponentProperty = new HashMap<>(); // dataProviderID -> [(comp, propertyName)]
+	protected final Map<String, List<IDataLinkedPropertyValue>> dataProviderToLinkedComponentProperty = new HashMap<>(); // dataProviderID -> [(comp, propertyName)]
 
 	// all data-linked properties - contains 'dataProviderToLinkedComponentProperty' as well as other ones that are interested in any DP change
-	protected final List<Pair<WebFormComponent, String>> allComponentPropertiesLinkedToData = new ArrayList<>(); // [(comp, propertyName), ...]
+	protected final List<IDataLinkedPropertyValue> allComponentPropertiesLinkedToData = new ArrayList<>(); // [(comp, propertyName), ...]
 
-	protected final List<DataConverterContext> findModeAwareProperties = new ArrayList<>();
+	protected final List<IFindModeAwarePropertyValue> findModeAwareProperties = new ArrayList<>();
 
 	private final IWebFormController formController;
 	private final EventExecutor executor;
@@ -120,16 +120,70 @@ public class DataAdapterList implements IModificationListener, ITagResolver, IDa
 		return decryptedScript != null ? formController.eval(decryptedScript) : null;
 	}
 
+	private static boolean containsForm(IWebFormUI parent, IWebFormUI child)
+	{
+		Object childParentContainer = ((WebFormUI)child).getParentContainer();
+		if (childParentContainer instanceof WebFormComponent)
+		{
+			Container p = ((WebFormComponent)childParentContainer).getParent();
+			if (p instanceof IWebFormUI)
+			{
+				if (p.equals(parent))
+				{
+					return true;
+				}
+				else return containsForm(parent, (IWebFormUI)p);
+			}
+		}
+
+		return false;
+	}
+
 	public void addRelatedForm(IWebFormController form, String relation)
 	{
 		form.setParentFormController(formController);
+
+		Iterator<Entry<IWebFormController, String>> relatedFormsIte = relatedForms.entrySet().iterator();
+		Entry<IWebFormController, String> relatedFormEntry;
+		IWebFormController relatedForm;
+		String relatedFormRelation;
+		while (relatedFormsIte.hasNext())
+		{
+			relatedFormEntry = relatedFormsIte.next();
+			relatedForm = relatedFormEntry.getKey();
+			relatedFormRelation = relatedFormEntry.getValue();
+			if (relatedFormRelation.startsWith(relation) && relatedFormRelation.length() > relation.length())
+			{
+				if (!containsForm(form.getFormUI(), relatedForm.getFormUI()))
+				{
+					form.getFormUI().getDataAdapterList().addRelatedForm(relatedForm, relatedFormRelation.substring(relation.length() + 1));
+				}
+			}
+			else if (relation.startsWith(relatedFormRelation) && relation.length() > relatedFormRelation.length())
+			{
+				if (!containsForm(relatedForm.getFormUI(), form.getFormUI()))
+				{
+					relatedForm.getFormUI().getDataAdapterList().addRelatedForm(form, relation.substring(relatedFormRelation.length() + 1));
+				}
+			}
+		}
+
 		relatedForms.put(form, relation);
 	}
 
 	public void removeRelatedForm(IWebFormController form)
 	{
+		form.getFormUI().getDataAdapterList().removeAllRelatedForms();
 		form.setParentFormController(null);
 		relatedForms.remove(form);
+	}
+
+	public void removeAllRelatedForms()
+	{
+		Iterator<IWebFormController> relForms = relatedForms.keySet().iterator();
+		while (relForms.hasNext())
+			relForms.next().setParentFormController(null);
+		relatedForms.clear();
 	}
 
 	private void setupModificationListener(String dataprovider)
@@ -146,91 +200,57 @@ public class DataAdapterList implements IModificationListener, ITagResolver, IDa
 		}
 	}
 
-	public void addDataLinkedProperty(WebFormComponent component, String propertyName, TargetDataLinks targetDataLinks)
+	public void addDataLinkedProperty(IDataLinkedPropertyValue propertyValue, TargetDataLinks targetDataLinks)
 	{
-		if (targetDataLinks == TargetDataLinks.NOT_LINKED_TO_DATA) return;
+		if (targetDataLinks == TargetDataLinks.NOT_LINKED_TO_DATA || targetDataLinks == null) return;
 
-		Pair<WebFormComponent, String> propertyIdentifier = new Pair<>(component, propertyName);
 		if (targetDataLinks.dataProviderIDs != null)
 		{
 			for (String dpID : targetDataLinks.dataProviderIDs)
 			{
-				List<Pair<WebFormComponent, String>> allLinksOfDP = dataProviderToLinkedComponentProperty.get(dpID);
+				List<IDataLinkedPropertyValue> allLinksOfDP = dataProviderToLinkedComponentProperty.get(dpID);
 				if (allLinksOfDP == null)
 				{
 					allLinksOfDP = new ArrayList<>();
 					dataProviderToLinkedComponentProperty.put(dpID, allLinksOfDP);
 				}
-				if (!allLinksOfDP.contains(propertyIdentifier)) allLinksOfDP.add(propertyIdentifier);
+				if (!allLinksOfDP.contains(propertyValue)) allLinksOfDP.add(propertyValue);
 
 				if (formController != null) setupModificationListener(dpID); // see if we need to listen to global/form scope changes
 			}
 		}
 
-		allComponentPropertiesLinkedToData.add(propertyIdentifier);
+		allComponentPropertiesLinkedToData.add(propertyValue);
 	}
 
-	public void removeDataLinkedProperty(WebFormComponent component, String propertyName)
+	public void removeDataLinkedProperty(IDataLinkedPropertyValue propertyValue)
 	{
-		Pair<WebFormComponent, String> propertyIdentifier = new Pair<>(component, propertyName);
-
-		Iterator<List<Pair<WebFormComponent, String>>> it = dataProviderToLinkedComponentProperty.values().iterator();
+		Iterator<List<IDataLinkedPropertyValue>> it = dataProviderToLinkedComponentProperty.values().iterator();
 		while (it.hasNext())
 		{
-			List<Pair<WebFormComponent, String>> x = it.next();
-			if (x.remove(propertyIdentifier))
+			List<IDataLinkedPropertyValue> x = it.next();
+			if (x.remove(propertyValue))
 			{
 				if (x.size() == 0) it.remove();
 			}
 		}
 		// TODO keep track & unregister when needed global/form scope listeners: so undo setupModificationListener(dpID);
-		allComponentPropertiesLinkedToData.remove(propertyIdentifier);
+		allComponentPropertiesLinkedToData.remove(propertyValue);
 	}
 
-	public void addFindModeAwareProperty(WebFormComponent webFormComponent, PropertyDescription pd)
+	public void addFindModeAwareProperty(IFindModeAwarePropertyValue propertyValue)
 	{
-		if (pd.getType() instanceof IFindModeAwareType)
-		{
-			findModeAwareProperties.add(new DataConverterContext(pd, webFormComponent));
-		}
+		findModeAwareProperties.add(propertyValue);
 	}
 
-	public void removeFindModeAwareProperty(WebFormComponent webFormComponent, PropertyDescription pd)
+	public void removeFindModeAwareProperty(IFindModeAwarePropertyValue propertyValue)
 	{
-		findModeAwareProperties.remove(new DataConverterContext(pd, webFormComponent)); // depends on DataConverterContext.equals
+		findModeAwareProperties.remove(propertyValue);
 	}
 
 	public void componentDisposed(WebFormComponent component)
 	{
 		// TODO remove modification listeners for form/global scopes if needed...
-
-		Iterator<Pair<WebFormComponent, String>> it = allComponentPropertiesLinkedToData.iterator();
-		while (it.hasNext())
-		{
-			Pair<WebFormComponent, String> item = it.next();
-			if (item.getLeft() == component) it.remove();
-		}
-		Iterator<List<Pair<WebFormComponent, String>>> it1 = dataProviderToLinkedComponentProperty.values().iterator();
-		while (it1.hasNext())
-		{
-			List<Pair<WebFormComponent, String>> lList = it1.next();
-			it = lList.iterator();
-			while (it.hasNext())
-			{
-				Pair<WebFormComponent, String> item = it.next();
-				if (item.getLeft() == component)
-				{
-					it.remove();
-					if (lList.size() == 0) it1.remove();
-				}
-			}
-		}
-
-		Iterator<DataConverterContext> fmIt = findModeAwareProperties.iterator();
-		while (fmIt.hasNext())
-		{
-			if (fmIt.next().getWebObject() == component) fmIt.remove();
-		}
 	}
 
 	public void setRecord(IRecord record, boolean fireChangeEvent)
@@ -307,24 +327,20 @@ public class DataAdapterList implements IModificationListener, ITagResolver, IDa
 		if (dataProvider == null)
 		{
 			// announce to all - we don't know exactly what changed; maybe all DPs changed
-			for (Pair<WebFormComponent, String> x : allComponentPropertiesLinkedToData)
+			for (IDataLinkedPropertyValue x : allComponentPropertiesLinkedToData)
 			{
-				Object rawPropValue = x.getLeft().getRawPropertyValue(x.getRight());
-				if (rawPropValue instanceof IServoyAwarePropertyValue) ((IServoyAwarePropertyValue)rawPropValue).dataProviderOrRecordChanged(record, null,
-					isFormDP, isGlobalDP, fireChangeEvent);
+				x.dataProviderOrRecordChanged(record, null, isFormDP, isGlobalDP, fireChangeEvent);
 			}
 		}
 		else
 		{
 			// announce to all - we don't know exactly what changed; maybe all DPs changed
-			List<Pair<WebFormComponent, String>> interestedComponentProperties = dataProviderToLinkedComponentProperty.get(dataProvider);
+			List<IDataLinkedPropertyValue> interestedComponentProperties = dataProviderToLinkedComponentProperty.get(dataProvider);
 			if (interestedComponentProperties != null)
 			{
-				for (Pair<WebFormComponent, String> x : interestedComponentProperties)
+				for (IDataLinkedPropertyValue x : interestedComponentProperties)
 				{
-					Object rawPropValue = x.getLeft().getRawPropertyValue(x.getRight());
-					if (rawPropValue instanceof IServoyAwarePropertyValue) ((IServoyAwarePropertyValue)rawPropValue).dataProviderOrRecordChanged(record,
-						dataProvider, isFormDP, isGlobalDP, fireChangeEvent);
+					x.dataProviderOrRecordChanged(record, dataProvider, isFormDP, isGlobalDP, fireChangeEvent);
 				}
 			}
 		}
@@ -494,17 +510,15 @@ public class DataAdapterList implements IModificationListener, ITagResolver, IDa
 	public void setFindMode(boolean findMode)
 	{
 //		this.findMode = findMode;
-		for (DataConverterContext x : findModeAwareProperties)
+		for (IFindModeAwarePropertyValue x : findModeAwareProperties)
 		{
-			Object rawPropValue = x.getWebObject().getRawPropertyValue(x.getPropertyDescription().getName());
-			((IFindModeAwareType< ? , Object>)x.getPropertyDescription().getType()).findModeChanged(findMode, rawPropValue, x);
+			x.findModeChanged(findMode);
 		}
 
 		getApplication().getWebsocketSession().getService("$servoyInternal").executeAsyncServiceCall(
 			"setFindMode",
 			new Object[] { formController.getName(), Boolean.valueOf(findMode), Boolean.valueOf(!Boolean.TRUE.equals(getApplication().getClientProperty(
 				IApplication.LEAVE_FIELDS_READONLY_IN_FIND_MODE))) });
-
 	}
 
 }

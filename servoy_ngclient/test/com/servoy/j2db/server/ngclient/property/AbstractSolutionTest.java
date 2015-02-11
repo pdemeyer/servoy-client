@@ -442,7 +442,7 @@ public abstract class AbstractSolutionTest
 					// TODO Auto-generated method stub
 
 				}
-			}, "test", "1", null, "Test");
+			}, "1", null, "Test", null);
 		}
 		catch (RepositoryException e)
 		{

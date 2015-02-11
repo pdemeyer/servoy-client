@@ -13,7 +13,11 @@ angular.module('servoydefaultCalendar',['servoy']).directive('servoydefaultCalen
 
 			$scope.style = {width:'100%',height: $scope.model.size.height,overflow:'hidden',paddingTop:'0',paddingBottom:'0'}
 
-			child.datetimepicker();
+			child.datetimepicker({
+				useCurrent:false,
+				useStrict:true,
+				showClear: true
+			});
 
 			$scope.$watch('model.size.height', function(){ 
 				if ($scope.model.size != undefined)
@@ -75,7 +79,14 @@ angular.module('servoydefaultCalendar',['servoy']).directive('servoydefaultCalen
 
 			$element.on("change.dp",inputChanged);
 
-			$element.on("error.dp",function(){
+			$element.on("error.dp",function(val){
+				if (child.children("input").val() === '')
+				{
+					ngModel.$setViewValue(null);
+					ngModel.$setValidity("", true);
+					$scope.svyServoyapi.apply('dataProviderID');
+					return;
+				}	
 				ngModel.$setValidity("", false);
 				$scope.$digest();
 			});

@@ -17,7 +17,6 @@
 
 package com.servoy.j2db.server.ngclient.property;
 
-import com.servoy.j2db.server.ngclient.WebFormComponent;
 import com.servoy.j2db.server.ngclient.property.types.IDataLinkedType.TargetDataLinks;
 
 /**
@@ -27,8 +26,8 @@ import com.servoy.j2db.server.ngclient.property.types.IDataLinkedType.TargetData
 public interface IDataLinkedPropertyRegistrationListener
 {
 
-	void dataLinkedPropertyRegistered(WebFormComponent component, String propertyName, TargetDataLinks targetDataLinks);
+	void dataLinkedPropertyRegistered(IDataLinkedPropertyValue propertyValue, TargetDataLinks targetDataLinks);
 
-	void dataLinkedPropertyUnregistered(WebFormComponent component, String propertyName);
+	void dataLinkedPropertyUnregistered(IDataLinkedPropertyValue propertyValue);
 
 }

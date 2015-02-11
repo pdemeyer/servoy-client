@@ -524,7 +524,7 @@ function eventCallback(el, strEvent, callbackUrl, event)
 function postEventCallback(el, strEvent, callbackUrl, event, blockRequest)
 {
 	if(strEvent == "blur")
-	{
+	{	
 		ignoreFocusGained = null;
 	}
 	if(strEvent != "focus" && Wicket.Focus.refocusLastFocusedComponentAfterResponse && !Wicket.Focus.focusSetFromServer) return true;
@@ -613,7 +613,7 @@ function postEventCallback(el, strEvent, callbackUrl, event, blockRequest)
 	{
 		modifiers = Servoy.Utils.getModifiers(event);
 		// if it has display/editvalues then test if the current value is the displayValue. if so only a get instead of a post. 
-		if (Wicket.$(el.id).displayValue && Wicket.$(el.id).value == Wicket.$(el.id).displayValue)
+		if (blockerOn || (Wicket.$(el.id).displayValue && Wicket.$(el.id).value == Wicket.$(el.id).displayValue))
 		{
 			var wcall=wicketAjaxGet
 			(
@@ -1778,8 +1778,10 @@ function onAjaxError()
 }
 
 var blockerTimeout = null;
+var blockerOn = false;
 
 function onABC() {
+	blockerOn = true;
 	wicketShow('blocker');
 	$('body').addClass('blocker');
 	var e=wicketGet('blocker');
@@ -1794,6 +1796,7 @@ function onABCDelayed() {
 
 function hideBlocker()
 {
+	blockerOn = false;
 	if(blockerTimeout)
 	{
 		clearTimeout(blockerTimeout);

@@ -19,7 +19,6 @@ package com.servoy.j2db.server.ngclient.endpoint;
 
 
 import java.io.IOException;
-import java.util.ArrayList;
 
 import javax.websocket.OnClose;
 import javax.websocket.OnError;
@@ -40,7 +39,7 @@ import com.servoy.j2db.server.ngclient.WebsocketSessionFactory;
  *
  */
 
-@ServerEndpoint(value = "/websocket/{sessionid}/{windowname}/{windowid}/{solutionName}/{queryParams}")
+@ServerEndpoint(value = "/websocket/{sessionid}/{windowname}/{windowid}/{solutionName}")
 public class NGClientEndpoint extends WebsocketEndpoint
 {
 	public NGClientEndpoint()
@@ -51,31 +50,11 @@ public class NGClientEndpoint extends WebsocketEndpoint
 	@OnOpen
 	public void start(Session newSession, @PathParam("sessionid")
 	String sessionid, @PathParam("windowname")
-	final String windowname, @PathParam("windowid")
-	final String windowid, @PathParam("solutionName")
-	final String solutionName, @PathParam("queryParams")
-	final String queryParams) throws Exception
+	String windowname, @PathParam("windowid")
+	String windowid, @PathParam("solutionName")
+	String solutionName) throws Exception
 	{
-		ArrayList<String> arguments = new ArrayList<String>();
-		arguments.add("null".equalsIgnoreCase(solutionName) ? null : solutionName);
-		if (queryParams != null && !"null".equalsIgnoreCase(queryParams))
-		{
-			String[] args = queryParams.split("&");
-			for (String arg : args)
-			{
-				String[] pair = null;
-				if ((pair = arg.split("=")).length > 1)
-				{
-					arguments.add(pair[0] + ":" + pair[1]);
-				}
-				else
-				{
-					arguments.add(arg);
-				}
-			}
-		}
-
-		super.start(newSession, sessionid, windowid, windowname, arguments.toArray(new String[arguments.size()]));
+		super.start(newSession, sessionid, windowname, windowid, "null".equalsIgnoreCase(solutionName) ? null : solutionName);
 	}
 
 	@Override

@@ -37,7 +37,6 @@ import org.apache.wicket.util.upload.FileItemStream;
 import org.apache.wicket.util.upload.FileUploadException;
 import org.apache.wicket.util.upload.ServletFileUpload;
 import org.sablo.websocket.CurrentWindow;
-import org.sablo.websocket.IWindow;
 import org.sablo.websocket.WebsocketSessionManager;
 
 import com.servoy.j2db.AbstractActiveSolutionHandler;
@@ -297,8 +296,8 @@ public class MediaResourcesServlet extends HttpServlet
 					String clientID = paths[1];
 					String formName = paths[2];
 					String elementName = paths[3];
-					String propertyName = paths[4];
-					INGClientWebsocketSession wsSession = (INGClientWebsocketSession)WebsocketSessionManager.getSession(
+					final String propertyName = paths[4];
+					final INGClientWebsocketSession wsSession = (INGClientWebsocketSession)WebsocketSessionManager.getSession(
 						WebsocketSessionFactory.CLIENT_ENDPOINT, clientID);
 					if (wsSession != null)
 					{
@@ -308,24 +307,22 @@ public class MediaResourcesServlet extends HttpServlet
 						{
 							FileItemStream item = iterator.next();
 							byte[] data = read(item.openStream());
-							HashMap<String, Object> fileData = new HashMap<String, Object>();
+							final Map<String, Object> fileData = new HashMap<String, Object>();
 							fileData.put("", data);
 							fileData.put(IMediaFieldConstants.FILENAME, item.getName());
 							fileData.put(IMediaFieldConstants.MIMETYPE, item.getContentType());
 
-							IWebFormUI form = wsSession.getClient().getFormManager().getForm(formName).getFormUI();
-							WebFormComponent webComponent = form.getWebComponent(elementName);
-							IWindow previous = CurrentWindow.set(new NGClientWebsocketSessionWindows(wsSession));
-							try
+							final IWebFormUI form = wsSession.getClient().getFormManager().getForm(formName).getFormUI();
+							final WebFormComponent webComponent = form.getWebComponent(elementName);
+							CurrentWindow.runForWindow(new NGClientWebsocketSessionWindows(wsSession), new Runnable()
 							{
-
-								form.getDataAdapterList().pushChanges(webComponent, propertyName, fileData);
-								wsSession.valueChanged();
-							}
-							finally
-							{
-								CurrentWindow.set(previous);
-							}
+								@Override
+								public void run()
+								{
+									form.getDataAdapterList().pushChanges(webComponent, propertyName, fileData);
+									wsSession.valueChanged();
+								}
+							});
 						}
 					}
 				}

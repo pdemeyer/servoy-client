@@ -24,7 +24,6 @@ import org.sablo.specification.WebComponentSpecification;
 import org.sablo.specification.WebServiceSpecProvider;
 import org.sablo.websocket.CurrentWindow;
 import org.sablo.websocket.IServerService;
-import org.sablo.websocket.IWindow;
 
 import com.servoy.base.persistence.constants.IValueListConstants;
 import com.servoy.j2db.ApplicationException;
@@ -409,15 +408,13 @@ public class NGClient extends AbstractApplication implements INGApplication, ICh
 	{
 		if (!force)
 		{
-			IWindow current = CurrentWindow.set(new NGClientWebsocketSessionWindows(getWebsocketSession()));
-			try
+			CurrentWindow.runForWindow(new NGClientWebsocketSessionWindows(getWebsocketSession()), new Runnable()
 			{
-				getWebsocketSession().getService(NGRuntimeWindowManager.WINDOW_SERVICE).executeAsyncServiceCall("reload", new Object[0]);
-			}
-			finally
-			{
-				CurrentWindow.set(current);
-			}
+				public void run()
+				{
+					getWebsocketSession().getService(NGRuntimeWindowManager.WINDOW_SERVICE).executeAsyncServiceCall("reload", new Object[0]);
+				}
+			});
 		}
 		return super.closeSolution(force, args);
 	}

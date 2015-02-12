@@ -255,7 +255,9 @@ angular.module('servoyWindowManager',['sabloApp'])	// TODO Refactor so that wind
         			instances[name].form = form;
         			instances[name].navigatorForm = navigatorForm;    			
         		}
-        		else if($solutionSettings.windowName == name) { // main window form switch
+        		else 
+        		// RAGTEST 	if($solutionSettings.windowName == name)
+        		{ // main window form switch
         			$solutionSettings.mainForm = form;
         			$solutionSettings.navigatorForm = navigatorForm;
         		}

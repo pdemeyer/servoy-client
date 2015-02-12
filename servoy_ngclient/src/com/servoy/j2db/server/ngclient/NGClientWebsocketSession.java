@@ -263,23 +263,22 @@ public class NGClientWebsocketSession extends BaseWebsocketSession implements IN
 		this.closeSession(null);
 	}
 
-	public void closeSession(String redirectUrl)
+	public void closeSession(final String redirectUrl)
 	{
 		if (client.getWebsocketSession() != null)
 		{
-			IWindow current = CurrentWindow.set(new NGClientWebsocketSessionWindows(client.getWebsocketSession()));
-			try
+			CurrentWindow.runForWindow(new NGClientWebsocketSessionWindows(client.getWebsocketSession()), new Runnable()
 			{
-				Map<String, Object> detail = new HashMap<>();
-				String htmlfilePath = Settings.getInstance().getProperty("servoy.webclient.pageexpired.page");
-				if (htmlfilePath != null) detail.put("viewUrl", htmlfilePath);
-				if (redirectUrl != null) detail.put("redirectUrl", redirectUrl);
-				getService("$sessionService").executeAsyncServiceCall("expireSession", new Object[] { detail });
-			}
-			finally
-			{
-				CurrentWindow.set(current);
-			}
+				@Override
+				public void run()
+				{
+					Map<String, Object> detail = new HashMap<>();
+					String htmlfilePath = Settings.getInstance().getProperty("servoy.webclient.pageexpired.page");
+					if (htmlfilePath != null) detail.put("viewUrl", htmlfilePath);
+					if (redirectUrl != null) detail.put("redirectUrl", redirectUrl);
+					getService("$sessionService").executeAsyncServiceCall("expireSession", new Object[] { detail });
+				}
+			});
 		}
 		super.closeSession();
 	}

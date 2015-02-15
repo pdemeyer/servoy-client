@@ -23,7 +23,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.sablo.eventthread.IEventDispatcher;
-import org.sablo.services.FormServiceHandler;
+import org.sablo.services.server.FormServiceHandler;
 import org.sablo.specification.WebComponentSpecification;
 import org.sablo.specification.WebServiceSpecProvider;
 import org.sablo.websocket.BaseWebsocketSession;
@@ -234,7 +234,7 @@ public class NGClientWebsocketSession extends BaseWebsocketSession implements IN
 			if (styleSheetMedia != null)
 			{
 				String path = "resources/" + MediaResourcesServlet.FLATTENED_SOLUTION_ACCESS + "/" + solution.getName() + "/" + styleSheetMedia.getName();
-				getService(NGClient.APPLICATION_SERVICE).executeAsyncServiceCall("setStyleSheet", new Object[] { path });
+				getClientService(NGClient.APPLICATION_SERVICE).executeAsyncServiceCall("setStyleSheet", new Object[] { path });
 			}
 			else
 			{
@@ -243,7 +243,7 @@ public class NGClientWebsocketSession extends BaseWebsocketSession implements IN
 		}
 		else
 		{
-			getService(NGClient.APPLICATION_SERVICE).executeAsyncServiceCall("setStyleSheet", new Object[] { });
+			getClientService(NGClient.APPLICATION_SERVICE).executeAsyncServiceCall("setStyleSheet", new Object[] { });
 		}
 	}
 
@@ -276,7 +276,7 @@ public class NGClientWebsocketSession extends BaseWebsocketSession implements IN
 					String htmlfilePath = Settings.getInstance().getProperty("servoy.webclient.pageexpired.page");
 					if (htmlfilePath != null) detail.put("viewUrl", htmlfilePath);
 					if (redirectUrl != null) detail.put("redirectUrl", redirectUrl);
-					getService("$sessionService").executeAsyncServiceCall("expireSession", new Object[] { detail });
+					getClientService("$sessionService").executeAsyncServiceCall("expireSession", new Object[] { detail });
 				}
 			});
 		}
@@ -305,6 +305,6 @@ public class NGClientWebsocketSession extends BaseWebsocketSession implements IN
 		if (ApplicationServerRegistry.get().isDeveloperStartup()) internalError.put("stack", stackTrace);
 		String htmlView = Settings.getInstance().getProperty("servoy.webclient.error.page");
 		if (htmlView != null) internalError.put("viewUrl", htmlView);
-		CurrentWindow.get().getSession().getService("$sessionService").executeAsyncServiceCall("setInternalServerError", new Object[] { internalError });
+		CurrentWindow.get().getSession().getClientService("$sessionService").executeAsyncServiceCall("setInternalServerError", new Object[] { internalError });
 	}
 }

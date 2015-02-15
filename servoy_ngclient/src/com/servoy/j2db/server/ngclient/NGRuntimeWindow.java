@@ -148,7 +148,7 @@ public class NGRuntimeWindow extends RuntimeWindow implements IBasicMainContaine
 	public void resetBounds()
 	{
 		this.storeBounds = false;
-		getApplication().getWebsocketSession().getService(NGRuntimeWindowManager.WINDOW_SERVICE).executeAsyncServiceCall("resetBounds",
+		getApplication().getWebsocketSession().getClientService(NGRuntimeWindowManager.WINDOW_SERVICE).executeAsyncServiceCall("resetBounds",
 			new Object[] { this.getName() });
 
 	}
@@ -168,7 +168,7 @@ public class NGRuntimeWindow extends RuntimeWindow implements IBasicMainContaine
 			Map<String, Integer> location = new HashMap<>();
 			location.put("x", x);
 			location.put("y", y);
-			getApplication().getWebsocketSession().getService(NGRuntimeWindowManager.WINDOW_SERVICE).executeAsyncServiceCall("setLocation",
+			getApplication().getWebsocketSession().getClientService(NGRuntimeWindowManager.WINDOW_SERVICE).executeAsyncServiceCall("setLocation",
 				new Object[] { this.getName(), location });
 		}
 	}
@@ -216,7 +216,7 @@ public class NGRuntimeWindow extends RuntimeWindow implements IBasicMainContaine
 			Map<String, Integer> size = new HashMap<>();
 			size.put("width", width);
 			size.put("height", height);
-			getApplication().getWebsocketSession().getService(NGRuntimeWindowManager.WINDOW_SERVICE).executeAsyncServiceCall("setSize",
+			getApplication().getWebsocketSession().getClientService(NGRuntimeWindowManager.WINDOW_SERVICE).executeAsyncServiceCall("setSize",
 				new Object[] { this.getName(), size });
 		}
 	}
@@ -259,7 +259,7 @@ public class NGRuntimeWindow extends RuntimeWindow implements IBasicMainContaine
 		initialBounds.put("y", this.initialBounds.y);
 		initialBounds.put("width", this.initialBounds.width);
 		initialBounds.put("height", this.initialBounds.height);
-		getApplication().getWebsocketSession().getService(NGRuntimeWindowManager.WINDOW_SERVICE).executeAsyncServiceCall("setInitialBounds",
+		getApplication().getWebsocketSession().getClientService(NGRuntimeWindowManager.WINDOW_SERVICE).executeAsyncServiceCall("setInitialBounds",
 			new Object[] { this.getName(), initialBounds });
 	}
 
@@ -340,7 +340,7 @@ public class NGRuntimeWindow extends RuntimeWindow implements IBasicMainContaine
 		{
 			titleString = title;
 		}
-		getApplication().getWebsocketSession().getService(NGRuntimeWindowManager.WINDOW_SERVICE).executeAsyncServiceCall("setTitle",
+		getApplication().getWebsocketSession().getClientService(NGRuntimeWindowManager.WINDOW_SERVICE).executeAsyncServiceCall("setTitle",
 			new Object[] { this.getName(), titleString });
 	}
 
@@ -363,7 +363,7 @@ public class NGRuntimeWindow extends RuntimeWindow implements IBasicMainContaine
 	@Override
 	public void toFront()
 	{
-		getApplication().getWebsocketSession().getService(NGRuntimeWindowManager.WINDOW_SERVICE).executeAsyncServiceCall("toFront",
+		getApplication().getWebsocketSession().getClientService(NGRuntimeWindowManager.WINDOW_SERVICE).executeAsyncServiceCall("toFront",
 			new Object[] { this.getName() });
 
 	}
@@ -376,7 +376,7 @@ public class NGRuntimeWindow extends RuntimeWindow implements IBasicMainContaine
 	@Override
 	public void toBack()
 	{
-		getApplication().getWebsocketSession().getService(NGRuntimeWindowManager.WINDOW_SERVICE).executeAsyncServiceCall("toBack",
+		getApplication().getWebsocketSession().getClientService(NGRuntimeWindowManager.WINDOW_SERVICE).executeAsyncServiceCall("toBack",
 			new Object[] { this.getName() });
 	}
 
@@ -395,7 +395,7 @@ public class NGRuntimeWindow extends RuntimeWindow implements IBasicMainContaine
 	public void setOpacity(float opacity)
 	{
 		super.setOpacity(opacity);
-		getApplication().getWebsocketSession().getService(NGRuntimeWindowManager.WINDOW_SERVICE).executeAsyncServiceCall("setOpacity",
+		getApplication().getWebsocketSession().getClientService(NGRuntimeWindowManager.WINDOW_SERVICE).executeAsyncServiceCall("setOpacity",
 			new Object[] { getName(), opacity });
 	}
 
@@ -403,7 +403,7 @@ public class NGRuntimeWindow extends RuntimeWindow implements IBasicMainContaine
 	public void setResizable(boolean resizable)
 	{
 		super.setResizable(resizable);
-		getApplication().getWebsocketSession().getService(NGRuntimeWindowManager.WINDOW_SERVICE).executeAsyncServiceCall("setResizable",
+		getApplication().getWebsocketSession().getClientService(NGRuntimeWindowManager.WINDOW_SERVICE).executeAsyncServiceCall("setResizable",
 			new Object[] { getName(), resizable });
 	}
 
@@ -411,7 +411,7 @@ public class NGRuntimeWindow extends RuntimeWindow implements IBasicMainContaine
 	public void setUndecorated(boolean undecorated)
 	{
 		super.setUndecorated(undecorated);
-		getApplication().getWebsocketSession().getService(NGRuntimeWindowManager.WINDOW_SERVICE).executeAsyncServiceCall("setUndecorated",
+		getApplication().getWebsocketSession().getClientService(NGRuntimeWindowManager.WINDOW_SERVICE).executeAsyncServiceCall("setUndecorated",
 			new Object[] { getName(), undecorated });
 	}
 
@@ -419,7 +419,7 @@ public class NGRuntimeWindow extends RuntimeWindow implements IBasicMainContaine
 	public void setTransparent(boolean isTransparent)
 	{
 		super.setTransparent(isTransparent);
-		getApplication().getWebsocketSession().getService(NGRuntimeWindowManager.WINDOW_SERVICE).executeAsyncServiceCall("setTransparent",
+		getApplication().getWebsocketSession().getClientService(NGRuntimeWindowManager.WINDOW_SERVICE).executeAsyncServiceCall("setTransparent",
 			new Object[] { getName(), isTransparent });
 	}
 
@@ -432,7 +432,7 @@ public class NGRuntimeWindow extends RuntimeWindow implements IBasicMainContaine
 	public void hideUI()
 	{
 		visible = false;
-		getApplication().getWebsocketSession().getService(NGRuntimeWindowManager.WINDOW_SERVICE).executeAsyncServiceCall("hide", new Object[] { getName() });
+		getApplication().getWebsocketSession().getClientService(NGRuntimeWindowManager.WINDOW_SERVICE).executeAsyncServiceCall("hide", new Object[] { getName() });
 
 		// assume that just after hiding the window, currentController in js is the main window controller
 		IFormController formController = getApplication().getRuntimeWindowManager().getMainApplicationWindow().getController();
@@ -449,7 +449,7 @@ public class NGRuntimeWindow extends RuntimeWindow implements IBasicMainContaine
 	public void setStoreBounds(boolean storeBounds)
 	{
 		super.setStoreBounds(storeBounds);
-		getApplication().getWebsocketSession().getService(NGRuntimeWindowManager.WINDOW_SERVICE).executeAsyncServiceCall("setStoreBounds",
+		getApplication().getWebsocketSession().getClientService(NGRuntimeWindowManager.WINDOW_SERVICE).executeAsyncServiceCall("setStoreBounds",
 			new Object[] { getName(), String.valueOf(storeBounds) });
 	}
 
@@ -475,7 +475,7 @@ public class NGRuntimeWindow extends RuntimeWindow implements IBasicMainContaine
 		Form form = getApplication().getFlattenedSolution().getForm(formName);
 		String titleArg = getTitle();
 		titleArg = titleArg == null ? form.getName() : titleArg;
-		getApplication().getWebsocketSession().getService(NGRuntimeWindowManager.WINDOW_SERVICE).executeAsyncServiceCall("show",
+		getApplication().getWebsocketSession().getClientService(NGRuntimeWindowManager.WINDOW_SERVICE).executeAsyncServiceCall("show",
 			new Object[] { getName(), form.getName(), titleArg });
 
 		if (windowType == JSWindow.MODAL_DIALOG && getApplication().getWebsocketSession().getEventDispatcher() != null)
@@ -500,7 +500,7 @@ public class NGRuntimeWindow extends RuntimeWindow implements IBasicMainContaine
 
 		Map<String, Object> navigatorForm = getNavigatorProperties(currentForm);
 		NGClientWindow.getCurrentWindow().touchForm(currentForm.getForm(), null, true);
-		getApplication().getWebsocketSession().getService(NGRuntimeWindowManager.WINDOW_SERVICE).executeAsyncServiceCall("switchForm",
+		getApplication().getWebsocketSession().getClientService(NGRuntimeWindowManager.WINDOW_SERVICE).executeAsyncServiceCall("switchForm",
 			new Object[] { getName(), mainForm, navigatorForm });
 		sendTitle(title);
 	}
@@ -571,6 +571,6 @@ public class NGRuntimeWindow extends RuntimeWindow implements IBasicMainContaine
 	{
 		super.destroy();
 		hideUI();
-		getApplication().getWebsocketSession().getService(NGRuntimeWindowManager.WINDOW_SERVICE).executeAsyncServiceCall("destroy", new Object[] { getName() });
+		getApplication().getWebsocketSession().getClientService(NGRuntimeWindowManager.WINDOW_SERVICE).executeAsyncServiceCall("destroy", new Object[] { getName() });
 	}
 }

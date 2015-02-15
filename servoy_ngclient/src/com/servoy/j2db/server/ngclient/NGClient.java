@@ -141,7 +141,7 @@ public class NGClient extends AbstractApplication implements INGApplication, ICh
 		Object retValue;
 		try
 		{
-			retValue = this.getWebsocketSession().getService(NGClient.APPLICATION_SERVICE).executeServiceCall("getUtcOffsetsAndLocale", null);
+			retValue = this.getWebsocketSession().getClientService(NGClient.APPLICATION_SERVICE).executeServiceCall("getUtcOffsetsAndLocale", null);
 		}
 		catch (IOException e)
 		{
@@ -412,7 +412,7 @@ public class NGClient extends AbstractApplication implements INGApplication, ICh
 			{
 				public void run()
 				{
-					getWebsocketSession().getService(NGRuntimeWindowManager.WINDOW_SERVICE).executeAsyncServiceCall("reload", new Object[0]);
+					getWebsocketSession().getClientService(NGRuntimeWindowManager.WINDOW_SERVICE).executeAsyncServiceCall("reload", new Object[0]);
 				}
 			});
 		}
@@ -483,7 +483,7 @@ public class NGClient extends AbstractApplication implements INGApplication, ICh
 	{
 		try
 		{
-			Object retValue = this.getWebsocketSession().getService(NGClient.APPLICATION_SERVICE).executeServiceCall("getScreenSize", null);
+			Object retValue = this.getWebsocketSession().getClientService(NGClient.APPLICATION_SERVICE).executeServiceCall("getScreenSize", null);
 			if (retValue instanceof JSONObject)
 			{
 				int orientation = ((JSONObject)retValue).optInt("orientation", 0);
@@ -508,7 +508,7 @@ public class NGClient extends AbstractApplication implements INGApplication, ICh
 	{
 		try
 		{
-			Object retValue = this.getWebsocketSession().getService(NGClient.APPLICATION_SERVICE).executeServiceCall("getLocation", null);
+			Object retValue = this.getWebsocketSession().getClientService(NGClient.APPLICATION_SERVICE).executeServiceCall("getLocation", null);
 			if (retValue instanceof String)
 			{
 				String url = (String)retValue;
@@ -542,7 +542,7 @@ public class NGClient extends AbstractApplication implements INGApplication, ICh
 	{
 		try
 		{
-			Object retValue = this.getWebsocketSession().getService(NGClient.APPLICATION_SERVICE).executeServiceCall("getUserAgentAndPlatform", null);
+			Object retValue = this.getWebsocketSession().getClientService(NGClient.APPLICATION_SERVICE).executeServiceCall("getUserAgentAndPlatform", null);
 			if (retValue instanceof JSONObject)
 			{
 				String userAgent = ((JSONObject)retValue).optString("userAgent");
@@ -570,7 +570,7 @@ public class NGClient extends AbstractApplication implements INGApplication, ICh
 	{
 		try
 		{
-			Object retValue = this.getWebsocketSession().getService(NGClient.APPLICATION_SERVICE).executeServiceCall("getUserAgentAndPlatform", null);
+			Object retValue = this.getWebsocketSession().getClientService(NGClient.APPLICATION_SERVICE).executeServiceCall("getUserAgentAndPlatform", null);
 			if (retValue instanceof JSONObject)
 			{
 				String platform = ((JSONObject)retValue).optString("platform");
@@ -655,7 +655,7 @@ public class NGClient extends AbstractApplication implements INGApplication, ICh
 	{
 		try
 		{
-			return (String)getWebsocketSession().getService(NGClient.APPLICATION_SERVICE).executeServiceCall("getUserProperty", new Object[] { name });
+			return (String)getWebsocketSession().getClientService(NGClient.APPLICATION_SERVICE).executeServiceCall("getUserProperty", new Object[] { name });
 		}
 		catch (IOException e)
 		{
@@ -669,7 +669,7 @@ public class NGClient extends AbstractApplication implements INGApplication, ICh
 	{
 		try
 		{
-			getWebsocketSession().getService(NGClient.APPLICATION_SERVICE).executeServiceCall("setUserProperty", new Object[] { name, value });
+			getWebsocketSession().getClientService(NGClient.APPLICATION_SERVICE).executeServiceCall("setUserProperty", new Object[] { name, value });
 		}
 		catch (IOException e)
 		{
@@ -685,7 +685,7 @@ public class NGClient extends AbstractApplication implements INGApplication, ICh
 		JSONArray result;
 		try
 		{
-			result = (JSONArray)getWebsocketSession().getService(NGClient.APPLICATION_SERVICE).executeServiceCall("getUserPropertyNames", null);
+			result = (JSONArray)getWebsocketSession().getClientService(NGClient.APPLICATION_SERVICE).executeServiceCall("getUserPropertyNames", null);
 			String[] names = new String[result.length()];
 			for (int i = 0; i < names.length; i++)
 			{
@@ -709,7 +709,7 @@ public class NGClient extends AbstractApplication implements INGApplication, ICh
 	@Override
 	public boolean showURL(String url, String target, String target_options, int timeout, boolean onRootFrame)
 	{
-		this.getWebsocketSession().getService(NGClient.APPLICATION_SERVICE).executeAsyncServiceCall("showUrl",
+		this.getWebsocketSession().getClientService(NGClient.APPLICATION_SERVICE).executeAsyncServiceCall("showUrl",
 			new Object[] { url, target, target_options, timeout });
 		return true;
 	}
@@ -717,7 +717,7 @@ public class NGClient extends AbstractApplication implements INGApplication, ICh
 	@Override
 	public void setStatusText(String text, String tooltip)
 	{
-		this.getWebsocketSession().getService(NGClient.APPLICATION_SERVICE).executeAsyncServiceCall("setStatusText", new Object[] { text });
+		this.getWebsocketSession().getClientService(NGClient.APPLICATION_SERVICE).executeAsyncServiceCall("setStatusText", new Object[] { text });
 	}
 
 	@Override
@@ -775,11 +775,11 @@ public class NGClient extends AbstractApplication implements INGApplication, ICh
 			((NGClientWebsocketSession)wsSession).setClient(this);
 			if (e.getErrorCode() == ServoyException.NO_LICENSE)
 			{
-				getWebsocketSession().getService("$sessionService").executeAsyncServiceCall("setNoLicense", new Object[] { getLicenseAndMaintenanceDetail() });
+				getWebsocketSession().getClientService("$sessionService").executeAsyncServiceCall("setNoLicense", new Object[] { getLicenseAndMaintenanceDetail() });
 			}
 			else if (e.getErrorCode() == ServoyException.MAINTENANCE_MODE)
 			{
-				getWebsocketSession().getService("$sessionService").executeAsyncServiceCall("setMaintenanceMode",
+				getWebsocketSession().getClientService("$sessionService").executeAsyncServiceCall("setMaintenanceMode",
 					new Object[] { getLicenseAndMaintenanceDetail() });
 			}
 			throw e;
@@ -802,7 +802,7 @@ public class NGClient extends AbstractApplication implements INGApplication, ICh
 				{
 					final URL url = (URL)adsInfo[0];
 					final int t = Utils.getAsInteger(adsInfo[3]);
-					getWebsocketSession().getService(NGClient.APPLICATION_SERVICE).executeAsyncServiceCall("showInfoPanel",
+					getWebsocketSession().getClientService(NGClient.APPLICATION_SERVICE).executeAsyncServiceCall("showInfoPanel",
 						new Object[] { url.toString(), w, h, t, getI18NMessage("servoy.button.close") });
 				}
 			}
@@ -855,7 +855,7 @@ public class NGClient extends AbstractApplication implements INGApplication, ICh
 	{
 		try
 		{
-			getWebsocketSession().getService(NGClient.APPLICATION_SERVICE).executeServiceCall("showDefaultLogin", null);
+			getWebsocketSession().getClientService(NGClient.APPLICATION_SERVICE).executeServiceCall("showDefaultLogin", null);
 		}
 		catch (IOException ex)
 		{

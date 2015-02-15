@@ -91,7 +91,7 @@ public class DesignNGClientWindow extends NGClientWindow
 			StringWriter sw = new StringWriter(512);
 			// for al js code design flag should be true.
 			new FormTemplateGenerator(new ServoyDataConverterContext(getClient()), true, true).generate(form, realFormName, "form_recordview_js.ftl", sw);
-			getSession().getService(NGRuntimeWindowManager.WINDOW_SERVICE).executeAsyncServiceCall("updateController",
+			getSession().getClientService(NGRuntimeWindowManager.WINDOW_SERVICE).executeAsyncServiceCall("updateController",
 				new Object[] { realFormName, sw.toString(), realUrl, Boolean.valueOf(forceLoad) });
 		}
 		catch (IOException e)

@@ -159,7 +159,7 @@ public class NGRuntimeWindowManager extends RuntimeWindowManager implements ISer
 	@Override
 	protected RuntimeWindow createWindowInternal(String windowName, int type, RuntimeWindow parent)
 	{
-		((INGApplication)application).getWebsocketSession().getService(NGRuntimeWindowManager.WINDOW_SERVICE).executeAsyncServiceCall("create",
+		((INGApplication)application).getWebsocketSession().getClientService(NGRuntimeWindowManager.WINDOW_SERVICE).executeAsyncServiceCall("create",
 			new Object[] { windowName, String.valueOf(type) });
 		return new NGRuntimeWindow((INGApplication)application, windowName, type, parent);
 	}

@@ -23,7 +23,7 @@ import java.util.List;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.json.JSONString;
-import org.sablo.services.FormServiceHandler;
+import org.sablo.services.server.FormServiceHandler;
 import org.sablo.websocket.utils.JSONUtils.IToJSONConverter;
 
 import com.servoy.j2db.dataprocessing.FoundSet;

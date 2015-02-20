@@ -160,6 +160,7 @@ angular.module('servoyApp', ['sabloApp', 'servoy','webStorageModule','servoy-com
 		var solName = decodeURIComponent((new RegExp('[?|&]s=' + '([^&;]+?)(&|#|;|$)').exec($window.location.search)||[,""])[1].replace(/\+/g, '%20'))||null
 		if (!solName) $solutionSettings.solutionName  = /.*\/(\w+)\/.*/.exec($window.location.pathname)[1];
 		else $solutionSettings.solutionName  = solName;
+		$solutionSettings.windowName = $sabloApplication.getWindowId()
 		var wsSession = $sabloApplication.connect('/solutions/'+$solutionSettings.solutionName, [$sabloApplication.getSessionId(), $sabloApplication.getWindowName(), $sabloApplication.getWindowId()], {solution:$solutionSettings.solutionName})
 		wsSession.onMessageObject(function (msg, conversionInfo) {
 			// data got back from the server
@@ -204,6 +205,7 @@ angular.module('servoyApp', ['sabloApp', 'servoy','webStorageModule','servoy-com
 				webStorage.session.add("sessionid",msg.sessionid);
 			}
 			if (msg.windowid) {
+				$solutionSettings.windowName = msg.windowid;
 				webStorage.session.add("windowid",msg.windowid);
 			}
 		});

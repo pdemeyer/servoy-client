@@ -25,8 +25,10 @@ import com.servoy.j2db.persistence.Form;
 import com.servoy.j2db.server.ngclient.INGClientWindow;
 
 /**
- * RAGTEST doc
- * @author rgansevles
+ * A {@link INGClientWindow} implementation that redirects all the calls on it to the current registered,
+ * {@link IWebsocketSession#getWindows()} windows.
+ *
+ * @author jcompagner, rgansevles
  *
  */
 public class NGClientWebsocketSessionWindows extends WebsocketSessionWindows implements INGClientWindow

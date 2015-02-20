@@ -29,7 +29,6 @@ import com.servoy.j2db.RuntimeWindowManager;
 import com.servoy.j2db.persistence.Form;
 import com.servoy.j2db.scripting.JSWindow;
 import com.servoy.j2db.scripting.RuntimeWindow;
-import com.servoy.j2db.util.UUID;
 
 /**
  * @author jcompagner
@@ -176,16 +175,14 @@ public class NGRuntimeWindowManager extends RuntimeWindowManager implements ISer
 		return null;
 	}
 
-	/**
-	 *
-	 */
-	public String createMainWindow()
+	public void createMainWindow(String windowsUUID)
 	{
-		String windowsUUID = UUID.randomUUID().toString();
-		RuntimeWindow mainApplicationWindow = createWindow(windowsUUID, JSWindow.WINDOW, null);
-		mainApplicationWindow.setLocation(0, 0); //default values, that never change
-		setCurrentWindowName(windowsUUID);
-		return windowsUUID;
+		if (getWindow(windowsUUID) == null)
+		{
+			RuntimeWindow mainApplicationWindow = createWindow(windowsUUID, JSWindow.WINDOW, null);
+			mainApplicationWindow.setLocation(0, 0); //default values, that never change
+			setCurrentWindowName(windowsUUID);
+		}
 	}
 
 	public void destroy()

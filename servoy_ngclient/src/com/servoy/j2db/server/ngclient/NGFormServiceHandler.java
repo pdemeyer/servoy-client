@@ -45,16 +45,16 @@ import com.servoy.j2db.util.Utils;
  */
 public class NGFormServiceHandler extends FormServiceHandler
 {
-	private final INGApplication client;
+	private final INGClientWebsocketSession websocketSession;
 
-	public NGFormServiceHandler(INGApplication client)
+	public NGFormServiceHandler(INGClientWebsocketSession websocketSession)
 	{
-		this.client = client;
+		this.websocketSession = websocketSession;
 	}
 
 	protected INGApplication getApplication()
 	{
-		return client;
+		return websocketSession.getClient();
 	}
 
 	@Override
@@ -181,6 +181,7 @@ public class NGFormServiceHandler extends FormServiceHandler
 				if (form != null) NGClientWindow.getCurrentWindow().touchForm(getApplication().getFlattenedSolution().getFlattenedForm(form), formName, true);
 				return Boolean.valueOf(ok);
 			}
+
 			case "formLoaded" :
 			{
 				NGClientWindow.getCurrentWindow().formCreated(args.optString("formname"));

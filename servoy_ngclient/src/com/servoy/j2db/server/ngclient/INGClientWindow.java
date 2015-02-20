@@ -22,7 +22,8 @@ import org.sablo.websocket.IWindow;
 import com.servoy.j2db.persistence.Form;
 
 /**
- * RAGTEST doc
+ * Represents the client side window object on the server for NGClient.
+ *
  * @author rgansevles
  *
  */

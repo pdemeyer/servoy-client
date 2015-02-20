@@ -34,7 +34,7 @@ import com.servoy.j2db.util.Debug;
 import com.servoy.j2db.util.Utils;
 
 /**
- * RAGTEST doc
+ * Sablo window for NGClient, used in developer.
  * 
  * @author rgansevles
  *

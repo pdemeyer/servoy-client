@@ -40,7 +40,7 @@ import com.servoy.j2db.util.Debug;
 import com.servoy.j2db.util.Pair;
 
 /**
- * RAGTEST doc
+ * Sablo window for NGClient
  * 
  * @author rgansevles
  *
@@ -50,8 +50,7 @@ public class NGClientWindow extends BaseWindow implements INGClientWindow
 
 	private final INGClientWebsocketSession websocketSession;
 
-	// RAGTST rename naar formsInWindow
-	private final ConcurrentMap<String, Pair<String, Boolean>> formsOnClient = new ConcurrentHashMap<String, Pair<String, Boolean>>();
+	private final ConcurrentMap<String, Pair<String, Boolean>> formsInWindow = new ConcurrentHashMap<String, Pair<String, Boolean>>();
 
 	/**
 	 * @param websocketSession
@@ -106,23 +105,22 @@ public class NGClientWindow extends BaseWindow implements INGClientWindow
 	public void touchForm(Form form, String realInstanceName, boolean async)
 	{
 		if (form == null) return;
-		if (formsOnClient == null) return; // endpoint is not registered for forms (ex: there is a api call from a scheduler, that will want to touch the form, but there are no forms for that endpoint)
 		String formName = realInstanceName == null ? form.getName() : realInstanceName;
 		String formUrl = "solutions/" + form.getSolution().getName() + "/forms/" + formName + ".html";
-		if (formsOnClient.putIfAbsent(formName, new Pair<String, Boolean>(formUrl, Boolean.FALSE)) == null)
+		if (formsInWindow.putIfAbsent(formName, new Pair<String, Boolean>(formUrl, Boolean.FALSE)) == null)
 		{
 			// form is not yet on the client, send over the controller
 			updateController(form, formName, formUrl, !async);
 		}
 		else
 		{
-			formUrl = formsOnClient.get(formName).getLeft();
+			formUrl = formsInWindow.get(formName).getLeft();
 		}
 
 		// if sync wait until we got response from client as it is loaded
 		if (!async)
 		{
-			if (!formsOnClient.get(formName).getRight().booleanValue())
+			if (!formsInWindow.get(formName).getRight().booleanValue())
 			{
 				// really send the changes
 				try
@@ -187,18 +185,6 @@ public class NGClientWindow extends BaseWindow implements INGClientWindow
 		}
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see org.sablo.websocket.IWindow#sendMessage(org.sablo.websocket.IToJSONWriter, boolean, org.sablo.websocket.utils.JSONUtils.IToJSONConverter) //
-	 */
-//	@Override
-//	public <ContextT> Object sendMessage(IToJSONWriter<ContextT> dataWriter, boolean async, IToJSONConverter<ContextT> converter) throws IOException
-//	{
-//		// RAGTEST base?Auto-generated method stub
-//		return null;
-//	}
-
 	@Override
 	public void updateForm(Form form, String name)
 	{
@@ -209,12 +195,12 @@ public class NGClientWindow extends BaseWindow implements INGClientWindow
 
 	public void formCreated(String formName)
 	{
-		if (formsOnClient.containsKey(formName))
+		if (formsInWindow.containsKey(formName))
 		{
-			String formUrl = formsOnClient.get(formName).getLeft();
+			String formUrl = formsInWindow.get(formName).getLeft();
 			synchronized (formUrl)
 			{
-				formsOnClient.get(formName).setRight(Boolean.TRUE);
+				formsInWindow.get(formName).setRight(Boolean.TRUE);
 				getSession().getEventDispatcher().resume(formUrl);
 			}
 		}

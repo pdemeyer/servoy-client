@@ -25,7 +25,6 @@ import java.util.List;
 import java.util.Map;
 
 import org.sablo.eventthread.IEventDispatcher;
-import org.sablo.services.server.FormServiceHandler;
 import org.sablo.specification.WebComponentSpecification;
 import org.sablo.specification.WebServiceSpecProvider;
 import org.sablo.websocket.BaseWebsocketSession;
@@ -167,9 +166,7 @@ public class NGClientWebsocketSession extends BaseWebsocketSession implements IN
 					try
 					{
 						// the solution was not loaded or another was loaded, now create a main window and load the solution.
-						// RAGTEST create main window naar ???
-						if (true) throw new RuntimeException("RAGTEST");
-//						CurrentWindow.get().getEndpoint().setWindowId(client.getRuntimeWindowManager().createMainWindow());
+						client.getRuntimeWindowManager().createMainWindow(CurrentWindow.get().getUuid());
 
 						List<String> arguments = new ArrayList<String>();
 
@@ -182,7 +179,6 @@ public class NGClientWebsocketSession extends BaseWebsocketSession implements IN
 						client.handleArguments(arguments.toArray(new String[arguments.size()]), args);
 
 						client.loadSolution(solutionName);
-
 					}
 					catch (RepositoryException e)
 					{
@@ -208,26 +204,8 @@ public class NGClientWebsocketSession extends BaseWebsocketSession implements IN
 	@Override
 	protected IServerService createFormService()
 	{
-		return FormServiceHandler.INSTANCE;
+		return new NGFormServiceHandler(this);
 	}
-
-	// RAGTEST wat deed dit?
-//	public void handleMessage(final JSONObject obj)
-//	{
-//		if (client != null) J2DBGlobals.setServiceProvider(client);
-//		try
-//		{
-//		}
-//		catch (Exception e)
-//		{
-//			Debug.error(e);
-//			sendInternalError(e);
-//		}
-//		finally
-//		{
-//			J2DBGlobals.setServiceProvider(null);
-//		}
-//	}
 
 	@Override
 	public void solutionLoaded(Solution solution)

@@ -70,14 +70,17 @@ div.svy-label-with-focus:focus{
 	width: 300px;
 }
 
-.inherited_element
-{
+.inherited_element {
 	outline:1px dotted red;
 }
 
-.highlight_element
-{
+.highlight_element {
 	outline:1px solid lightblue;
+}
+
+.inherit_size {
+	width: inherit;
+	height: inherit; 
 }
 
 /* Side notes for calling out things (bs-callout from documentation)
@@ -171,4 +174,10 @@ div.svy-label-with-focus:focus{
 }
 .ui-select-bootstrap > .ui-select-match {
 	padding:0px
+}
+.ui-select-search
+{
+	width:100%;
+	height:100%;
+	padding: 1px 5px;
 }

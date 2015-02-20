@@ -173,7 +173,7 @@ public class NGFormServiceHandler extends FormServiceHandler
 							// no selected record, then use prototype so we can get global relations
 							controller.loadRecords(parentFs.getPrototypeState().getRelatedFoundSet(relation));
 						}
-						parentForm.getFormUI().getDataAdapterList().addRelatedForm(controller, relation);
+						parentForm.getFormUI().getDataAdapterList().addRelatedForm(controller, relation, true);
 					}
 				}
 				Utils.invokeLater(getApplication(), invokeLaterRunnables);
@@ -183,7 +183,6 @@ public class NGFormServiceHandler extends FormServiceHandler
 			}
 			case "formLoaded" :
 			{
-				// "requestData" was already treated by "super" call; just let the system know that this form is now ready for use client-side
 				NGClientWindow.getCurrentWindow().formCreated(args.optString("formname"));
 				break;
 			}

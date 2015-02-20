@@ -6,6 +6,7 @@ module.exports = function(config){
         '../war/servoydefault/**/*.html': ['ng-html2js']
     },
     files : [
+       {pattern: 'fileResources/**/*', watched: true, included: false, served: true},
        'lib/jquery.js',
        'lib/angular_1.3.4.js',
        'lib/angular-mocks_1.3.4.js',
@@ -40,7 +41,7 @@ module.exports = function(config){
     },
 
     frameworks: ['jasmine'],
-    browsers : ['Chrome'],//
+    browsers : ['PhantomJS', 'Chrome', 'Firefox', 'IE'],//
 
     /*plugins : [    <- not needed since karma loads by default all sibling plugins that start with karma-*
             'karma-junit-reporter',
@@ -49,6 +50,7 @@ module.exports = function(config){
             'karma-script-launcher',
             'karma-jasmine'
             ],*/
+	browserNoActivityTimeout:999999,
     singleRun: false,
     //autoWatch : true,
     reporters: ['dots', 'junit'],

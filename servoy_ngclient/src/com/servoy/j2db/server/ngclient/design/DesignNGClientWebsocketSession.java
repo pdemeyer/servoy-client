@@ -17,6 +17,9 @@
 
 package com.servoy.j2db.server.ngclient.design;
 
+import java.util.List;
+import java.util.Map;
+
 import org.sablo.specification.WebComponentSpecification;
 import org.sablo.websocket.IClientService;
 import org.sablo.websocket.IWindow;
@@ -60,11 +63,11 @@ public final class DesignNGClientWebsocketSession extends NGClientWebsocketSessi
 
 
 	@Override
-	public void onOpen(String... solutionName)
+	public void onOpen(Map<String, List<String>> requestParams)
 	{
-		// always generate a new window id. The window session seems to be shared over multiple swt browsers.
-// RAGTEST		CurrentWindow.get().getEndpoint().setWindowId(getClient().getRuntimeWindowManager().createMainWindow());
-		super.onOpen(solutionName);
+		// always generate a new window id. The window session seems to be shared over multiply swt browsers.
+		// RAGTEST CurrentWindow.get().getEndpoint().setWindowId(getClient().getRuntimeWindowManager().createMainWindow());
+		super.onOpen(requestParams);
 		if (getClient().getSolution() != null)
 		{
 			sendSolutionCSSURL(getClient().getSolution());
@@ -73,7 +76,7 @@ public final class DesignNGClientWebsocketSession extends NGClientWebsocketSessi
 
 	/*
 	 * (non-Javadoc)
-	 *
+	 * 
 	 * @see com.servoy.j2db.server.ngclient.NGClientWebsocketSession#closeSession()
 	 */
 	@Override

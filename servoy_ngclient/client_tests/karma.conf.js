@@ -6,6 +6,7 @@ module.exports = function(config){
         '../war/servoydefault/**/*.html': ['ng-html2js']
     },
     files : [
+       {pattern: 'fileResources/**/*', watched: true, included: false, served: true},
        'lib/jquery.js',
        'lib/angular_1.3.4.js',
        'lib/angular-mocks_1.3.4.js',
@@ -16,7 +17,10 @@ module.exports = function(config){
        '../war/js/**/*.js',
        '../war/servoydefault/*/*.js',
        './test/**/*.js',
-       '../war/servoydefault/*/*.html'
+       '../war/servoydefault/*/*.html',
+       '../war/servoyservices/component_custom_property/*.js',
+       '../war/servoyservices/foundset_custom_property/*.js',
+       '../war/servoyservices/foundset_viewport_module/*.js'
     ],
     exclude : [
 	  '../war/servoydefault/tabpanel/tabpanel_server.js',
@@ -46,7 +50,6 @@ module.exports = function(config){
             'karma-script-launcher',
             'karma-jasmine'
             ],*/
-	browserNoActivityTimeout:999999,
     singleRun: true,
     //autoWatch : true,
     reporters: ['dots', 'junit'],

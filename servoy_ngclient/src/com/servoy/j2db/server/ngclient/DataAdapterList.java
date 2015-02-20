@@ -122,7 +122,7 @@ public class DataAdapterList implements IModificationListener, ITagResolver, IDa
 
 	private static boolean containsForm(IWebFormUI parent, IWebFormUI child)
 	{
-		Object childParentContainer = ((WebFormUI)child).getParentContainer();
+		Object childParentContainer = child.getParentContainer();
 		if (childParentContainer instanceof WebFormComponent)
 		{
 			Container p = ((WebFormComponent)childParentContainer).getParent();
@@ -139,31 +139,33 @@ public class DataAdapterList implements IModificationListener, ITagResolver, IDa
 		return false;
 	}
 
-	public void addRelatedForm(IWebFormController form, String relation)
+	public void addRelatedForm(IWebFormController form, String relation, boolean shouldUpdateParentFormController)
 	{
-		form.setParentFormController(formController);
-
-		Iterator<Entry<IWebFormController, String>> relatedFormsIte = relatedForms.entrySet().iterator();
-		Entry<IWebFormController, String> relatedFormEntry;
-		IWebFormController relatedForm;
-		String relatedFormRelation;
-		while (relatedFormsIte.hasNext())
+		if (shouldUpdateParentFormController)
 		{
-			relatedFormEntry = relatedFormsIte.next();
-			relatedForm = relatedFormEntry.getKey();
-			relatedFormRelation = relatedFormEntry.getValue();
+			form.setParentFormController(formController);
+		}
+		else
+		{
+			form.getFormUI().getDataAdapterList().addParentRelatedForm(getForm());
+		}
+
+		for (Entry<IWebFormController, String> relatedFormEntry : relatedForms.entrySet())
+		{
+			IWebFormController relatedForm = relatedFormEntry.getKey();
+			String relatedFormRelation = relatedFormEntry.getValue();
 			if (relatedFormRelation.startsWith(relation) && relatedFormRelation.length() > relation.length())
 			{
 				if (!containsForm(form.getFormUI(), relatedForm.getFormUI()))
 				{
-					form.getFormUI().getDataAdapterList().addRelatedForm(relatedForm, relatedFormRelation.substring(relation.length() + 1));
+					form.getFormUI().getDataAdapterList().addRelatedForm(relatedForm, relatedFormRelation.substring(relation.length() + 1), false);
 				}
 			}
 			else if (relation.startsWith(relatedFormRelation) && relation.length() > relatedFormRelation.length())
 			{
 				if (!containsForm(relatedForm.getFormUI(), form.getFormUI()))
 				{
-					relatedForm.getFormUI().getDataAdapterList().addRelatedForm(form, relation.substring(relatedFormRelation.length() + 1));
+					relatedForm.getFormUI().getDataAdapterList().addRelatedForm(form, relation.substring(relatedFormRelation.length() + 1), false);
 				}
 			}
 		}
@@ -171,29 +173,53 @@ public class DataAdapterList implements IModificationListener, ITagResolver, IDa
 		relatedForms.put(form, relation);
 	}
 
-	public void removeRelatedForm(IWebFormController form)
+	public void removeRelatedForm(IWebFormController form, boolean shouldUpdateParentFormController)
 	{
-		form.getFormUI().getDataAdapterList().removeAllRelatedForms();
-		form.setParentFormController(null);
+		if (shouldUpdateParentFormController)
+		{
+			form.setParentFormController(null);
+		}
+		else
+		{
+			form.getFormUI().getDataAdapterList().removeParentRelatedForm(getForm());
+		}
 		relatedForms.remove(form);
+		for (Object relWFC : form.getFormUI().getDataAdapterList().getParentRelatedForms().toArray())
+		{
+			((IWebFormController)relWFC).getFormUI().getDataAdapterList().removeRelatedForm(form, false);
+		}
 	}
 
-	public void removeAllRelatedForms()
+	public Map<IWebFormController, String> getRelatedForms()
 	{
-		Iterator<IWebFormController> relForms = relatedForms.keySet().iterator();
-		while (relForms.hasNext())
-			relForms.next().setParentFormController(null);
-		relatedForms.clear();
+		return relatedForms;
+	}
+
+	private final ArrayList<IWebFormController> parentRelatedForms = new ArrayList<IWebFormController>();
+
+	public void addParentRelatedForm(IWebFormController form)
+	{
+		if (parentRelatedForms.indexOf(form) == -1) parentRelatedForms.add(form);
+	}
+
+	public void removeParentRelatedForm(IWebFormController form)
+	{
+		parentRelatedForms.remove(form);
+	}
+
+	public List<IWebFormController> getParentRelatedForms()
+	{
+		return parentRelatedForms;
 	}
 
 	private void setupModificationListener(String dataprovider)
 	{
-		if (!isFormScopeListener && isFormDataprovider(dataprovider))
+		if (!isFormScopeListener && (isFormDataprovider(dataprovider) || dataprovider == null))
 		{
 			formController.getFormScope().getModificationSubject().addModificationListener(this);
 			isFormScopeListener = true;
 		}
-		else if (!isGlobalScopeListener && isGlobalDataprovider(dataprovider))
+		if (!isGlobalScopeListener && (isGlobalDataprovider(dataprovider) || dataprovider == null))
 		{
 			formController.getApplication().getScriptEngine().getScopesScope().getModificationSubject().addModificationListener(this);
 			isGlobalScopeListener = true;
@@ -204,20 +230,22 @@ public class DataAdapterList implements IModificationListener, ITagResolver, IDa
 	{
 		if (targetDataLinks == TargetDataLinks.NOT_LINKED_TO_DATA || targetDataLinks == null) return;
 
-		if (targetDataLinks.dataProviderIDs != null)
+		String[] dataproviders = targetDataLinks.dataProviderIDs;
+		if (dataproviders == null)
 		{
-			for (String dpID : targetDataLinks.dataProviderIDs)
+			dataproviders = new String[] { null };
+		}
+		for (String dpID : dataproviders)
+		{
+			List<IDataLinkedPropertyValue> allLinksOfDP = dataProviderToLinkedComponentProperty.get(dpID);
+			if (allLinksOfDP == null)
 			{
-				List<IDataLinkedPropertyValue> allLinksOfDP = dataProviderToLinkedComponentProperty.get(dpID);
-				if (allLinksOfDP == null)
-				{
-					allLinksOfDP = new ArrayList<>();
-					dataProviderToLinkedComponentProperty.put(dpID, allLinksOfDP);
-				}
-				if (!allLinksOfDP.contains(propertyValue)) allLinksOfDP.add(propertyValue);
-
-				if (formController != null) setupModificationListener(dpID); // see if we need to listen to global/form scope changes
+				allLinksOfDP = new ArrayList<>();
+				dataProviderToLinkedComponentProperty.put(dpID, allLinksOfDP);
 			}
+			if (!allLinksOfDP.contains(propertyValue)) allLinksOfDP.add(propertyValue);
+
+			if (formController != null) setupModificationListener(dpID); // see if we need to listen to global/form scope changes
 		}
 
 		allComponentPropertiesLinkedToData.add(propertyValue);
@@ -334,8 +362,24 @@ public class DataAdapterList implements IModificationListener, ITagResolver, IDa
 		}
 		else
 		{
-			// announce to all - we don't know exactly what changed; maybe all DPs changed
 			List<IDataLinkedPropertyValue> interestedComponentProperties = dataProviderToLinkedComponentProperty.get(dataProvider);
+			if (interestedComponentProperties == null)
+			{
+				interestedComponentProperties = dataProviderToLinkedComponentProperty.get(null);
+			}
+			else
+			{
+				List<IDataLinkedPropertyValue> listenToAllComponentProperties = dataProviderToLinkedComponentProperty.get(null);
+				if (listenToAllComponentProperties != null && listenToAllComponentProperties.size() > 0)
+				{
+					interestedComponentProperties = new ArrayList<IDataLinkedPropertyValue>(interestedComponentProperties);
+					for (IDataLinkedPropertyValue dataLink : listenToAllComponentProperties)
+					{
+						if (!interestedComponentProperties.contains(dataLink)) interestedComponentProperties.add(dataLink);
+					}
+				}
+			}
+
 			if (interestedComponentProperties != null)
 			{
 				for (IDataLinkedPropertyValue x : interestedComponentProperties)

@@ -1,4 +1,4 @@
-angular.module('servoydefaultPortal',['sabloApp','servoy','ui.grid','ui.grid.selection','ui.grid.moveColumns','ui.grid.resizeColumns','ui.grid.infiniteScroll'])
+angular.module('servoydefaultPortal',['sabloApp','servoy','ui.grid','ui.grid.selection','ui.grid.moveColumns','ui.grid.resizeColumns','ui.grid.infiniteScroll','ui.grid.cellNav'])
 .directive('servoydefaultPortal', ["$sabloUtils", '$utils', '$foundsetTypeConstants', '$componentTypeConstants', 
                                    '$timeout', '$solutionSettings', '$anchorConstants', 
                                    'gridUtil','uiGridConstants','$scrollbarConstants',"uiGridMoveColumnService",
@@ -128,10 +128,10 @@ angular.module('servoydefaultPortal',['sabloApp','servoy','ui.grid','ui.grid.sel
 
 					var portal_svy_name = $element[0].getAttribute('data-svy-name');
 					var cellTemplate = '<' + el.componentDirectiveName + ' name="' + el.name
-						+ '" svy-model="getExternalScopes().getMergedCellModel(row, ' + idx
-						+ ')" svy-api="getExternalScopes().cellApiWrapper(row, ' + idx
-						+ ')" svy-handlers="getExternalScopes().cellHandlerWrapper(row, ' + idx
-						+ ')" svy-servoyApi="getExternalScopes().cellServoyApiWrapper(row, ' + idx + ')"';
+						+ '" svy-model="grid.appScope.getMergedCellModel(row, ' + idx
+						+ ')" svy-api="grid.appScope.cellApiWrapper(row, ' + idx
+						+ ')" svy-handlers="grid.appScope.cellHandlerWrapper(row, ' + idx
+						+ ')" svy-servoyApi="grid.appScope.cellServoyApiWrapper(row, ' + idx + ')"';
 					if (portal_svy_name) cellTemplate += " data-svy-name='" + portal_svy_name + "." + el.name + "'";
 					cellTemplate += '/>';
 					if($scope.model.multiLine) { 
@@ -141,7 +141,7 @@ angular.module('servoydefaultPortal',['sabloApp','servoy','ui.grid','ui.grid.sel
 						if (rowWidth < (elX + el.model.size.width) ) {
 							rowWidth = elX + el.model.size.width;
 						}
-						rowTemplate = rowTemplate + '<div ng-style="getExternalScopes().getMultilineComponentWrapperStyle(' + idx + ')" >' + cellTemplate + '</div>';
+						rowTemplate = rowTemplate + '<div ng-style="grid.appScope.getMultilineComponentWrapperStyle(' + idx + ')" >' + cellTemplate + '</div>';
 					}
 					else {
 						if($scope.rowHeight == undefined || ($scope.model.rowHeight == 0 && $scope.rowHeight < el.model.size.height)) {
@@ -162,7 +162,8 @@ angular.module('servoydefaultPortal',['sabloApp','servoy','ui.grid','ui.grid.sel
 							enableColumnResizing: isResizable,
 							enableColumnMenu: isSortable,
 							enableSorting:isSortable,
-							enableHiding: false
+							enableHiding: false,
+							allowCellFocus: false
 						});					
 						updateColumnDefinition($scope, idx);
 					}
@@ -176,6 +177,7 @@ angular.module('servoydefaultPortal',['sabloApp','servoy','ui.grid','ui.grid.sel
 					cellTemplate: rowTemplate,
 					name: "unique",
 					cellEditableCondition: false,
+					allowCellFocus: false
 				});
 			}
 
@@ -225,9 +227,7 @@ angular.module('servoydefaultPortal',['sabloApp','servoy','ui.grid','ui.grid.sel
 				return (absoluteRowIndex >= $scope.foundset.viewPort.startIndex && absoluteRowIndex < ($scope.foundset.viewPort.startIndex + $scope.foundset.viewPort.size));
 			}
 
-			$scope.exScope = {};
-
-			$scope.exScope.getMultilineComponentWrapperStyle = function(elementIndex) {
+			$scope.getMultilineComponentWrapperStyle = function(elementIndex) {
 				var elModel = elements[elementIndex].model;
 				var containerModel = $scope.model;
 				var elLayout = {position: 'absolute'};
@@ -299,7 +299,7 @@ angular.module('servoydefaultPortal',['sabloApp','servoy','ui.grid','ui.grid.sel
 			}
 
 			// merges component model and modelViewport (for record dependent properties like dataprovider/tagstring/...) the cell's element's model
-			$scope.exScope.getMergedCellModel = function(ngGridRow, elementIndex) {
+			$scope.getMergedCellModel = function(ngGridRow, elementIndex) {
 				// TODO - can we avoid using ngGrid undocumented "row.entity"? that is what ngGrid uses internally as model for default cell templates...
 				var rowId = ngGridRow.entity[$foundsetTypeConstants.ROW_ID_COL_KEY];
 				
@@ -455,7 +455,7 @@ angular.module('servoydefaultPortal',['sabloApp','servoy','ui.grid','ui.grid.sel
 			// cells provide API calls; one API call (from server) should execute on all cells of that element's column.
 			// so any API provided by a cell is added to the server side controlled API object; when server calls that API method,
 			// it will execute on all cells
-			$scope.exScope.cellApiWrapper = function(ngGridRow, elementIndex) {
+			$scope.cellApiWrapper = function(ngGridRow, elementIndex) {
 				var rowId = ngGridRow.entity[$foundsetTypeConstants.ROW_ID_COL_KEY];
 				if(rowIdToViewportRelativeRowIndex(rowId) < 0) {
 					return {}
@@ -505,7 +505,7 @@ angular.module('servoydefaultPortal',['sabloApp','servoy','ui.grid','ui.grid.sel
 				}
 			}
 
-			$scope.exScope.cellServoyApiWrapper = function(ngGridRow, elementIndex) {
+			$scope.cellServoyApiWrapper = function(ngGridRow, elementIndex) {
 				var rowId = ngGridRow.entity[$foundsetTypeConstants.ROW_ID_COL_KEY];
 				if(rowIdToViewportRelativeRowIndex(rowId) < 0) {
 					return {}
@@ -554,28 +554,54 @@ angular.module('servoydefaultPortal',['sabloApp','servoy','ui.grid','ui.grid.sel
 						if (!$scope.foundset.multiSelect || isInViewPort(idx)) $scope.foundset.selectedRowIndexes.splice(idx, 1);
 					}
 				}
+				updateGridSelectionFromFoundset(false);
 				// it is important that at the end of this function, the two arrays are in sync; otherwise, watch loops may happen
 			}
-			var updateGridSelectionFromFoundset = function() {
+			var updateGridSelectionFromFoundset = function(scrollToSelection) {
 				$scope.$evalAsync(function () {
 					if ($scope.foundset)
 					{
 						var rows = $scope.foundset.viewPort.rows;
-						updatingGridSelection = true;
+						updatingGridSelection = true; 
 						if (rows.length > 0 && $scope.foundset.selectedRowIndexes.length > 0) {
+							var scrolledToSelection = !scrollToSelection;
+							var oldSelection = $scope.gridApi.selection.getSelectedRows();
+							// if first item in the old selection is the same as the first in the new selection,
+							// then ignore scrolling
+							if(oldSelection.length > 0 && rows[$scope.foundset.selectedRowIndexes[0]] &&
+									(oldSelection[0]._svyRowId == rows[$scope.foundset.selectedRowIndexes[0]]._svyRowId)) {
+								scrolledToSelection = true;
+							}
+							
 							for (var idx = 0;  idx < $scope.foundset.selectedRowIndexes.length; idx++) {
 								var rowIdx = $scope.foundset.selectedRowIndexes[idx];
-								if (isInViewPort(rowIdx)) $scope.gridApi.selection.selectRow(rows[rowIdx]);
+								if (isInViewPort(rowIdx)) {
+									$scope.gridApi.selection.selectRow(rows[rowIdx]);
+									if(!scrolledToSelection) {
+										scrolledToSelection = true;
+										$timeout(function() { $scope.gridApi.cellNav.scrollTo(rows[rowIdx]); }, 0);
+									}
+								} else if(!scrolledToSelection) {
+									var nrRecordsToLoad = 0;
+									if(rowIdx < $scope.foundset.viewPort.startIndex) {
+										nrRecordsToLoad = rowIdx - $scope.foundset.viewPort.startIndex;
+									} else {
+										nrRecordsToLoad = rowIdx - $scope.foundset.viewPort.size + 1;
+									}
+									$scope.foundset.loadExtraRecordsAsync(nrRecordsToLoad);
+									break;
+								}
 							}
 						} else if (rows.length > 0) {
 							$scope.gridApi.selection.selectRow(rows[0]);
+							$scope.gridApi.cellNav.scrollTo($scope, rows[0], null);
 						}
 						updatingGridSelection = false;
 					}
 				});
 				// it is important that at the end of this function, the two arrays are in sync; otherwise, watch loops may happen
 			};
-			$scope.$watchCollection('foundset.selectedRowIndexes', updateGridSelectionFromFoundset);
+			$scope.$watchCollection('foundset.selectedRowIndexes', function() { updateGridSelectionFromFoundset(true) });
 			
 			$scope.gridOptions = {
 					data: 'foundset.viewPort.rows',
@@ -617,7 +643,7 @@ angular.module('servoydefaultPortal',['sabloApp','servoy','ui.grid','ui.grid.sel
 			$scope.gridOptions.onRegisterApi = function( gridApi ) {
 				$scope.gridApi = gridApi;
 				$scope.gridApi.grid.registerDataChangeCallback(function() {
-					updateGridSelectionFromFoundset();
+					updateGridSelectionFromFoundset(true);
 				},[uiGridConstants.dataChange.ROW]);
 				gridApi.selection.on.rowSelectionChanged($scope,function(row){
 					updateFoundsetSelectionFromGrid(gridApi.selection.getSelectedRows())
@@ -673,7 +699,8 @@ angular.module('servoydefaultPortal',['sabloApp','servoy','ui.grid','ui.grid.sel
 						}
 					}	
 				}
-				$timeout(function(){
+				
+				function layoutColumnsAndGrid() {
 					$scope.gridApi.grid.gridWidth = gridUtil.elementWidth($element);
 					$scope.gridApi.grid.gridHeight = gridUtil.elementHeight($element);
 					if (!$scope.model.multiLine && (($scope.model.scrollbars & $scrollbarConstants.HORIZONTAL_SCROLLBAR_NEVER) == $scrollbarConstants.HORIZONTAL_SCROLLBAR_NEVER))
@@ -706,6 +733,37 @@ angular.module('servoydefaultPortal',['sabloApp','servoy','ui.grid','ui.grid.sel
 						}
 					}
 					$scope.gridApi.grid.refreshCanvas(true);
+				}
+				
+				$timeout(function(){
+					layoutColumnsAndGrid();
+					
+					// watch for resize and re-layout when needed - but at most once every 200 ms
+					function justToIsolateScope() {
+						var minRelayoutPeriodPassed = true;
+						var pendingLayout = false;
+						$scope.$watchCollection(function() { return [ gridUtil.elementWidth($element), gridUtil.elementHeight($element) ] }, function(oldV, newV) {
+							if (oldV != newV) {
+								// the portal resized (browser window resize or split pane resize for example)
+								if (pendingLayout) return; // will layout later anyway
+								if (minRelayoutPeriodPassed) {
+									layoutColumnsAndGrid();
+									
+									minRelayoutPeriodPassed = false;
+									function wait200ms() {
+										if (pendingLayout) {
+											pendingLayout = false;
+											layoutColumnsAndGrid();
+											$timeout(wait200ms, 200);
+										} else minRelayoutPeriodPassed = true;
+									}
+									$timeout(wait200ms, 200);
+								} else pendingLayout = true;
+							}
+						})
+					}
+					justToIsolateScope();
+					
 					testNumberOfRows();
 					// reset what ui-grid did if somehow the row height was smaller then the elements height because it didn't layout yet
 					$element.children(".svyPortalGridStyle").height('');
@@ -743,7 +801,7 @@ angular.module('servoydefaultPortal',['sabloApp','servoy','ui.grid','ui.grid.sel
 						}
 
 						// allow nggrid to update it's model / selected items and make sure selection didn't fall/remain on a wrong item because of that update...
-						updateGridSelectionFromFoundset();
+						updateGridSelectionFromFoundset(true);
 						$scope.gridApi.infiniteScroll.dataLoaded();
 					});
 				},0)
@@ -761,7 +819,7 @@ angular.module('servoydefaultPortal',['sabloApp','servoy','ui.grid','ui.grid.sel
 			}
 			// each handler at column level gets it's rowId from the cell's wrapper handler below (to
 			// make sure that the foundset's selection is correct server-side when cell handler triggers)
-			$scope.exScope.cellHandlerWrapper = function(ngGridRow, elementIndex) {
+			$scope.cellHandlerWrapper = function(ngGridRow, elementIndex) {
 				var rowId = ngGridRow.entity[$foundsetTypeConstants.ROW_ID_COL_KEY];
 				if(rowIdToViewportRelativeRowIndex(rowId) < 0) {
 					return {}

@@ -5889,7 +5889,7 @@ public abstract class FoundSet implements IFoundSetInternal, IRowListener, Scrip
 
 	/*
 	 * (non-Javadoc)
-	 * 
+	 *
 	 * @see java.lang.Object#toString()
 	 */
 	@Override
@@ -5954,7 +5954,8 @@ public abstract class FoundSet implements IFoundSetInternal, IRowListener, Scrip
 		String[] parts = fullRelationName.split("\\."); //$NON-NLS-1$
 		for (int i = 0; i < parts.length; i++)
 		{
-			if (currentRecord instanceof FindState)
+			// if this is a findstate and that is not the source record then leave the relation lookup to the findstate itself.
+			if (currentRecord instanceof FindState && i != 0)
 			{
 				String leftPart = parts[i];
 				for (int k = i + 1; k < parts.length; k++)

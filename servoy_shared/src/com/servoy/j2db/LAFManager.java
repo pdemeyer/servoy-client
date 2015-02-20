@@ -36,7 +36,7 @@ import com.servoy.j2db.util.Utils;
 
 /**
  * Manages lafs for the application.
- * 
+ *
  * @author jblok
  */
 public class LAFManager extends JarManager implements ILAFManager

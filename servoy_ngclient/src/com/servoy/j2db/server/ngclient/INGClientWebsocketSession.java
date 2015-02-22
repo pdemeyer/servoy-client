@@ -32,17 +32,4 @@ public interface INGClientWebsocketSession extends IWebsocketSession, IChangeLis
 
 	void solutionLoaded(Solution flattenedSolution);
 
-//	/**
-//	 * @param form
-//	 * @param name
-//	 */
-//	void updateForm(Form form, String name);
-
-//
-//	/**
-//	 * @param formName
-//	 */
-//	void formCreated(String formName);
-//
-//	void closeSession(String redirectUrl);
 }

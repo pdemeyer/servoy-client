@@ -21,8 +21,6 @@ import java.io.IOException;
 import java.io.StringWriter;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 
 import org.sablo.Container;
 import org.sablo.WebComponent;
@@ -35,9 +33,9 @@ import org.sablo.websocket.IWebsocketEndpoint;
 import com.servoy.j2db.FlattenedSolution;
 import com.servoy.j2db.persistence.Form;
 import com.servoy.j2db.persistence.Solution;
+import com.servoy.j2db.server.ngclient.endpoint.INGClientWebsocketEndpoint;
 import com.servoy.j2db.server.ngclient.template.FormTemplateGenerator;
 import com.servoy.j2db.util.Debug;
-import com.servoy.j2db.util.Pair;
 
 /**
  * Sablo window for NGClient
@@ -49,8 +47,6 @@ public class NGClientWindow extends BaseWindow implements INGClientWindow
 {
 
 	private final INGClientWebsocketSession websocketSession;
-
-	private final ConcurrentMap<String, Pair<String, Boolean>> formsInWindow = new ConcurrentHashMap<String, Pair<String, Boolean>>();
 
 	/**
 	 * @param websocketSession
@@ -71,6 +67,17 @@ public class NGClientWindow extends BaseWindow implements INGClientWindow
 	public INGClientWebsocketSession getSession()
 	{
 		return (INGClientWebsocketSession)super.getSession();
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see org.sablo.websocket.BaseWindow#getEndpoint()
+	 */
+	@Override
+	public INGClientWebsocketEndpoint getEndpoint()
+	{
+		return (INGClientWebsocketEndpoint)super.getEndpoint();
 	}
 
 	public INGApplication getClient()
@@ -107,20 +114,20 @@ public class NGClientWindow extends BaseWindow implements INGClientWindow
 		if (form == null) return;
 		String formName = realInstanceName == null ? form.getName() : realInstanceName;
 		String formUrl = "solutions/" + form.getSolution().getName() + "/forms/" + formName + ".html";
-		if (formsInWindow.putIfAbsent(formName, new Pair<String, Boolean>(formUrl, Boolean.FALSE)) == null)
+		if (getEndpoint().addFormIfAbsent(formName, formUrl))
 		{
 			// form is not yet on the client, send over the controller
 			updateController(form, formName, formUrl, !async);
 		}
 		else
 		{
-			formUrl = formsInWindow.get(formName).getLeft();
+			formUrl = getEndpoint().getFormUrl(formName);
 		}
 
 		// if sync wait until we got response from client as it is loaded
 		if (!async)
 		{
-			if (!formsInWindow.get(formName).getRight().booleanValue())
+			if (!getEndpoint().isFormCreated(formName))
 			{
 				// really send the changes
 				try
@@ -192,15 +199,14 @@ public class NGClientWindow extends BaseWindow implements INGClientWindow
 		updateController(form, name, formUrl, false);
 	}
 
-
 	public void formCreated(String formName)
 	{
-		if (formsInWindow.containsKey(formName))
+		String formUrl = getEndpoint().getFormUrl(formName);
+		if (formUrl != null)
 		{
-			String formUrl = formsInWindow.get(formName).getLeft();
 			synchronized (formUrl)
 			{
-				formsInWindow.get(formName).setRight(Boolean.TRUE);
+				getEndpoint().markFormCreated(formName);
 				getSession().getEventDispatcher().resume(formUrl);
 			}
 		}

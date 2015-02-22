@@ -19,6 +19,8 @@ package com.servoy.j2db.server.ngclient.endpoint;
 
 
 import java.io.IOException;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 import javax.websocket.OnClose;
 import javax.websocket.OnError;
@@ -31,6 +33,7 @@ import javax.websocket.server.ServerEndpoint;
 import org.sablo.websocket.WebsocketEndpoint;
 
 import com.servoy.j2db.server.ngclient.WebsocketSessionFactory;
+import com.servoy.j2db.util.Pair;
 
 /**
  * WebsocketEndpoint for NGClient.
@@ -40,8 +43,11 @@ import com.servoy.j2db.server.ngclient.WebsocketSessionFactory;
  */
 
 @ServerEndpoint(value = "/websocket/{sessionid}/{windowname}/{windowid}")
-public class NGClientEndpoint extends WebsocketEndpoint
+public class NGClientEndpoint extends WebsocketEndpoint implements INGClientWebsocketEndpoint
 {
+
+	private final ConcurrentMap<String, Pair<String, Boolean>> formsOnClient = new ConcurrentHashMap<String, Pair<String, Boolean>>();
+
 	public NGClientEndpoint()
 	{
 		super(WebsocketSessionFactory.CLIENT_ENDPOINT);
@@ -82,6 +88,53 @@ public class NGClientEndpoint extends WebsocketEndpoint
 		{
 			log.error("IOException happened", t);
 		}
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see com.servoy.j2db.server.ngclient.endpoint.INGClientWebsocketEndpoint#addFormIfAbsent(java.lang.String, java.lang.String)
+	 */
+	@Override
+	public boolean addFormIfAbsent(String formName, String formUrl)
+	{
+		return formsOnClient.putIfAbsent(formName, new Pair<String, Boolean>(formUrl, Boolean.FALSE)) == null;
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see com.servoy.j2db.server.ngclient.endpoint.INGClientWebsocketEndpoint#getFormUrl(java.lang.String)
+	 */
+	@Override
+	public String getFormUrl(String formName)
+	{
+		return formsOnClient.containsKey(formName) ? formsOnClient.get(formName).getLeft() : null;
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see com.servoy.j2db.server.ngclient.endpoint.INGClientWebsocketEndpoint#markFormCreated(java.lang.String)
+	 */
+	@Override
+	public void markFormCreated(String formName)
+	{
+		if (formsOnClient.containsKey(formName))
+		{
+			formsOnClient.get(formName).setRight(Boolean.TRUE);
+		}
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see com.servoy.j2db.server.ngclient.endpoint.INGClientWebsocketEndpoint#isFormCreated(java.lang.String)
+	 */
+	@Override
+	public boolean isFormCreated(String formName)
+	{
+		return formsOnClient.containsKey(formName) && formsOnClient.get(formName).getRight().booleanValue();
 	}
 
 }

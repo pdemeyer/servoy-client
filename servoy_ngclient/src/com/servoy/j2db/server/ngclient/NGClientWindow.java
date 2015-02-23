@@ -158,16 +158,16 @@ public class NGClientWindow extends BaseWindow implements INGClientWindow
 			boolean copy = false;
 			if (sc != null && sc.getChild(form.getUUID()) != null)
 			{
-				realUrl = realUrl + "?lm:" + form.getLastModified() + "&sessionId=" + getUuid();
+				realUrl = realUrl + "?lm:" + form.getLastModified() + "&sessionId=" + getSession().getUuid();
 				copy = true;
 			}
 			else if (!form.getName().endsWith(realFormName))
 			{
-				realUrl = realUrl + "?lm:" + form.getLastModified() + "&sessionId=" + getUuid();
+				realUrl = realUrl + "?lm:" + form.getLastModified() + "&sessionId=" + getSession().getUuid();
 			}
 			else
 			{
-				realUrl = realUrl + "?sessionId=" + getUuid();
+				realUrl = realUrl + "?sessionId=" + getSession().getUuid();
 			}
 			StringWriter sw = new StringWriter(512);
 			if (copy || !Boolean.valueOf(System.getProperty("servoy.generateformscripts", "false")).booleanValue())

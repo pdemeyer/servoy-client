@@ -87,7 +87,7 @@ public class DesignNGClientWindow extends NGClientWindow
 				IWebFormController controller = getClient().getFormManager().getForm(realFormName);
 				currentWindow.setController(controller);
 			}
-			String realUrl = formUrl + "?lm:" + System.currentTimeMillis() + "&sessionId=" + getUuid();
+			String realUrl = formUrl + "?lm:" + System.currentTimeMillis() + "&sessionId=" + getSession().getUuid();
 			StringWriter sw = new StringWriter(512);
 			// for al js code design flag should be true.
 			new FormTemplateGenerator(new ServoyDataConverterContext(getClient()), true, true).generate(form, realFormName, "form_recordview_js.ftl", sw);

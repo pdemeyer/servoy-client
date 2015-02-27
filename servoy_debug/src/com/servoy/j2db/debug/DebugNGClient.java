@@ -40,7 +40,6 @@ import com.servoy.j2db.scripting.PluginScope;
 import com.servoy.j2db.server.ngclient.FormElementHelper;
 import com.servoy.j2db.server.ngclient.INGClientWebsocketSession;
 import com.servoy.j2db.server.ngclient.NGClient;
-import com.servoy.j2db.server.ngclient.NGClientWindow;
 import com.servoy.j2db.server.ngclient.NGRuntimeWindowManager;
 import com.servoy.j2db.server.ngclient.component.WebFormController;
 import com.servoy.j2db.server.ngclient.eventthread.NGClientWebsocketSessionWindows;
@@ -138,7 +137,7 @@ public class DebugNGClient extends NGClient implements IDebugClient
 	{
 		this.current = current;
 		closeSolution(true, null);
-		NGClientWindow.getCurrentWindow().closeSession("/solutions/" + current.getName() + "/index.html");
+		getWebsocketSession().closeSession("/solutions/" + current.getName() + "/index.html");
 	}
 
 	/*
@@ -155,7 +154,7 @@ public class DebugNGClient extends NGClient implements IDebugClient
 		}
 		else if (getWebsocketSession() != null)
 		{
-			NGClientWindow.getCurrentWindow().closeSession(current != null ? "/solutions/" + current.getName() + "/index.html" : null);
+			getWebsocketSession().closeSession(current != null ? "/solutions/" + current.getName() + "/index.html" : null);
 		}
 	}
 

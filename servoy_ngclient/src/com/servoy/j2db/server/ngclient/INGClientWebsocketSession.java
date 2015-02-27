@@ -32,4 +32,5 @@ public interface INGClientWebsocketSession extends IWebsocketSession, IChangeLis
 
 	void solutionLoaded(Solution flattenedSolution);
 
+	void closeSession(String redirectUrl);
 }

@@ -55,15 +55,6 @@ public class NGClientWebsocketSessionWindows extends WebsocketSessionWindows imp
 		// ignore
 	}
 
-	@Override
-	public void closeSession(String redirectUrl)
-	{
-		for (IWindow window : getSession().getWindows())
-		{
-			((INGClientWindow)window).closeSession(redirectUrl);
-		}
-	}
-
 	/*
 	 * (non-Javadoc)
 	 * 

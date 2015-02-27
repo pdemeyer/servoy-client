@@ -40,8 +40,6 @@ public interface INGClientWindow extends IWindow
 	 */
 	void formCreated(String formName);
 
-	void closeSession(String redirectUrl);
-
 	void destroyForm(String name);
 
 	/**

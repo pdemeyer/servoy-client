@@ -224,17 +224,4 @@ public class NGClientWindow extends BaseWindow implements INGClientWindow
 		}
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see com.servoy.j2db.server.ngclient.INGClientWindow#closeSession(java.lang.String)
-	 */
-	@Override
-	public void closeSession(String redirectUrl)
-	{
-		// RAGTEST base? Auto-generated method stub
-
-	}
-
-
 }

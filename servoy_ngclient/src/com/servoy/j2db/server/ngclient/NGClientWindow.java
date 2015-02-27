@@ -199,6 +199,18 @@ public class NGClientWindow extends BaseWindow implements INGClientWindow
 		updateController(form, name, formUrl, false);
 	}
 
+	public void destroyForm(String name)
+	{
+		try
+		{
+			websocketSession.getClientService(NGRuntimeWindowManager.WINDOW_SERVICE).executeServiceCall("destroyController", new Object[] { name });
+		}
+		catch (IOException e)
+		{
+			Debug.error(e);
+		}
+	}
+
 	public void formCreated(String formName)
 	{
 		String formUrl = getEndpoint().getFormUrl(formName);

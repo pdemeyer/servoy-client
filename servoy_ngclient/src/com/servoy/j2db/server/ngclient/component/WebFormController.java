@@ -18,10 +18,17 @@
 package com.servoy.j2db.server.ngclient.component;
 
 import java.lang.ref.WeakReference;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
 
 import org.mozilla.javascript.Function;
 import org.sablo.WebComponent;
+import org.sablo.specification.PropertyDescription;
+import org.sablo.specification.WebComponentSpecification;
 
 import com.servoy.base.persistence.constants.IFormConstants;
 import com.servoy.j2db.BasicFormController;
@@ -32,8 +39,10 @@ import com.servoy.j2db.IView;
 import com.servoy.j2db.dataprocessing.IRecordInternal;
 import com.servoy.j2db.dataprocessing.PrototypeState;
 import com.servoy.j2db.persistence.Form;
+import com.servoy.j2db.persistence.IFormElement;
 import com.servoy.j2db.scripting.JSApplication.FormAndComponent;
 import com.servoy.j2db.scripting.JSEvent;
+import com.servoy.j2db.server.ngclient.FormElement;
 import com.servoy.j2db.server.ngclient.IDataAdapterList;
 import com.servoy.j2db.server.ngclient.INGApplication;
 import com.servoy.j2db.server.ngclient.IWebFormController;
@@ -43,6 +52,8 @@ import com.servoy.j2db.server.ngclient.NGRuntimeWindow;
 import com.servoy.j2db.server.ngclient.WebFormComponent;
 import com.servoy.j2db.server.ngclient.WebFormUI;
 import com.servoy.j2db.server.ngclient.WebListFormUI;
+import com.servoy.j2db.server.ngclient.property.types.NGTabSeqPropertyType;
+import com.servoy.j2db.util.Debug;
 
 /**
  * @author lvostinar
@@ -53,6 +64,7 @@ public class WebFormController extends BasicFormController implements IWebFormCo
 	private int view;
 	private WebFormUI formUI;
 	private boolean rendering;
+	private String[] tabSequence;
 
 	public WebFormController(INGApplication application, Form form, String name)
 	{
@@ -169,7 +181,7 @@ public class WebFormController extends BasicFormController implements IWebFormCo
 
 	/*
 	 * (non-Javadoc)
-	 *
+	 * 
 	 * @see com.servoy.j2db.BasicFormController#stopUIEditing(boolean)
 	 */
 	@Override
@@ -244,6 +256,20 @@ public class WebFormController extends BasicFormController implements IWebFormCo
 	@Override
 	public void touch()
 	{
+	}
+
+	@Override
+	public void destroy()
+	{
+		if (getBasicFormManager() != null) getBasicFormManager().removeFormController(this);
+		unload();
+		if (formUI != null)
+		{
+			formUI.destroy();
+			formUI = null;
+		}
+		super.destroy();
+		NGClientWindow.getCurrentWindow().destroyForm(getName());
 	}
 
 	@Override
@@ -335,15 +361,87 @@ public class WebFormController extends BasicFormController implements IWebFormCo
 	@Override
 	public void setTabSequence(Object[] arrayOfElements)
 	{
-		// TODO Auto-generated method stub
+		if (arrayOfElements == null)
+		{
+			return;
+		}
 
+		Object[] elements = arrayOfElements;
+		if (elements.length == 1)
+		{
+			if (elements[0] instanceof Object[])
+			{
+				elements = (Object[])elements[0];
+			}
+			else if (elements[0] == null)
+			{
+				elements = null;
+				return;
+			}
+		}
+		tabSequence = new String[elements.length];
+		for (int i = 0; i < elements.length; i++)
+		{
+			if (elements[i] instanceof RuntimeWebComponent)
+			{
+				WebFormComponent component = ((RuntimeWebComponent)elements[i]).getComponent();
+				WebComponentSpecification spec = component.getSpecification();
+				Collection<PropertyDescription> properties = spec.getProperties(NGTabSeqPropertyType.NG_INSTANCE);
+				if (properties.size() == 1)
+				{
+					PropertyDescription pd = properties.iterator().next();
+					Integer val = Integer.valueOf(i + 1);
+					if (!val.equals(component.getProperty(pd.getName()))) component.setProperty(pd.getName(), val);
+				}
+				tabSequence[i] = component.getName();
+			}
+			else
+			{
+				Debug.error("Could not set the tab sequence property for element " + elements[i]);
+			}
+		}
 	}
 
 	@Override
 	public String[] getTabSequence()
 	{
-		// TODO Auto-generated method stub
-		return null;
+		if (tabSequence == null)
+		{
+			Map<Integer, String> map = new TreeMap<Integer, String>();
+			boolean defaultTabSequence = true;
+			for (WebComponent component : formUI.getComponents())
+			{
+				WebComponentSpecification spec = component.getSpecification();
+				Collection<PropertyDescription> properties = spec.getProperties(NGTabSeqPropertyType.NG_INSTANCE);
+				if (properties.size() == 1)
+				{
+					PropertyDescription pd = properties.iterator().next();
+					Integer value = (Integer)component.getProperty(pd.getName());
+					defaultTabSequence = defaultTabSequence && value.intValue() == 0;
+					if (!component.getName().startsWith(FormElement.SVY_NAME_PREFIX) && value.intValue() > 0)
+					{
+						map.put(value, component.getName());
+					}
+				}
+			}
+			if (defaultTabSequence)
+			{
+				ArrayList<String> sequence = new ArrayList<String>();
+				Iterator<IFormElement> it = form.getFormElementsSortedByFormIndex();
+				while (it.hasNext())
+				{
+					IFormElement element = it.next();
+					if (element.getName() != null) sequence.add(element.getName());
+				}
+				tabSequence = sequence.toArray(new String[sequence.size()]);
+			}
+			else
+			{
+				tabSequence = map.values().toArray(new String[map.size()]);
+			}
+
+		}
+		return tabSequence;
 	}
 
 	@Override

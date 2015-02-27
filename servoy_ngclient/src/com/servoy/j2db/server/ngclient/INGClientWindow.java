@@ -42,6 +42,8 @@ public interface INGClientWindow extends IWindow
 
 	void closeSession(String redirectUrl);
 
+	void destroyForm(String name);
+
 	/**
 	 * 
 	 * @param flattenedForm

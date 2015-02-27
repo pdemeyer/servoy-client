@@ -64,6 +64,20 @@ public class NGClientWebsocketSessionWindows extends WebsocketSessionWindows imp
 		}
 	}
 
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see com.servoy.j2db.server.ngclient.INGClientWindow#destroyForm(java.lang.String)
+	 */
+	@Override
+	public void destroyForm(String name)
+	{
+		for (IWindow window : getSession().getWindows())
+		{
+			((INGClientWindow)window).destroyForm(name);
+		}
+	}
+
 	@Override
 	public void touchForm(Form flattenedForm, String realInstanceName, boolean async)
 	{

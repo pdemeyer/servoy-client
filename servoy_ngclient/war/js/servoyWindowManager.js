@@ -340,11 +340,14 @@ angular.module('servoyWindowManager',['sabloApp'])	// TODO Refactor so that wind
 			$window.location.reload(true);
 		},
 		updateController: function(formName,controllerCode, realFormUrl, forceLoad) {
-			$sabloApplication.clearformState(formName)
+			$sabloApplication.clearFormState(formName)
 			eval(controllerCode);
 			formTemplateUrls[formName] = realFormUrl;
 			if(forceLoad) $rootScope.updatingFormUrl = realFormUrl;
 			if (!$rootScope.$$phase) $rootScope.$digest();
+		},	
+		destroyController : function(formName){
+			$sabloApplication.clearFormState(formName);
 		},
 		getFormUrl: function(formName) {
 			var realFormUrl = formTemplateUrls[formName];

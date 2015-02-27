@@ -45,12 +45,10 @@ import com.servoy.base.util.ITagResolver;
 import com.servoy.j2db.cmd.ICmdManagerInternal;
 import com.servoy.j2db.component.ComponentFactory;
 import com.servoy.j2db.dataprocessing.DataAdapterList;
-import com.servoy.j2db.dataprocessing.FoundSetManager;
 import com.servoy.j2db.dataprocessing.IDisplay;
 import com.servoy.j2db.dataprocessing.IFoundSet;
 import com.servoy.j2db.dataprocessing.IRecordInternal;
 import com.servoy.j2db.dataprocessing.ISaveConstants;
-import com.servoy.j2db.dataprocessing.ISwingFoundSet;
 import com.servoy.j2db.dataprocessing.PrototypeState;
 import com.servoy.j2db.dataprocessing.TagResolver;
 import com.servoy.j2db.persistence.FlattenedForm;
@@ -62,7 +60,6 @@ import com.servoy.j2db.persistence.Part;
 import com.servoy.j2db.persistence.ScriptMethod;
 import com.servoy.j2db.persistence.ScriptVariable;
 import com.servoy.j2db.persistence.StaticContentSpecLoader;
-import com.servoy.j2db.scripting.CreationalPrototype;
 import com.servoy.j2db.scripting.ElementScope;
 import com.servoy.j2db.scripting.IScriptSupport;
 import com.servoy.j2db.scripting.IScriptable;
@@ -70,7 +67,6 @@ import com.servoy.j2db.scripting.IScriptableProvider;
 import com.servoy.j2db.scripting.JSApplication.FormAndComponent;
 import com.servoy.j2db.scripting.JSEvent;
 import com.servoy.j2db.scripting.ScriptObjectRegistry;
-import com.servoy.j2db.scripting.SolutionScope;
 import com.servoy.j2db.ui.IComponent;
 import com.servoy.j2db.ui.IDataRenderer;
 import com.servoy.j2db.ui.ISupportRowStyling;
@@ -148,7 +144,7 @@ public class FormController extends BasicFormController
 
 		/*
 		 * (non-Javadoc)
-		 * 
+		 *
 		 * @see java.lang.Object#toString()
 		 */
 		@Override
@@ -205,7 +201,7 @@ public class FormController extends BasicFormController
 
 	/*
 	 * (non-Javadoc)
-	 * 
+	 *
 	 * @see com.servoy.j2db.BasicFormController#getBasicFormManager()
 	 */
 	@Override
@@ -556,28 +552,12 @@ public class FormController extends BasicFormController
 			{
 				setDesignMode(null);
 			}
-			if (form.getOnUnLoadMethodID() > 0)
-			{
-				executeFormMethod(StaticContentSpecLoader.PROPERTY_ONUNLOADMETHODID, new Object[] { getJSEvent(formScope) }, Boolean.TRUE, true, true);
-			}
 			containerImpl.destroy();
 
-			application.getFoundSetManager().getEditRecordList().removePrepareForSave(this);
-			((FoundSetManager)application.getFoundSetManager()).removeFoundSetListener(this);
-
-			if (fm != null) fm.removeFormPanel(this);
+			if (fm != null) fm.removeFormController(this);
 			fm = null;
 
-			if (formModel != null)
-			{
-				((ISwingFoundSet)formModel).getSelectionModel().removeListSelectionListener(this);
-				((ISwingFoundSet)formModel).getSelectionModel().removeFormController(this);
-				//			formModel.removeEditListener(this);
-				((ISwingFoundSet)formModel).removeTableModelListener(this);
-				formModel.flushAllCachedItems();//to make sure all data is gc'ed
-			}
-			setFormModelInternal(null);
-			lastState = null;
+			unload();
 
 			if (view != null) //it may not yet exist
 			{
@@ -593,9 +573,6 @@ public class FormController extends BasicFormController
 			}
 
 			deleteRenderers();
-
-			SolutionScope solScope = application.getScriptEngine().getSolutionScope();
-			((CreationalPrototype)solScope.get("forms", solScope)).removeFormPanel(this); //$NON-NLS-1$
 
 			hmChildrenJavaMembers = null;
 			if (scriptExecuter != null)
@@ -740,7 +717,7 @@ public class FormController extends BasicFormController
 
 	/*
 	 * (non-Javadoc)
-	 * 
+	 *
 	 * @see javax.swing.JComponent#requestFocus()
 	 */
 	public void requestFocus()

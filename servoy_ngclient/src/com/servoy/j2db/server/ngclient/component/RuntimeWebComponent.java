@@ -269,4 +269,8 @@ public class RuntimeWebComponent implements Scriptable
 		return false;
 	}
 
+	public WebFormComponent getComponent()
+	{
+		return component;
+	}
 }

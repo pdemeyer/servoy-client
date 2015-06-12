@@ -147,9 +147,12 @@ public class ServoyJSONObject extends JSONObject implements Serializable
 						break;
 				}
 			}
-			escape = !escape && (c == '\\');
-			// strip out carriage returns.
-			if (c != '\r') sb.append(c);
+			if (c != '\r')
+			{
+				escape = !escape && (c == '\\');
+				// strip out carriage returns.
+				sb.append(c);
+			}
 		}
 
 		return sb.toString();
@@ -426,15 +429,19 @@ public class ServoyJSONObject extends JSONObject implements Serializable
 		{
 			JSONObject obj = (JSONObject)o;
 			HashMap<String, Object> map = new HashMap<String, Object>();
-			for (String key : JSONObject.getNames(obj))
+			String[] names = JSONObject.getNames(obj);
+			if (names != null)
 			{
-				try
+				for (String key : names)
 				{
-					map.put(key, toSerializable(obj.get(key)));
-				}
-				catch (JSONException e)
-				{
-					Debug.trace(e);
+					try
+					{
+						map.put(key, toSerializable(obj.get(key)));
+					}
+					catch (JSONException e)
+					{
+						Debug.trace(e);
+					}
 				}
 			}
 			return map;

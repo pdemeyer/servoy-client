@@ -2002,6 +2002,7 @@ public class Form extends AbstractContainer
 
 	public long getLastModified()
 	{
+		if (getExtendsForm() != null) return getExtendsForm().getLastModified() + lastModified;
 		return lastModified;
 	}
 

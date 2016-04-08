@@ -691,7 +691,17 @@ public class FlattenedSolution implements IPersistListener, IDataProviderHandler
 				s.getChangeHandler().addIPersistListener(this);
 			}
 		}
-		refreshSuperForms(null);
+		// refresh all the extends forms, TODO this is kind of bad, because form instances are shared over clients.
+		Iterator<Form> it = getForms(false);
+		while (it.hasNext())
+		{
+			Form childForm = it.next();
+			if (childForm.getExtendsID() > 0)
+			{
+				childForm.setExtendsForm(getForm(childForm.getExtendsID()));
+			}
+		}
+		;
 	}
 
 	/**
@@ -2993,14 +3003,22 @@ public class FlattenedSolution implements IPersistListener, IDataProviderHandler
 
 	private void refreshSuperForms(IPersist persist)
 	{
-		Iterator<Form> it = getForms(false);
-		while (it.hasNext())
+		if (persist != null)
 		{
-			Form childForm = it.next();
-			if ((persist != null && childForm.getID() == persist.getID()) ||
-				(childForm.getExtendsID() > 0 && (persist == null || childForm.getExtendsID() == persist.getID())))
+			Iterator<Form> it = getForms(false);
+			while (it.hasNext())
 			{
-				childForm.setExtendsForm(getForm(childForm.getExtendsID()));
+				Form childForm = it.next();
+				if (childForm.getID() == persist.getID() || childForm.getExtendsID() == persist.getID())
+				{
+					// this is an adjustment of a sub form make sure we create a copy first.
+					if (childForm.getID() != persist.getID() && getSolutionCopy().getChild(childForm.getUUID()) == null)
+					{
+						childForm = createPersistCopy(childForm);
+						registerChangedForm(childForm);
+					}
+					childForm.setExtendsForm(getForm(childForm.getExtendsID()));
+				}
 			}
 		}
 	}

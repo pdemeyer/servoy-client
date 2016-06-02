@@ -316,11 +316,11 @@ public class LFAwareSortableHeaderRenderer extends DefaultTableCellRenderer impl
 		return 0;
 	}
 
-	public List<Object> getInstanceMethodArguments(String methodKey)
+	public List<Object> getFlattenedMethodArguments(String methodKey)
 	{
 		if (methodKey != null && gc != null)
 		{
-			return gc.getInstanceMethodArguments(methodKey);
+			return gc.getFlattenedMethodArguments(methodKey);
 		}
 		return null;
 	}

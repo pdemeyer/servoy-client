@@ -38,6 +38,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.jar.Attributes;
 import java.util.jar.JarFile;
 import java.util.jar.Manifest;
 import java.util.zip.ZipEntry;
@@ -87,6 +88,7 @@ public class ResourceProvider implements Filter
 
 	private static String getName(IPackageReader reader)
 	{
+		if (reader.getPackageName() != null) return reader.getPackageName();
 		String name = reader.getName();
 		int index = name.lastIndexOf('/');
 		if (index == -1) index = name.lastIndexOf('\\');
@@ -486,6 +488,19 @@ public class ResourceProvider implements Filter
 
 			// fall back to symbolic name
 			return getPackageName();
+		}
+
+		@Override
+		public String getVersion()
+		{
+			try
+			{
+				return getManifest().getMainAttributes().getValue(Attributes.Name.IMPLEMENTATION_VERSION);
+			}
+			catch (IOException e)
+			{
+			}
+			return null;
 		}
 
 		@Override

@@ -145,8 +145,7 @@ public class FormLayoutGenerator
 				while (formReferences.hasNext())
 				{
 					FormReference formReference = formReferences.next();
-
-					generateFormReference(writer, form, context, design, cachedElementsMap, formReference);
+					generateFormReference(formReference, writer, form, context, design, cachedElementsMap);
 				}
 				if (!design) generateEndDiv(writer);
 			}
@@ -155,16 +154,8 @@ public class FormLayoutGenerator
 		generateFormEndTag(writer, design);
 	}
 
-	/**
-	 * @param writer
-	 * @param form
-	 * @param context
-	 * @param design
-	 * @param cachedElementsMap
-	 * @param formReference
-	 */
-	private static void generateFormReference(PrintWriter writer, Form form, IServoyDataConverterContext context, boolean design,
-		Map<IPersist, FormElement> cachedElementsMap, FormReference formReference)
+	public static void generateFormReference(FormReference formReference, PrintWriter writer, Form form, IServoyDataConverterContext context, boolean design,
+		Map<IPersist, FormElement> cachedElementsMap)
 	{
 		if (PartWrapper.isSecurityVisible(formReference, context))
 		{
@@ -178,37 +169,31 @@ public class FormLayoutGenerator
 				fe = FormElementHelper.INSTANCE.getFormElement(formReference, context.getSolution(), null, design);
 			}
 			generateFormElementWrapper(writer, fe, design, form, form.isResponsiveLayout());
-			Iterator<IPersist> allObjectsIterator = formReference.getAllObjects();
-			while (allObjectsIterator.hasNext())
+			for (IPersist persist : formReference.getAllObjectsAsList())
 			{
-				IPersist next = allObjectsIterator.next();
-				if (next instanceof IFormElement)
+				if (persist instanceof FormReference)
 				{
-					IFormElement element = (IFormElement)next;
+					generateFormReference((FormReference)persist, writer, form, context, design, cachedElementsMap);
+				}
+				else if (persist instanceof IFormElement)
+				{
+					IFormElement element = (IFormElement)persist;
 					if (PartWrapper.isSecurityVisible(element, context))
 					{
-						if (next instanceof FormReference)
+						fe = null;
+						if (cachedElementsMap.containsKey(element))
 						{
-							generateFormReference(writer, form, context, design, cachedElementsMap, (FormReference)next);
+							fe = cachedElementsMap.get(element);
 						}
-						else
+						if (fe == null)
 						{
-							fe = null;
-							if (cachedElementsMap.containsKey(element))
-							{
-								fe = cachedElementsMap.get(element);
-							}
-							if (fe == null)
-							{
-								fe = FormElementHelper.INSTANCE.getFormElement(element, context.getSolution(), null, design);
-							}
-							generateFormElementWrapper(writer, fe, design, form, form.isResponsiveLayout());
-							generateFormElement(writer, fe, form, design);
-							generateEndDiv(writer);
+							fe = FormElementHelper.INSTANCE.getFormElement(element, context.getSolution(), null, design);
 						}
+						generateFormElementWrapper(writer, fe, design, form, form.isResponsiveLayout());
+						generateFormElement(writer, fe, form, design);
+						generateEndDiv(writer);
 					}
 				}
-
 			}
 			generateEndDiv(writer);
 		}
@@ -320,6 +305,7 @@ public class FormLayoutGenerator
 			ngClass.put("highlight_element", "<design_highlight=='highlight_element'<".toString());//added <> tokens so that we can remove quotes around the values so that angular will evaluate at runtime
 			if (fe.getPersistIfAvailable() instanceof FormReference) ngClass.put("form_reference", "true");
 			writer.print(" ng-class='" + ngClass.toString().replaceAll("\"<", "").replaceAll("<\"", "").replaceAll("'", "\"") + "'");
+			writer.print(" class=\"svy-wrapper\" ");
 		}
 		else
 		{

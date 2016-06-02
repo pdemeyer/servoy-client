@@ -216,7 +216,7 @@ public class ColumnSortListener extends MouseAdapter
 									fc.executeFunction(
 										String.valueOf(labelForOnActionMethodId),
 										Utils.arrayMerge((new Object[] { getJavaScriptEvent(e, JSEvent.EventType.action, renderer.getName()) }),
-											Utils.parseJSExpressions(renderer.getInstanceMethodArguments("onActionMethodID"))), true, null, false, "onActionMethodID"); //$NON-NLS-1$//$NON-NLS-2$
+											Utils.parseJSExpressions(renderer.getFlattenedMethodArguments("onActionMethodID"))), true, null, false, "onActionMethodID"); //$NON-NLS-1$//$NON-NLS-2$
 								}
 								else if (fc != null && fc.getForm().getOnSortCmdMethodID() > 0)
 								{
@@ -225,7 +225,7 @@ public class ColumnSortListener extends MouseAdapter
 										String.valueOf(fc.getForm().getOnSortCmdMethodID()),
 										Utils.arrayMerge(
 											(new Object[] { dataProviderID, Boolean.valueOf(lastSortAsc), getJavaScriptEvent(e, JSEvent.EventType.none, null) }),
-											Utils.parseJSExpressions(fc.getForm().getInstanceMethodArguments("onSortCmdMethodID"))), true, null, false, "onSortCmdMethodID"); //$NON-NLS-1$//$NON-NLS-2$
+											Utils.parseJSExpressions(fc.getForm().getFlattenedMethodArguments("onSortCmdMethodID"))), true, null, false, "onSortCmdMethodID"); //$NON-NLS-1$//$NON-NLS-2$
 								}
 								else if (dataProviderID != null && fc.getForm().getOnSortCmdMethodID() != -1)
 								{

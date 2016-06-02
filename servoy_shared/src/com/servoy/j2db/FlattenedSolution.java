@@ -30,6 +30,8 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
+import org.json.JSONObject;
+
 import com.servoy.base.persistence.constants.IValueListConstants;
 import com.servoy.base.query.IBaseSQLCondition;
 import com.servoy.base.util.DataSourceUtilsBase;
@@ -263,6 +265,20 @@ public class FlattenedSolution implements IItemChangeListener<IPersist>, IDataPr
 							{
 								Element element = StaticContentSpecLoader.getContentSpec().getPropertyForObjectTypeByName(o.getTypeID(), entry.getKey());
 								if (element.getTypeID() == IRepository.ELEMENTS) ((AbstractBase)o).setProperty(entry.getKey(), elementId);
+							}
+							else if (entry.getValue() instanceof JSONObject)
+							{
+								JSONObject json = (JSONObject)entry.getValue();
+								Iterator<String> it = json.keys();
+								while (it.hasNext())
+								{
+									String key = it.next();
+									elementId = updatedElementIds.get(json.get(key));
+									if (elementId != null)
+									{
+										json.put(key, elementId);
+									}
+								}
 							}
 
 						}
@@ -3014,7 +3030,7 @@ public class FlattenedSolution implements IItemChangeListener<IPersist>, IDataPr
 		}
 	}
 
-	private void refreshSuperForms(IPersist persist)
+	private void refreshSuperForms(final IPersist persist)
 	{
 		if (persist != null)
 		{
@@ -3031,6 +3047,26 @@ public class FlattenedSolution implements IItemChangeListener<IPersist>, IDataPr
 						registerChangedForm(childForm);
 					}
 					childForm.setExtendsForm(getForm(childForm.getExtendsID()));
+				}
+				else if (persist instanceof Form && Utils.getAsBoolean(((Form)persist).getReferenceForm()))
+				{
+					IPersist formReference = (IPersist)childForm.acceptVisitor(new IPersistVisitor()
+					{
+						@Override
+						public Object visit(IPersist o)
+						{
+							if (o instanceof FormReference && ((FormReference)o).getContainsFormID() == persist.getID())
+							{
+								return o;
+							}
+							return IPersistVisitor.CONTINUE_TRAVERSAL;
+						}
+					});
+					if (formReference != null)
+					{
+						childForm = createPersistCopy(childForm);
+						registerChangedForm(childForm);
+					}
 				}
 			}
 		}

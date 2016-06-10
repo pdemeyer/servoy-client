@@ -246,21 +246,47 @@ public abstract class JSBaseContainer /* implements IJSParent */
 	/**
 	 * Create a new layout container. The location is used to determine the generated order in html markup.
 	 *
+	 * @deprecated use newLayoutContainer(position) instead
 	 * @sample
 	 * var container = form.newLayoutContainer(0,0);
 	 * @param x location x
 	 * @param y location y
 	 * @return the new layout container
 	 */
+	@Deprecated
 	@JSFunction
 	public JSLayoutContainer newLayoutContainer(int x, int y)
+	{
+		return createLayoutContainer(x, y);
+	}
+
+	protected JSLayoutContainer createLayoutContainer(int x, int y)
 	{
 		checkModification();
 		try
 		{
-			LayoutContainer layoutContainer = getContainer().createNewLayoutContainer();
-			layoutContainer.setLocation(new Point(x, y));
-			return application.getScriptEngine().getSolutionModifier().createLayoutContainer((IJSParent)this, layoutContainer);
+			AbstractContainer container = getContainer();
+			Form form = (Form)container.getAncestor(IRepository.FORMS);
+			if (form.isResponsiveLayout())
+			{
+				LayoutContainer layoutContainer = getContainer().createNewLayoutContainer();
+				layoutContainer.setLocation(new Point(x, y));
+				return application.getScriptEngine().getSolutionModifier().createLayoutContainer((IJSParent)this, layoutContainer);
+			}
+			else
+			{
+				//check if form was just created with the solution model and suggest correct method to use
+				if (application.getFlattenedSolution().getSolutionCopy().getAllObjectsAsList().contains(form) &&
+					!application.getSolution().getAllObjectsAsList().contains(form))
+				{
+					throw new RuntimeException(
+						"Form " + form.getName() + " is not a responsive form, cannot add a layout container on it. Please use solutionModel.newForm('" +
+							form.getName() + "',true) to create a responsive form.");
+				}
+
+				throw new RuntimeException("Form " + form.getName() +
+					" is not responsive, cannot add a layout container on it. Please use a responsive form or create a responsive form with solutionModel.newForm(formName, true);");
+			}
 		}
 		catch (RepositoryException e)
 		{
@@ -272,6 +298,10 @@ public abstract class JSBaseContainer /* implements IJSParent */
 	 * Create a new layout container. The position is used to determine the generated order in html markup.
 	 * This method can only be used in responsive forms.
 	 *
+	 * If you want to use default values and so on from a layout package (like 12grid) or if you use the solution model
+	 * to create a form that is saved back into the workspace (servoyDeveloper.save(form)) then you have to set the
+	 * packageName and specName properties. So that it works later on in the designer.
+	 *
 	 * @sample
 	 * var container = form.newLayoutContainer(1);
 	 * @param position the position of JSWebComponent object in its parent container
@@ -280,27 +310,7 @@ public abstract class JSBaseContainer /* implements IJSParent */
 	@JSFunction
 	public JSLayoutContainer newLayoutContainer(int position)
 	{
-		checkModification();
-		try
-		{
-			AbstractContainer container = getContainer();
-			Form form = (Form)container.getAncestor(IRepository.FORMS);
-			if (form.isResponsiveLayout())
-			{
-				LayoutContainer layoutContainer = getContainer().createNewLayoutContainer();
-				layoutContainer.setLocation(new Point(0, position));
-				return application.getScriptEngine().getSolutionModifier().createLayoutContainer((IJSParent)this, layoutContainer);
-			}
-			else
-			{
-				throw new RuntimeException(
-					"Form " + form.getName() + " is not responsive. Cannot create layout container without specifying the location and size.");
-			}
-		}
-		catch (RepositoryException e)
-		{
-			throw new RuntimeException(e);
-		}
+		return createLayoutContainer(0, position);
 	}
 
 	/**

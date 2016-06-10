@@ -18,7 +18,11 @@
 package com.servoy.j2db.persistence;
 
 import java.awt.Point;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Set;
 
+import com.servoy.j2db.FlattenedSolution;
 import com.servoy.j2db.util.UUID;
 
 /**
@@ -191,5 +195,88 @@ public class FormReference extends AbstractContainer implements IFormElement, IC
 	{
 		String name = getName();
 		return name == null ? "FormReference" : name;
+	}
+
+	public static Set<String> detectFormReferenceCycles(FlattenedSolution flattenedSolution, Form form)
+	{
+		if (form == null) return new HashSet<String>();
+		return detectFormReferenceCycles(flattenedSolution, form, new HashSet<Form>(), form.getName());
+	}
+
+	private static Set<String> detectFormReferenceCycles(FlattenedSolution flattenedSolution, Form form, Set<Form> forms, String path)
+	{
+		Set<String> paths = new HashSet<String>();
+		forms.add(form);
+		Iterator<FormReference> refs = form.getFormReferences();
+		while (refs.hasNext())
+		{
+			FormReference ref = refs.next();
+			if (ref.getContainsFormID() > 0)
+			{
+				Form containedForm = flattenedSolution.getForm(ref.getContainsFormID());
+				path = path + "-> references '" + containedForm.getName() + "'";
+				if (forms.contains(containedForm))
+				{
+					paths.add(path);
+					return paths;
+				}
+				else
+				{
+					paths.addAll(detectFormReferenceCycles(flattenedSolution, containedForm, new HashSet<Form>(forms), path));
+				}
+
+			}
+		}
+
+		Form f = form;
+		while (f.getExtendsForm() != null)
+		{
+			path = path + " ->extends '" + f.getExtendsForm().getName() + "'";
+			if (forms.contains(f))
+			{
+				if (form != f)
+				{
+					paths.add(path);
+					return paths;
+				}
+			}
+			else
+			{
+				paths.addAll(detectFormReferenceCycles(flattenedSolution, f.getExtendsForm(), new HashSet<Form>(forms), path));
+			}
+
+			f = f.getExtendsForm();
+		}
+		return paths;
+	}
+
+	public boolean canAddFormReference(final FlattenedSolution flattenedSolution, Form toAdd)
+	{
+		Form form = (Form)getAncestor(IRepository.FORMS);
+		final Set<Form> exclude = new HashSet<Form>();
+		form.acceptVisitor(new IPersistVisitor()
+		{
+			@Override
+			public Object visit(IPersist o)
+			{
+				if (o instanceof FormReference && ((FormReference)o).getContainsFormID() > 0)
+				{
+					Form containedForm = flattenedSolution.getForm(((FormReference)o).getContainsFormID());
+					exclude.add(containedForm);
+
+				}
+				return IPersistVisitor.CONTINUE_TRAVERSAL;
+			}
+		});
+		Iterator<Form> forms = flattenedSolution.getForms(false);
+		while (forms.hasNext())
+		{
+			Form possibleParentForm = forms.next();
+			if (flattenedSolution.getFormHierarchy(possibleParentForm).contains(form))
+			{
+				exclude.add(possibleParentForm);
+			}
+		}
+		return !exclude.contains(toAdd);
 	}
 }

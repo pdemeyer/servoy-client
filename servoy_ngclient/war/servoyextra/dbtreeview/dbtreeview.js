@@ -178,8 +178,19 @@ angular.module('servoyextraDbtreeview', ['servoyApp','foundset_manager']).direct
 										if (!children || children.length == 0)
 										{
 											item.folder = null
+										}
+										else
+										{
+											item.folder = true;
 										}	
-										dfd.resolve(children);
+										if (dfd)
+										{
+											dfd.resolve(children);
+										}
+										else
+										{
+											item.children = children;
+										}	
 										
 										$scope.pendingChildrenRequests = $scope.pendingChildrenRequests - 1;
 									});
@@ -250,7 +261,7 @@ angular.module('servoyextraDbtreeview', ['servoyApp','foundset_manager']).direct
 							foundset_manager.getRelatedFoundSetHash(
 									foundsethash,
 									foundset.viewPort.rows[i]._svyRowId,
-									binding.nrelationname).then(getRelatedFoundSetCallback(item, sort, level + 1));
+									binding.nrelationname).then(getRelatedFoundSetCallback(null, item, sort, level + 1));
 		    			}
 		    			else
 	    				{

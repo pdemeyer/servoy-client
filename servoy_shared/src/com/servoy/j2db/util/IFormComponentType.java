@@ -1,5 +1,5 @@
 /*
- This file belongs to the Servoy development and deployment environment, Copyright (C) 1997-2010 Servoy BV
+ This file belongs to the Servoy development and deployment environment, Copyright (C) 1997-2016 Servoy BV
 
  This program is free software; you can redistribute it and/or modify it under
  the terms of the GNU Affero General Public License as published by the Free
@@ -13,25 +13,23 @@
  You should have received a copy of the GNU Affero General Public License along
  with this program; if not, see http://www.gnu.org/licenses or write to the Free
  Software Foundation,Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301
- */
+*/
 
-package com.servoy.j2db.persistence;
+package com.servoy.j2db.util;
 
+import com.servoy.j2db.IApplication;
+import com.servoy.j2db.scripting.solutionmodel.JSWebComponent;
 
 /**
- * Models an argument of a method template. Is defined by name, type and a description.
+ * @author jcompagner
  *
- * @see com.servoy.j2db.persistence.IMethodTemplate
- *
- * @author gerzse
  */
-public interface IMethodArgument
+public interface IFormComponentType
 {
-	String getName();
+	/**
+	 * @param property
+	 * @param application
+	 */
+	IFormComponentRhinoConverter getFormComponentRhinoConverter(String property, Object propertyValue, IApplication application, JSWebComponent webComponent);
 
-	ArgumentType getType();
-
-	String getDescription();
-
-	boolean isOptional();
 }

@@ -15,7 +15,7 @@
  Software Foundation,Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301
 -->
 
-${registerMethod}("${name}", function($scope,$servoyInternal,$sabloApplication,$timeout,$formService,$windowService,$log,$propertyWatchesRegistry,$applicationService,$q) {
+${registerMethod}("${name}", function($scope,$servoyInternal,$sabloApplication,$timeout,$formService,$windowService,$log,$propertyWatchesRegistry,$applicationService,$q,$templateCache,$compile) {
 	if ($log.debugEnabled) $log.debug("svy * ftl; form '${name}' - scope create: " + $scope.$id);
 
 	var beans = {
@@ -31,10 +31,9 @@ ${registerMethod}("${name}", function($scope,$servoyInternal,$sabloApplication,$
 			}
 	var executingEvents = [];
 	
-	var parentSizes = ${containerSizesString}
 	var formProperties = ${propertiesString}
 
-	var formState = $servoyInternal.initFormState("${name}", beans, formProperties, $scope, false, parentSizes);
+	var formState = $servoyInternal.initFormState("${name}", beans, formProperties, $scope, false);
 	formState.resolving = true;
 	if ($log.debugEnabled) $log.debug("svy * ftl; resolving form = ${name}");
 
@@ -101,8 +100,8 @@ ${registerMethod}("${name}", function($scope,$servoyInternal,$sabloApplication,$
 			formWillShow: function(formname,relationname,formIndex) {
 				$formService.formWillShow(formname,true,$scope.formname,beanname,relationname,formIndex);
 			},
-			hideForm: function(formname,relationname,formIndex) {
-				return $formService.hideForm(formname,$scope.formname,beanname,relationname,formIndex);
+			hideForm: function(formname,relationname,formIndex,formNameThatWillShow,relationnameThatWillBeShown,formIndexThatWillBeShown) {
+				return $formService.hideForm(formname,$scope.formname,beanname,relationname,formIndex,formNameThatWillShow,relationnameThatWillBeShown,formIndexThatWillBeShown);
 			},
 			getFormUrl: function(formUrl) {
 				return $windowService.getFormUrl(formUrl);
@@ -115,6 +114,38 @@ ${registerMethod}("${name}", function($scope,$servoyInternal,$sabloApplication,$
 			},
 			callServerSideApi: function(methodName,args) {
 				return $servoyInternal.callServerSideApi("${name}", beanname, methodName, args);
+			},
+			getFormComponentElements: function(propertyName, templateUUID) {
+				var newScope = $scope.$new(false,$scope);
+				newScope.model = {}
+				newScope.api = {};
+				newScope.layout = {};
+				newScope.handlers = {}
+				var prefix = beanname + '$' + propertyName + '$';
+				for(var key in $scope.model) {
+					if (key.substr(0, prefix.length) === prefix) {
+						newScope.model[key.substr(prefix.length)] = $scope.model[key];
+					}
+				}
+				for(var key in $scope.api) {
+					if (key.substr(0, prefix.length) === prefix) {
+						newScope.api[key.substr(prefix.length)] = $scope.api[key];
+					}
+				}
+				for(var key in $scope.layout) {
+					if (key.substr(0, prefix.length) === prefix) {
+						newScope.layout[key.substr(prefix.length)] = $scope.layout[key];
+					}
+				}
+				for(var key in $scope.handlers) {
+					if (key.substr(0, prefix.length) === prefix) {
+						newScope.handlers[key.substr(prefix.length)] = $scope.handlers[key];
+					}
+				}
+				return $compile($templateCache.get(templateUUID))(newScope);
+			},
+			isInDesigner: function() {
+				return false;
 			}
 		}
 	}
@@ -147,7 +178,7 @@ ${registerMethod}("${name}", function($scope,$servoyInternal,$sabloApplication,$
 		}
 		else {
 		<#list baseComponents as bc>
-			watches['${bc.name}'] = $propertyWatchesRegistry.watchDumbPropertiesForComponent($scope, beanTypes.${bc.name}, $scope.model.${bc.name}, wrapper('${bc.name}'));
+			watches['${bc.name}'] = $propertyWatchesRegistry.watchDumbPropertiesForComponent($scope, beanTypes['${bc.name}'], $scope.model['${bc.name}'], wrapper('${bc.name}'));
 		</#list>
 		}
 	}
@@ -197,4 +228,9 @@ ${registerMethod}("${name}", function($scope,$servoyInternal,$sabloApplication,$
 		}
 		else console.log("no formstate for ${name}" + formState + " " + $scope.$id);
 	});
+	
+	
+	<#list templates?keys as prop>
+   		$templateCache.put('${prop}',"${templates[prop]}"); 
+	</#list> 
 });

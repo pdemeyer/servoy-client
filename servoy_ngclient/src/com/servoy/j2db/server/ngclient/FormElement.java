@@ -52,14 +52,15 @@ import org.sablo.websocket.utils.JSONUtils;
 import org.sablo.websocket.utils.PropertyUtils;
 
 import com.servoy.j2db.FlattenedSolution;
+import com.servoy.j2db.persistence.AbstractBase;
 import com.servoy.j2db.persistence.Bean;
 import com.servoy.j2db.persistence.FlattenedForm;
 import com.servoy.j2db.persistence.Form;
-import com.servoy.j2db.persistence.FormReference;
 import com.servoy.j2db.persistence.GraphicalComponent;
 import com.servoy.j2db.persistence.IFormElement;
 import com.servoy.j2db.persistence.IPersist;
 import com.servoy.j2db.persistence.ISupportBounds;
+import com.servoy.j2db.persistence.ISupportExtendsID;
 import com.servoy.j2db.persistence.ISupportSize;
 import com.servoy.j2db.persistence.Part;
 import com.servoy.j2db.persistence.StaticContentSpecLoader;
@@ -262,7 +263,26 @@ public final class FormElement implements IWebComponentInitializer, INGFormEleme
 		if (pd != null)
 		{
 			propertyPath.add(key);
-			formElementValues.put(key, NGConversions.INSTANCE.convertDesignToFormElementValue(value, pd, fs, this, propertyPath));
+			if (value instanceof JSONObject && getPersistIfAvailable() instanceof ISupportExtendsID)
+			{
+				// this is a json object, look for super persist for this property to get those values.
+				List<AbstractBase> hierarchy = PersistHelper.getOverrideHierarchy((ISupportExtendsID)getPersistIfAvailable());
+				if (hierarchy.size() > 1)
+				{
+					// there is a super element (or more) so make a copy and copy everything in that.
+					value = new JSONObject();
+					for (int i = hierarchy.size(); --i >= 0;)
+					{
+						Object property = hierarchy.get(i).getProperty(key);
+						if (property instanceof JSONObject)
+						{
+							ServoyJSONObject.mergeAndDeepCloneJSON((JSONObject)property, (JSONObject)value);
+						}
+					}
+				}
+			}
+			Object convertedValue = NGConversions.INSTANCE.convertDesignToFormElementValue(value, pd, fs, this, propertyPath);
+			formElementValues.put(key, convertedValue);
 			propertyPath.backOneLevel();
 		}
 		else if (StaticContentSpecLoader.PROPERTY_NAME.getPropertyName().equals(key))
@@ -497,6 +517,11 @@ public final class FormElement implements IWebComponentInitializer, INGFormEleme
 	{
 		if (inDesigner && getPersistIfAvailable() != null && getPersistIfAvailable().getUUID() != null)
 		{
+			// if this is a form component element just return the name
+			if (((AbstractBase)getPersistIfAvailable()).getRuntimeProperty(FormElementHelper.FORM_COMPONENT_TEMPLATE_NAME) != null)
+			{
+				return getName();
+			}
 			return getPersistIfAvailable().getUUID().toString();
 		}
 		return null;
@@ -618,6 +643,11 @@ public final class FormElement implements IWebComponentInitializer, INGFormEleme
 	public boolean isLegacy()
 	{
 		return persistImpl != null && persistImpl.isLegacy();
+	}
+
+	public boolean isFormComponentChild()
+	{
+		return ((AbstractBase)getPersistIfAvailable()).getRuntimeProperty(FormElementHelper.FORM_COMPONENT_TEMPLATE_NAME) != null;
 	}
 
 	public String getTagname()
@@ -756,17 +786,6 @@ public final class FormElement implements IWebComponentInitializer, INGFormEleme
 	{
 		if (persistImpl != null && persistImpl.getPersist() instanceof ISupportSize)
 		{
-			if (persistImpl.getPersist() instanceof FormReference)
-			{
-				FormReference fr = (FormReference)persistImpl.getPersist();
-				Form containedForm = fs.getForm(fr.getContainsFormID());
-				if (containedForm != null)
-				{
-					int w = Math.max((int)fr.getSize().getWidth(), (int)containedForm.getSize().getWidth());
-					int h = Math.max((int)fr.getSize().getHeight(), (int)containedForm.getSize().getHeight());
-					return new Dimension(w, h);
-				}
-			}
 			return ((ISupportSize)persistImpl.getPersist()).getSize();
 		}
 		return null;

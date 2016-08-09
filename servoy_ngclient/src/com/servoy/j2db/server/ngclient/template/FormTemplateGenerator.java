@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.io.Writer;
 
 import org.sablo.specification.WebComponentSpecProvider;
+import org.sablo.specification.WebObjectSpecification;
 
 import com.servoy.base.persistence.constants.IValueListConstants;
 import com.servoy.j2db.AbstractActiveSolutionHandler;
@@ -28,7 +29,6 @@ import com.servoy.j2db.FlattenedSolution;
 import com.servoy.j2db.persistence.Bean;
 import com.servoy.j2db.persistence.Field;
 import com.servoy.j2db.persistence.Form;
-import com.servoy.j2db.persistence.FormReference;
 import com.servoy.j2db.persistence.GraphicalComponent;
 import com.servoy.j2db.persistence.IBasicWebComponent;
 import com.servoy.j2db.persistence.IFormElement;
@@ -104,6 +104,18 @@ public class FormTemplateGenerator
 			return FormElement.ERROR_BEAN;
 		}
 		return component_type;
+	}
+
+	public static WebObjectSpecification getWebObjectSpecification(IFormElement persist)
+	{
+		String component_type = getPersistComponentTypeName(persist);
+		WebObjectSpecification spec = WebComponentSpecProvider.getInstance().getWebComponentSpecification(component_type);
+		if (spec == null)
+		{
+			Debug.error("Component spec for " + persist.getName() + " not found; please check your component spec file(s).");
+			return WebComponentSpecProvider.getInstance().getWebComponentSpecification(FormElement.ERROR_BEAN);
+		}
+		return spec;
 	}
 
 	public static String getTagName(String componentType)
@@ -186,10 +198,6 @@ public class FormTemplateGenerator
 			if (persist instanceof RectShape)
 			{
 				return "servoydefault-rectangle";
-			}
-			if (persist instanceof FormReference)
-			{
-				return "servoydefault-formreference";
 			}
 		}
 		return FormElement.ERROR_BEAN;

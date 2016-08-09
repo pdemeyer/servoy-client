@@ -69,6 +69,26 @@ public class RepositoryHelper
 	 * @param the object
 	 * @return a map with name -> java.lang.reflect.Method
 	 */
+	public static Map<String, Method> getSetters(Object obj)
+	{
+		if (obj == null) return Collections.<String, Method> emptyMap();
+		try
+		{
+			return getSettersViaIntrospection(obj.getClass());
+		}
+		catch (IntrospectionException e)
+		{
+			Debug.error(e);
+		}
+		return Collections.<String, Method> emptyMap();
+	}
+
+	/**
+	 * Get all the setMethods on the specified object via introspection
+	 *
+	 * @param the object
+	 * @return a map with name -> java.lang.reflect.Method
+	 */
 	static Map<String, Method> getSettersViaIntrospection(Object obj) throws IntrospectionException
 	{
 		if (obj == null) return Collections.<String, Method> emptyMap();
@@ -410,11 +430,24 @@ public class RepositoryHelper
 	// Some properties should be created(for undo/redo) but not visible in the properties view
 	public static boolean hideForProperties(String name, Class< ? > persistClass, IPersist persist)
 	{
+		if (persist instanceof Form && Utils.getAsBoolean(((Form)persist).isFormComponent()) &&
+			(name.equals("borderType") || name.equals("defaultPageFormat") || name.equals("initialSort") || name.equals("navigatorID") ||
+				name.equals("namedFoundSet") || name.equals("paperPrintScale") || name.equals("scrollbars") || name.equals("selectionMode") ||
+				name.equals("styleName") || name.equals("styleClass") || name.equals("titleText") || name.equals("transparent") || name.equals("view") ||
+				name.equals("showInMenu") || name.equals("encapsulation")))
+		{
+			return true;
+		}
+		if (persist instanceof Part && persist.getParent() instanceof Form && Utils.getAsBoolean(((Form)persist.getParent()).isFormComponent()) &&
+			!name.equals("height"))
+		{
+			return true;
+		}
 		if (name.equals("groupbyDataProviderIDs") && Part.class.isAssignableFrom(persistClass)) //$NON-NLS-1$
 		{
 			return true;
 		}
-		if (name.equals("containsFormID") && !FormReference.class.isAssignableFrom(persistClass)) // handled in combined property table //$NON-NLS-1$
+		if (name.equals("containsFormID")) // handled in combined property table //$NON-NLS-1$
 		{
 			return true;
 		}
@@ -475,7 +508,7 @@ public class RepositoryHelper
 			{
 				return true;
 			}
-			if (Form.class.isAssignableFrom(persistClass) && IContentSpecConstants.PROPERTY_REFERENCE_FORM.equals(name))
+			if (Form.class.isAssignableFrom(persistClass) && IContentSpecConstants.PROPERTY_FORM_COMPONENT.equals(name))
 			{
 				return true;
 			}
@@ -611,8 +644,7 @@ public class RepositoryHelper
 		if (name.equals(StaticContentSpecLoader.PROPERTY_EXTENDSID.getPropertyName()) && (Portal.class.isAssignableFrom(persistClass) ||
 			TabPanel.class.isAssignableFrom(persistClass) || Bean.class.isAssignableFrom(persistClass) || WebComponent.class.isAssignableFrom(persistClass) ||
 			Field.class.isAssignableFrom(persistClass) || GraphicalComponent.class.isAssignableFrom(persistClass) || Tab.class.isAssignableFrom(persistClass) ||
-			Shape.class.isAssignableFrom(persistClass) || RectShape.class.isAssignableFrom(persistClass) || Part.class.isAssignableFrom(persistClass) ||
-			FormReference.class.isAssignableFrom(persistClass)))
+			Shape.class.isAssignableFrom(persistClass) || RectShape.class.isAssignableFrom(persistClass) || Part.class.isAssignableFrom(persistClass)))
 		{
 			return false;
 		}

@@ -15,29 +15,26 @@
  Software Foundation,Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301
 */
 
-package com.servoy.j2db.documentation.persistence.docs;
+package com.servoy.j2db.server.ngclient;
 
-import com.servoy.base.scripting.annotations.ServoyClientSupport;
-import com.servoy.j2db.documentation.ServoyDocumented;
-import com.servoy.j2db.persistence.FormReference;
-import com.servoy.j2db.persistence.IRepository;
-import com.servoy.j2db.persistence.ISupportChilds;
-import com.servoy.j2db.util.UUID;
+import com.servoy.j2db.FlattenedSolution;
+import com.servoy.j2db.persistence.IFormElement;
+import com.servoy.j2db.server.ngclient.property.types.PropertyPath;
 
 /**
- * @author lvostinar
+ * @author jcompagner
  *
  */
-@ServoyDocumented(category = ServoyDocumented.DESIGNTIME, publicName = "Form Reference", scriptingName = "FormReference", realClass = FormReference.class, typeCode = IRepository.FORMREFERENCE)
-@ServoyClientSupport(ng = true, sc = false, wc = false)
-public class DocsFormReference extends FormReference
+public interface IFormElementCache
 {
-	private static final long serialVersionUID = 1L;
 
-
-	protected DocsFormReference(ISupportChilds parent, int element_id, UUID uuid)
-	{
-		super(parent, element_id, uuid);
-	}
+	/**
+	 * @param component
+	 * @param fs
+	 * @param path
+	 * @param design
+	 * @return
+	 */
+	FormElement getFormElement(IFormElement component, FlattenedSolution fs, PropertyPath path, boolean design);
 
 }

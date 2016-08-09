@@ -424,11 +424,11 @@ angular.module('servoyApp', ['sabloApp', 'servoy','webStorageModule','servoy-com
 				if (formState.initializing && !formState.initialDataRequested) $servoyInternal.requestInitialData(formname, formState);
 			});
 		},
-		hideForm: function(formname,parentForm,beanName,relationname,formIndex) {
+		hideForm: function(formname,parentForm,beanName,relationname,formIndex,formnameThatWillBeShown,relationnameThatWillBeShown,formIndexThatWillBeShown) {
 			if (!formname) {
 				throw new Error("formname is undefined");
 			}
-			return $sabloApplication.callService('formService', 'formvisibility', {formname:formname,visible:false,parentForm:parentForm,bean:beanName,relation:relationname,formIndex:formIndex});
+			return $sabloApplication.callService('formService', 'formvisibility', {formname:formname,visible:false,parentForm:parentForm,bean:beanName,relation:relationname,formIndex:formIndex,show:{formname:formnameThatWillBeShown,relation:relationnameThatWillBeShown,formIndex:formIndexThatWillBeShown}});
 		},
 		/**
 		 * Use for going back and forward in history.
@@ -1072,15 +1072,7 @@ angular.module('servoyApp', ['sabloApp', 'servoy','webStorageModule','servoy-com
 	}
 	return {
 		setStyleSheets: function(paths) {
-			var links = [];
-			
-			if (angular.isDefined(paths)) {
-				for (var i =0;i<paths.length;i++)
-				{
-					links[i] = paths[i] +"?t="+Date.now();
-				}	
-			}
-			$solutionSettings.styleSheetPaths = links;
+			$solutionSettings.styleSheetPaths = paths;
 			if (!$rootScope.$$phase) $rootScope.$digest();
 		},
 		getUserProperty: function(key) {
@@ -1289,4 +1281,4 @@ angular.module('servoyApp', ['sabloApp', 'servoy','webStorageModule','servoy-com
 	$window.executeInlineScript = function(formname, script, params) {
 		return $sabloApplication.callService("formService", "executeInlineScript", {'formname' : formname, 'script' : script, 'params' : params}, false)
 	}
-})
+});

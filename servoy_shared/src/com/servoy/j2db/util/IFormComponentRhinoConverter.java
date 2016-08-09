@@ -15,21 +15,22 @@
  Software Foundation,Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301
 */
 
-package com.servoy.j2db.server.ngclient.component;
+package com.servoy.j2db.util;
 
-import com.servoy.j2db.scripting.DefaultScope;
+import org.json.JSONObject;
 
 /**
- * @author lvostinar
+ * @author jcompagner
  *
  */
-public class RuntimeFormReference extends DefaultScope
+public interface IFormComponentRhinoConverter
 {
+	public JSONObject setRhinoToDesignValue(String property, Object value);
 
-	public RuntimeFormReference()
-	{
-		super(null);
-	}
-
+	/**
+	 * @param property
+	 * @return
+	 */
+	public Object getDesignToRhinoValue(String property);
 
 }

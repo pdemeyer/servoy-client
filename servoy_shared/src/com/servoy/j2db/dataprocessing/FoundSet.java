@@ -3998,7 +3998,8 @@ public abstract class FoundSet implements IFoundSetInternal, IRowListener, Scrip
 				try
 				{
 					// see EditRecordList.stopEditing
-					if (!executeFoundsetTriggerBreakOnFalse(new Object[] { state }, StaticContentSpecLoader.PROPERTY_ONDELETEMETHODID, true))
+					if (state.existInDataSource() &&
+						!executeFoundsetTriggerBreakOnFalse(new Object[] { state }, StaticContentSpecLoader.PROPERTY_ONDELETEMETHODID, true))
 					{
 						// trigger returned false
 						Debug.log("Delete not granted for the table " + getTable()); //$NON-NLS-1$

@@ -19,12 +19,56 @@ package com.servoy.j2db.server.headlessclient.util;
 
 import javax.servlet.http.HttpServletRequest;
 
+import org.owasp.html.Handler;
+import org.owasp.html.HtmlSanitizer;
+import org.owasp.html.HtmlStreamRenderer;
+import org.owasp.html.PolicyFactory;
+import org.owasp.html.Sanitizers;
+
+import com.servoy.j2db.util.Debug;
+
 /**
  * @author rgansevles
  *
  */
 public class HCUtils
 {
+	private static final PolicyFactory SANITIZER_POLICIES = //
+	/* */Sanitizers.BLOCKS //
+	.and(Sanitizers.FORMATTING) //
+	.and(Sanitizers.IMAGES) //
+	.and(Sanitizers.LINKS) //
+	.and(Sanitizers.STYLES) //
+	.and(Sanitizers.TABLES);
+
+	private static final Handler<String> DEBUG_WARN_BAD_HTML_HANDLER = new Handler<String>()
+	{
+		// The HTML parser is very lenient, but this receives notifications on truly bizarre inputs.
+		public void handle(String x)
+		{
+			Debug.warn("Html parse error in sanitize: " + x);
+		}
+	};
+
+	/**
+	 * Sanitize html against XSS attacks.
+	 *
+	 * @param html
+	 * @return sanitized html
+	 */
+	public static StringBuilder sanitize(CharSequence html)
+	{
+		if (html == null)
+		{
+			return null;
+		}
+
+		StringBuilder sanitized = new StringBuilder();
+
+		HtmlSanitizer.sanitize(html.toString(), SANITIZER_POLICIES.apply(HtmlStreamRenderer.create(sanitized, Handler.PROPAGATE, DEBUG_WARN_BAD_HTML_HANDLER)));
+
+		return sanitized;
+	}
 
 	/**
 	 * Replace absolute url with an url that works against the original (proxy) host, using standard request headers

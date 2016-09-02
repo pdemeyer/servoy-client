@@ -149,17 +149,7 @@ ${registerMethod}("${name}", function($scope,$servoyInternal,$sabloApplication,$
 				return false;
 			},
 			trustAsHtml: function() {
-			
-				if ($scope.model && $scope.model[beanname] && $scope.model[beanname].clientProperty && angular.isDefined($scope.model[beanname].clientProperty.trustDataAsHtml))
-				{
-					trustDataAsHtml = $scope.model[beanname].clientProperty.trustDataAsHtml;
-				}
-				else
-				{
-					trustDataAsHtml = $applicationService.getUIProperty("trustDataAsHtml");
-				}
-			
-				return trustDataAsHtml;
+				return $applicationService.trustAsHtml($scope.model ? $scope.model[beanname] : undefined);
 			}
 		}
 	}

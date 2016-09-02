@@ -382,7 +382,7 @@ public abstract class AbstractRuntimeBaseComponent<C extends IComponent> impleme
 		if (trustDataAsHtml == null)
 		{
 			// or at application server level
-			trustDataAsHtml = Boolean.valueOf(Settings.getInstance().getProperty(Settings.TRUST_DATA_AS_HTML_SETTING, "false"));
+			trustDataAsHtml = Boolean.valueOf(Settings.getInstance().getProperty(Settings.TRUST_DATA_AS_HTML_SETTING, Boolean.FALSE.toString()));
 		}
 
 		return Boolean.TRUE.equals(trustDataAsHtml);

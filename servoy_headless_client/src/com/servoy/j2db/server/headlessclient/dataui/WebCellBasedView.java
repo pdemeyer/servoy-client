@@ -6075,6 +6075,16 @@ public class WebCellBasedView extends WebMarkupContainer implements IView, IPort
 		}
 	}
 
+	public Object getClientProperty(IPersist persist, Object key)
+	{
+		Map<Object, Object> clientProperties = elementToClientProperties.get(persist);
+		if (clientProperties != null)
+		{
+			return clientProperties.get(key);
+		}
+		return null;
+	}
+
 	/**
 	 *
 	 * Apply the previously set client properties to the new component.

@@ -79,6 +79,11 @@ public class CellNativeJavaObject extends NativeJavaObject implements ITwoNative
 				// put client properties for all elements in table view
 				val = new WebCellBasedViewPutClientPropertyFunction(view, ((AbstractRuntimeBaseComponent< ? >)javaObject).getPersist(), (Function)val);
 			}
+			else if ("getClientProperty".equals(name) && javaObject instanceof AbstractRuntimeBaseComponent)
+			{
+				// put client properties for all elements in table view
+				val = new WebCellBasedViewGetClientPropertyFunction(view, ((AbstractRuntimeBaseComponent< ? >)javaObject).getPersist(), (Function)val);
+			}
 		}
 
 		return val;

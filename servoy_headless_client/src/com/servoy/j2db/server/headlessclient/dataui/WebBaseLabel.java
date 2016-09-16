@@ -177,7 +177,8 @@ public class WebBaseLabel extends Label implements ILabel, IResourceListener, IL
 
 	protected CharSequence getBodyText()
 	{
-		return StripHTMLTagsConverter.convertBodyText(this, getDefaultModelObjectAsString(), application.getFlattenedSolution()).getBodyTxt();
+		return StripHTMLTagsConverter.convertBodyText(this, getDefaultModelObjectAsString(), scriptable.trustDataAsHtml(),
+			application.getFlattenedSolution()).getBodyTxt();
 	}
 
 	/**

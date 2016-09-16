@@ -20,6 +20,7 @@ package com.servoy.j2db.server.headlessclient.util;
 import javax.servlet.http.HttpServletRequest;
 
 import org.owasp.html.Handler;
+import org.owasp.html.HtmlPolicyBuilder;
 import org.owasp.html.HtmlSanitizer;
 import org.owasp.html.HtmlStreamRenderer;
 import org.owasp.html.PolicyFactory;
@@ -31,15 +32,23 @@ import com.servoy.j2db.util.Debug;
  * @author rgansevles
  *
  */
+@SuppressWarnings("nls")
 public class HCUtils
 {
+	private static final PolicyFactory CLASSES = new HtmlPolicyBuilder().allowAttributes("class").globally().toFactory();
+	private static final PolicyFactory HTML_BODY = new HtmlPolicyBuilder().allowElements("html", "head", "body").toFactory();
+	private static final PolicyFactory INLINE_STYLE = new HtmlPolicyBuilder().allowElements("style").toFactory();
+
 	private static final PolicyFactory SANITIZER_POLICIES = //
-	/* */Sanitizers.BLOCKS //
+	/**/ Sanitizers.BLOCKS //
 	.and(Sanitizers.FORMATTING) //
 	.and(Sanitizers.IMAGES) //
 	.and(Sanitizers.LINKS) //
 	.and(Sanitizers.STYLES) //
-	.and(Sanitizers.TABLES);
+	.and(Sanitizers.TABLES) //
+	.and(CLASSES) //
+	.and(INLINE_STYLE) //
+	.and(HTML_BODY);
 
 	private static final Handler<String> DEBUG_WARN_BAD_HTML_HANDLER = new Handler<String>()
 	{
@@ -69,6 +78,7 @@ public class HCUtils
 
 		return sanitized;
 	}
+
 
 	/**
 	 * Replace absolute url with an url that works against the original (proxy) host, using standard request headers

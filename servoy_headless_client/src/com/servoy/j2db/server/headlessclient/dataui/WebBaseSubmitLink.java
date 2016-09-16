@@ -171,7 +171,8 @@ public class WebBaseSubmitLink extends SubmitLink
 
 	protected CharSequence getBodyText()
 	{
-		return StripHTMLTagsConverter.convertBodyText(this, getDefaultModelObjectAsString(), application.getFlattenedSolution()).getBodyTxt();
+		return StripHTMLTagsConverter.convertBodyText(this, getDefaultModelObjectAsString(), scriptable.trustDataAsHtml(),
+			application.getFlattenedSolution()).getBodyTxt();
 	}
 
 	/**

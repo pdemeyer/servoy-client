@@ -349,7 +349,7 @@ public abstract class WebBaseButton extends Button
 		if (HtmlUtils.startsWithHtml(modelObject))
 		{
 			// ignore script tags for now
-			bodyText = StripHTMLTagsConverter.convertBodyText(this, bodyText, application.getFlattenedSolution()).getBodyTxt();
+			bodyText = StripHTMLTagsConverter.convertBodyText(this, bodyText, scriptable.trustDataAsHtml(), application.getFlattenedSolution()).getBodyTxt();
 		}
 		instrumentAndReplaceBody(markupStream, openTag, bodyText);
 	}
@@ -1295,7 +1295,8 @@ public abstract class WebBaseButton extends Button
 		}
 		if (!Strings.isEmpty(bodyText))
 		{
-			CharSequence bodyTextValue = trustDataAsHtml ? bodyText : HCUtils.sanitize(bodyText);
+			CharSequence bodyTextValue = sanitize(bodyText, trustDataAsHtml);
+
 			if (mnemonic > 0 && !hasHtmlOrImage)
 			{
 				StringBuilder sbBodyText = new StringBuilder(bodyTextValue);
@@ -1355,6 +1356,29 @@ public abstract class WebBaseButton extends Button
 			}
 		}
 		return instrumentedBodyText.toString();
+	}
+
+	/**
+	 * @param bodyText
+	 * @param trustDataAsHtml
+	 * @return
+	 */
+	public static CharSequence sanitize(CharSequence bodyText, boolean trustDataAsHtml)
+	{
+		if (trustDataAsHtml || bodyText == null)
+		{
+			return bodyText;
+		}
+
+		StringBuilder sanitized = HCUtils.sanitize(bodyText);
+		if (HtmlUtils.startsWithHtml(bodyText) && !HtmlUtils.equalsIgnoreWhitespaceAndCase(sanitized, bodyText))
+		{
+			Debug.warn("Html was modified by sanitizer: " + //
+				"\nOriginal html: '" + bodyText + "'," + //
+				"\nSanitized html: '" + sanitized + "'");
+		}
+
+		return sanitized;
 	}
 
 	public static String getTitledBorderOpenMarkup(TitledBorder titledBorder)

@@ -505,4 +505,11 @@ public class NGClientEntryFilter extends WebEntry
 		if (ApplicationServerRegistry.get().isDeveloperStartup()) allIndexJS.add("js/debug.js");
 		return allIndexJS;
 	}
+
+	@Override
+	public void destroy()
+	{
+		WebsocketSessionManager.closeAllSessions();
+		FormElementHelper.INSTANCE.reload();
+	}
 }

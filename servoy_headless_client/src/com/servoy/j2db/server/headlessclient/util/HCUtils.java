@@ -19,14 +19,13 @@ package com.servoy.j2db.server.headlessclient.util;
 
 import javax.servlet.http.HttpServletRequest;
 
-import org.owasp.html.Handler;
-import org.owasp.html.HtmlPolicyBuilder;
-import org.owasp.html.HtmlSanitizer;
-import org.owasp.html.HtmlStreamRenderer;
-import org.owasp.html.PolicyFactory;
-import org.owasp.html.Sanitizers;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
+import org.jsoup.safety.Cleaner;
+import org.jsoup.safety.Whitelist;
 
-import com.servoy.j2db.util.Debug;
+import com.servoy.j2db.util.HtmlUtils;
 
 /**
  * @author rgansevles
@@ -35,29 +34,27 @@ import com.servoy.j2db.util.Debug;
 @SuppressWarnings("nls")
 public class HCUtils
 {
-	private static final PolicyFactory CLASSES = new HtmlPolicyBuilder().allowAttributes("class").globally().toFactory();
-	private static final PolicyFactory HTML_BODY = new HtmlPolicyBuilder().allowElements("html", "head", "body").toFactory();
-	private static final PolicyFactory INLINE_STYLE = new HtmlPolicyBuilder().allowElements("style").toFactory();
+	private static String[] ALL_TAGS = new String[] { "a", "b", "blockquote", "br", "caption", "cite", "code", "col", "colgroup", //
+	"dd", "div", "dl", "dt", "em", "h1", "h2", "h3", "h4", "h5", "h6", "i", "img", "li", "ol", "p", "pre", "q", "small", "span", //
+	"strike", "strong", "sub", "sup", "table", "tbody", "td", "tfoot", "th", "thead", "tr", "u", "ul" };
 
-	private static final PolicyFactory SANITIZER_POLICIES = //
-	/**/ Sanitizers.BLOCKS //
-	.and(Sanitizers.FORMATTING) //
-	.and(Sanitizers.IMAGES) //
-	.and(Sanitizers.LINKS) //
-	.and(Sanitizers.STYLES) //
-	.and(Sanitizers.TABLES) //
-	.and(CLASSES) //
-	.and(INLINE_STYLE) //
-	.and(HTML_BODY);
+	private static final Whitelist WHITELIST;
 
-	private static final Handler<String> DEBUG_WARN_BAD_HTML_HANDLER = new Handler<String>()
+	static
 	{
-		// The HTML parser is very lenient, but this receives notifications on truly bizarre inputs.
-		public void handle(String x)
+		WHITELIST = Whitelist.relaxed() //
+		.preserveRelativeLinks(true) //
+		.addTags("html", "head", "body", "style") //
+		.addAttributes("style", "type") //
+		.addAttributes("table", "border") //
+		.addProtocols("a", "href", "javascript") //
+		.addProtocols("img", "src", "media") //
+		;
+		for (String tag : ALL_TAGS)
 		{
-			Debug.warn("Html parse error in sanitize: " + x);
+			WHITELIST.addAttributes(tag, "class", "style", "align");
 		}
-	};
+	}
 
 	/**
 	 * Sanitize html against XSS attacks.
@@ -65,20 +62,41 @@ public class HCUtils
 	 * @param html
 	 * @return sanitized html
 	 */
-	public static StringBuilder sanitize(CharSequence html)
+	public static String sanitize(CharSequence html)
 	{
 		if (html == null)
 		{
 			return null;
 		}
 
-		StringBuilder sanitized = new StringBuilder();
+		if (!HtmlUtils.startsWithHtml(html))
+		{
+			// just some html, not an entire document
+			String sanitizedBody = Jsoup.clean(html.toString(), "http://any", WHITELIST);
+			// remove body wrapper
+			if (sanitizedBody.startsWith("<body>") && sanitizedBody.endsWith("</body>"))
+			{
+				sanitizedBody = sanitizedBody.substring(6, sanitizedBody.length() - 7);
+			}
+			return sanitizedBody;
+		}
 
-		HtmlSanitizer.sanitize(html.toString(), SANITIZER_POLICIES.apply(HtmlStreamRenderer.create(sanitized, Handler.PROPAGATE, DEBUG_WARN_BAD_HTML_HANDLER)));
 
-		return sanitized;
+		// parse entire html
+		Document dirty = Jsoup.parse(html.toString(), "http://any");
+
+		// wrap with html, real html will be in the body which will be copied over
+		Document doc = new Document(dirty.baseUri());
+		doc.appendElement("html").appendElement("body").appendChild(dirty);
+
+		Cleaner cleaner = new Cleaner(WHITELIST);
+		Document clean = cleaner.clean(doc);
+
+		// unwrap again
+		Element sanitized = clean.body().child(0);
+
+		return sanitized.html();
 	}
-
 
 	/**
 	 * Replace absolute url with an url that works against the original (proxy) host, using standard request headers

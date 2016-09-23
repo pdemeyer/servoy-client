@@ -53,8 +53,10 @@ public class HtmlUtils
 
 		int charIndex = 0;
 		// first trim
-		while (charIndex < charsequenceLen && charsequence.charAt(charIndex) == ' ')
+		while (charIndex < charsequenceLen && Character.isWhitespace(charsequence.charAt(charIndex)))
+		{
 			charIndex++;
+		}
 
 		if (charIndex >= charsequenceLen || charsequence.charAt(charIndex) != '<') return false;
 		if (charIndex >= charsequenceLen - 1 || Character.toLowerCase(charsequence.charAt(++charIndex)) != 'h') return false;

@@ -1370,7 +1370,7 @@ public abstract class WebBaseButton extends Button
 			return bodyText;
 		}
 
-		StringBuilder sanitized = HCUtils.sanitize(bodyText);
+		CharSequence sanitized = HCUtils.sanitize(bodyText);
 		if (HtmlUtils.startsWithHtml(bodyText) && !HtmlUtils.equalsIgnoreWhitespaceAndCase(sanitized, bodyText))
 		{
 			Debug.warn("Html was modified by sanitizer: " + //

@@ -601,6 +601,8 @@ public class FlattenedSolution implements IItemChangeListener<IPersist>, IDataPr
 			user_created_styles = null;
 			all_styles = null;
 			mainSolutionMetaData = sol;
+			formCacheByName = null;
+			formCacheById = null;
 
 			if (loadLoginSolution)
 			{
@@ -885,7 +887,7 @@ public class FlattenedSolution implements IItemChangeListener<IPersist>, IDataPr
 	/*
 	 * Create a flattened form for the form that is child of the current solution.
 	 */
-	private FlattenedForm createFlattenedForm(Form form)
+	public FlattenedForm createFlattenedForm(Form form)
 	{
 		Form myForm;
 		Solution solcopy = getSolutionCopy(false);

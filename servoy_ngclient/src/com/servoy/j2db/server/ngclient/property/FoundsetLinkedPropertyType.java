@@ -24,7 +24,6 @@ import org.mozilla.javascript.Scriptable;
 import org.sablo.BaseWebObject;
 import org.sablo.specification.IYieldingType;
 import org.sablo.specification.PropertyDescription;
-import org.sablo.specification.WebObjectSpecification;
 import org.sablo.specification.property.IBrowserConverterContext;
 import org.sablo.specification.property.IConvertedPropertyType;
 import org.sablo.specification.property.IPropertyType;
@@ -150,12 +149,7 @@ public class FoundsetLinkedPropertyType<YF, YT>
 		if (wrappedType instanceof IDataLinkedType)
 		{
 			PropertyDescription wrappedPd = getConfig(pd).wrappedPropertyDescription;
-			TargetDataLinks r = ((IDataLinkedType<YF, YT>)wrappedType).getDataLinks(formElementValue, wrappedPd, flattenedSolution, formElement);
-			if (!WebObjectSpecification.ARRAY_ELEMENT_PD_NAME.equals(wrappedPd.getName()))
-			{
-				formElement.getOrCreatePreprocessedPropertyInfoMap(IDataLinkedType.class).put(wrappedPd, r);
-			}
-			return r;
+			return ((IDataLinkedType<YF, YT>)wrappedType).getDataLinks(formElementValue, wrappedPd, flattenedSolution, formElement);
 		}
 
 		return TargetDataLinks.NOT_LINKED_TO_DATA;
@@ -254,8 +248,17 @@ public class FoundsetLinkedPropertyType<YF, YT>
 	public FoundsetLinkedTypeSabloValue<YF, YT> toSabloComponentValue(Object rhinoValue, FoundsetLinkedTypeSabloValue<YF, YT> previousComponentValue,
 		PropertyDescription pd, BaseWebObject componentOrService)
 	{
-		previousComponentValue.rhinoToSablo(rhinoValue, getConfig(pd).wrappedPropertyDescription, componentOrService);
-		return previousComponentValue;
+		if (previousComponentValue == null)
+		{
+			FoundsetLinkedTypeSabloValue<YF, YT> flts = new FoundsetLinkedTypeSabloValue<YF, YT>(getConfig(pd).forFoundset, (YF)rhinoValue,
+				getConfig(pd).wrappedPropertyDescription, ((WebFormComponent)componentOrService).getFormElement(), (WebFormComponent)componentOrService);
+			return flts;
+		}
+		else
+		{
+			previousComponentValue.rhinoToSablo(rhinoValue, getConfig(pd).wrappedPropertyDescription, componentOrService);
+			return previousComponentValue;
+		}
 	}
 
 	@Override
@@ -264,12 +267,7 @@ public class FoundsetLinkedPropertyType<YF, YT>
 		if (wrappedType instanceof IFindModeAwareType)
 		{
 			PropertyDescription wrappedPd = getConfig(pd).wrappedPropertyDescription;
-			boolean r = ((IFindModeAwareType<YF, YT>)wrappedType).isFindModeAware(formElementValue, wrappedPd, flattenedSolution, formElement);
-			if (!WebObjectSpecification.ARRAY_ELEMENT_PD_NAME.equals(wrappedPd.getName()))
-			{
-				formElement.getOrCreatePreprocessedPropertyInfoMap(IFindModeAwareType.class).put(wrappedPd, Boolean.valueOf(r));
-			}
-			return r;
+			return ((IFindModeAwareType<YF, YT>)wrappedType).isFindModeAware(formElementValue, wrappedPd, flattenedSolution, formElement);
 		}
 
 		return false;

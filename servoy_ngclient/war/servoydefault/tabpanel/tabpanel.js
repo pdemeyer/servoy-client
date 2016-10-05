@@ -8,7 +8,7 @@ angular.module('servoydefaultTabpanel',['servoy']).directive('servoydefaultTabpa
 			handlers: "=svyHandlers",
 			api: "=svyApi"
 		},
-		controller: function($scope, $element, $attrs,webStorage) {
+		controller: function($scope, $element, $attrs) {
 			if($scope.model.tabOrientation == -4) {
 				var groupHeaderHeight = 39;
 				var activeGroupHeaderHeight = 37;
@@ -29,26 +29,8 @@ angular.module('servoydefaultTabpanel',['servoy']).directive('servoydefaultTabpa
 
 			if ($scope.model.selectedTab) {
 			     // if the selected tab is already set then this is a reload of the form and we need to call formWillShow
-				 $scope.svyServoyapi.formWillShow($scope.model.selectedTab.containsFormId, $scope.model.selectedTab.relationName);
+				delete $scope.model.selectedTab;
 			}
-			else if ($scope.model.tabs && $scope.model.tabs.length >0)
-	    	{
-	    		  var index = 1;
-	    		  if ($scope.$parent && $scope.$parent.formname)
-	    		  {
-	    			  var key = $scope.$parent.formname +"_" + $element.attr('name')+"_tabindex";
-	    			  var storageValue= webStorage.session.get(key);
-	    			  if (storageValue)
-	    			  {
-	    				  index = parseInt(storageValue);
-	    				  if (index > $scope.model.tabs.length)
-	    				  {
-	    					  index = 1;
-	    				  }	  
-	    			  }	  
-	    		  }
-	    		  $scope.model.tabIndex = index;
-	    	 }
 			
 			function refresh() {
 				var i = 0;
@@ -69,7 +51,7 @@ angular.module('servoydefaultTabpanel',['servoy']).directive('servoydefaultTabpa
 							break;
 						}
 					}
-				
+			    
 				if ($scope.model.tabs){
 					var selectedTabNotFound = true;
 					
@@ -97,11 +79,6 @@ angular.module('servoydefaultTabpanel',['servoy']).directive('servoydefaultTabpa
 			$scope.$watch("model.tabIndex", function(newValue) {
 				if ($log.debugEnabled) $log.debug("svy * model.tabIndex = " + $scope.model.tabIndex + " -- " + new Date().getTime());
 				refresh();
-				if ($scope.$parent && $scope.$parent.formname)
-				{
-					 var key = $scope.$parent.formname +"_" + $element.attr('name')+"_tabindex";
-					 webStorage.session.add(key,newValue);
-				}
 			});
 
 			$scope.$watch("model.tabs", function(newValue) {
@@ -492,8 +469,3 @@ angular.module('servoydefaultTabpanel',['servoy']).directive('servoydefaultTabpa
 		template: "<div style='height:100%;width:100%;position:absolute;' svy-border='model.borderType'svy-font='model.fontType'><div ng-include='getTemplateUrl()'></div></div>"
 	};
 })
-
-
-
-
-

@@ -54,11 +54,13 @@ import com.servoy.base.scripting.api.IJSFoundSet;
 import com.servoy.base.scripting.api.IJSRecord;
 import com.servoy.j2db.ApplicationException;
 import com.servoy.j2db.FlattenedSolution;
+import com.servoy.j2db.IServiceProvider;
 import com.servoy.j2db.dataprocessing.ValueFactory.DbIdentValue;
 import com.servoy.j2db.documentation.ServoyDocumented;
 import com.servoy.j2db.persistence.AbstractBase;
 import com.servoy.j2db.persistence.AggregateVariable;
 import com.servoy.j2db.persistence.Column;
+import com.servoy.j2db.persistence.ColumnWrapper;
 import com.servoy.j2db.persistence.IColumn;
 import com.servoy.j2db.persistence.IColumnTypes;
 import com.servoy.j2db.persistence.IRepository;
@@ -90,6 +92,7 @@ import com.servoy.j2db.query.QueryCustomJoin;
 import com.servoy.j2db.query.QueryCustomSelect;
 import com.servoy.j2db.query.QueryCustomSort;
 import com.servoy.j2db.query.QueryDelete;
+import com.servoy.j2db.query.QueryJoin;
 import com.servoy.j2db.query.QuerySelect;
 import com.servoy.j2db.query.QuerySort;
 import com.servoy.j2db.query.QueryTable;
@@ -126,46 +129,59 @@ public abstract class FoundSet implements IFoundSetInternal, IRowListener, Scrip
 	/*
 	 * _____________________________________________________________ JavaScript stuff
 	 */
-	private static Map<String, NativeJavaMethod> jsFunctions = new HashMap<String, NativeJavaMethod>();
+	private Map<String, NativeJavaMethod> jsFunctions;
 
-	static
+	@SuppressWarnings("unchecked")
+	private void initJSFunctions(IServiceProvider serviceProvider)
 	{
-		try
+		if (serviceProvider != null)
 		{
-			Method[] methods = FoundSet.class.getMethods();
-			for (Method m : methods)
+			jsFunctions = (Map<String, NativeJavaMethod>)serviceProvider.getRuntimeProperties().get(IServiceProvider.RT_JSFOUNDSET_FUNCTIONS);
+		}
+		if (jsFunctions == null)
+		{
+			jsFunctions = new HashMap<String, NativeJavaMethod>();
+			try
 			{
-				String name = null;
-				if (m.getName().startsWith("js_")) //$NON-NLS-1$
+				Method[] methods = FoundSet.class.getMethods();
+				for (Method m : methods)
 				{
-					name = m.getName().substring(3);
-				}
-				else if (m.getName().startsWith("jsFunction_")) //$NON-NLS-1$
-				{
-					name = m.getName().substring(11);
-				}
-				else if (AnnotationManagerReflection.getInstance().isAnnotationPresent(m, FoundSet.class, JSFunction.class))
-				{
-					name = m.getName();
-				}
-				if (name != null)
-				{
-					NativeJavaMethod nativeJavaMethod = jsFunctions.get(name);
-					if (nativeJavaMethod == null)
+					String name = null;
+					if (m.getName().startsWith("js_")) //$NON-NLS-1$
 					{
-						nativeJavaMethod = new NativeJavaMethod(m, name);
+						name = m.getName().substring(3);
 					}
-					else
+					else if (m.getName().startsWith("jsFunction_")) //$NON-NLS-1$
 					{
-						nativeJavaMethod = new NativeJavaMethod(Utils.arrayAdd(nativeJavaMethod.getMethods(), new MemberBox(m), true), name);
+						name = m.getName().substring(11);
 					}
-					jsFunctions.put(name, nativeJavaMethod);
+					else if (AnnotationManagerReflection.getInstance().isAnnotationPresent(m, FoundSet.class, JSFunction.class))
+					{
+						name = m.getName();
+					}
+					if (name != null)
+					{
+						NativeJavaMethod nativeJavaMethod = jsFunctions.get(name);
+						if (nativeJavaMethod == null)
+						{
+							nativeJavaMethod = new NativeJavaMethod(m, name);
+						}
+						else
+						{
+							nativeJavaMethod = new NativeJavaMethod(Utils.arrayAdd(nativeJavaMethod.getMethods(), new MemberBox(m), true), name);
+						}
+						jsFunctions.put(name, nativeJavaMethod);
+					}
+				}
+				if (serviceProvider != null)
+				{
+					serviceProvider.getRuntimeProperties().put(IServiceProvider.RT_JSFOUNDSET_FUNCTIONS, jsFunctions);
 				}
 			}
-		}
-		catch (Exception e)
-		{
-			Debug.error(e);
+			catch (Exception e)
+			{
+				Debug.error(e);
+			}
 		}
 	}
 
@@ -223,6 +239,7 @@ public abstract class FoundSet implements IFoundSetInternal, IRowListener, Scrip
 		List<SortColumn> defaultSortColumns) throws ServoyException
 	{
 		fsm = (FoundSetManager)app;
+		initJSFunctions(fsm.getApplication());
 		if (sheet == null)
 		{
 			throw new IllegalArgumentException(app.getApplication().getI18NMessage("servoy.foundSet.error.sqlsheet")); //$NON-NLS-1$
@@ -1672,8 +1689,102 @@ public abstract class FoundSet implements IFoundSetInternal, IRowListener, Scrip
 			fsm.getSQLGenerator().addSorts(sqlSelect, sqlSelect.getTable(), this, sheet.getTable(), lastSortColumns == null ? defaultSort : lastSortColumns,
 				true);
 		}
+		else
+		{
+			// try to determine the SortColumns from the query-sort
+			lastSortColumns = determineSortColumns(sqlSelect);
+		}
 
 		return loadByQuery(addFilterConditions(sqlSelect, foundSetFilters));
+	}
+
+	/**
+	 * @param sqlSelect
+	 * @return
+	 * @throws RepositoryException
+	 */
+	private List<SortColumn> determineSortColumns(QuerySelect sqlSelect) throws RepositoryException
+	{
+		List<SortColumn> sortColumns = null;
+		for (IQuerySort qsort : Utils.iterate(sqlSelect.getSorts()))
+		{
+			if (qsort instanceof QuerySort)
+			{
+				IQuerySelectValue qcolumn = ((QuerySort)qsort).getColumn();
+				if (qcolumn instanceof QueryColumn)
+				{
+					ColumnWrapper columnWrapper = findColumnWrapperForColumn(sqlSelect, (QueryColumn)qcolumn);
+					if (columnWrapper != null)
+					{
+						if (sortColumns == null)
+						{
+							sortColumns = new ArrayList<>();
+						}
+						SortColumn sortColumn = new SortColumn(columnWrapper);
+						sortColumn.setSortOrder(((QuerySort)qsort).isAscending() ? SortColumn.ASCENDING : SortColumn.DESCENDING);
+						sortColumns.add(sortColumn);
+						continue; // otherwise stop searching
+					}
+				}
+			}
+		}
+
+		// stop searching when no match could be made to a valid column, return the ones found or null when nothing matched
+		return sortColumns;
+	}
+
+	private ColumnWrapper findColumnWrapperForColumn(QuerySelect sqlSelect, QueryColumn qcolumn) throws RepositoryException
+	{
+		List<Relation> relationSequence = findQueryRelationSequence(sqlSelect, qcolumn.getTable());
+		if (relationSequence == null)
+		{
+			return null;
+		}
+
+		// found the relations, match the column (by sqlName)
+		ITable table = fsm.getTable(qcolumn.getTable().getDataSource());
+		if (table != null)
+		{
+			IColumn column = table.getColumnBySqlname(qcolumn.getName());
+			if (column != null)
+			{
+				return new ColumnWrapper(column, relationSequence.toArray(new Relation[relationSequence.size()]));
+			}
+		}
+
+		return null;
+	}
+
+	private List<Relation> findQueryRelationSequence(QuerySelect sqlSelect, BaseQueryTable qTable)
+	{
+		if (sqlSelect.getTable() == qTable)
+		{
+			// column on base table, not related
+			return Collections.emptyList();
+		}
+
+		// find the join to this table
+		for (ISQLJoin join : Utils.iterate(sqlSelect.getJoins()))
+		{
+			if (join.getName() != null && join instanceof QueryJoin && ((QueryJoin)join).getForeignTable() == qTable)
+			{
+				Relation relation = fsm.getRelation(join.getName());
+				if (relation != null && relation.getForeignDataSource().equals(qTable.getDataSource()))
+				{
+					List<Relation> subRelated = findQueryRelationSequence(sqlSelect, ((QueryJoin)join).getPrimaryTable());
+					if (subRelated != null)
+					{
+						// found matching relation sequence
+						List<Relation> relationSequence = new ArrayList<>(subRelated);
+						relationSequence.add(relation);
+						return relationSequence;
+					}
+				}
+			}
+		}
+
+		// not found
+		return null;
 	}
 
 	/**
@@ -5906,6 +6017,7 @@ public abstract class FoundSet implements IFoundSetInternal, IRowListener, Scrip
 				}
 			})
 			{
+
 				@Override
 				public String getClassName()
 				{

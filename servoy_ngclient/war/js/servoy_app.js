@@ -13,9 +13,9 @@ angular.module('servoyApp', ['sabloApp', 'servoy','webStorageModule','servoy-com
     $translateProvider.useMissingTranslationHandler('translateFilterServoyI18nMessageLoader');
     $translateProvider.forceAsyncReload(true);
 	
-}]).factory('$servoyInternal', function ($rootScope, webStorage, $anchorConstants, $q, $solutionSettings, $window, $sessionService, $sabloConverters, $sabloUtils, $sabloApplication, $utils,$foundsetTypeConstants) {
+}]).factory('$servoyInternal', function ($rootScope, webStorage, $anchorConstants, $q, $solutionSettings, $window, $sessionService, $sabloConverters, $sabloUtils, $sabloApplication, $applicationService, $utils,$foundsetTypeConstants) {
 
-	var getComponentChanges = function(now, prev, beanConversionInfo, beanLayout, parentSize, property, beanModel) {
+	function getComponentChanges(now, prev, beanConversionInfo, beanLayout, parentSize, property, beanModel) {
 
 		var changes = $sabloApplication.getComponentChanges(now, prev, beanConversionInfo, parentSize, property)
 		// TODO: visibility must be based on properties of type visible, not on property name
@@ -25,9 +25,9 @@ angular.module('servoyApp', ['sabloApp', 'servoy','webStorageModule','servoy-com
 			}
 		}
 		return changes;
-	};
+	}
 
-	var sendChanges = function(now, prev, formname, beanname, property) {
+	function sendChanges(now, prev, formname, beanname, property) {
 		$sabloApplication.getFormStateWithData(formname).then(function (formState) {
 			var beanConversionInfo = $sabloUtils.getInDepthProperty($sabloApplication.getFormStatesConversionInfo(), formname, beanname);
 			var changes = getComponentChanges(now, prev, beanConversionInfo, formState.layout[beanname], formState.properties.designSize, property, formState.model[beanname]);
@@ -43,15 +43,15 @@ angular.module('servoyApp', ['sabloApp', 'servoy','webStorageModule','servoy-com
 				}
 			}
 		})
-	};
-
-	var applyBeanData = function(beanModel, beanLayout, beanData, containerSize, changeNotifierGenerator, beanConversionInfo, newConversionInfo, componentScope) {
+	}
+	
+	function applyBeanData(beanModel, beanLayout, beanData, containerSize, changeNotifierGenerator, beanConversionInfo, newConversionInfo, componentScope) {
 
 		$sabloApplication.applyBeanData(beanModel, beanData, containerSize, changeNotifierGenerator, beanConversionInfo, newConversionInfo, componentScope)
 		applyBeanLayout(beanModel, beanLayout, beanData, containerSize, true)
 	}
 
-	var applyBeanLayout = function(beanModel, beanLayout, beanData, containerSize, isApplyBeanData) {
+	function applyBeanLayout(beanModel, beanLayout, beanData, containerSize, isApplyBeanData) {
 
 		var runtimeChanges = !isApplyBeanData && ( beanData.size != undefined || beanData.location != undefined );
 		//beanData.anchors means anchors changed or must be initialized
@@ -189,10 +189,14 @@ angular.module('servoyApp', ['sabloApp', 'servoy','webStorageModule','servoy-com
 			// data got back from the server
 			for(var formname in msg.forms) {
 				// current model
-				if (!$sabloApplication.hasFormState(formname)) continue;
-				// if the formState is on the server but not here anymore, skip it. 
-				// this can happen with a refresh on the browser.
-				$sabloApplication.getFormState(formname).then(getFormMessageHandler(formname, msg, conversionInfo));
+				if (!$sabloApplication.hasFormState(formname)) {
+					// if the form is not yet on the client ,wait for it and then apply it
+					$sabloApplication.getFormState(formname).then(getFormMessageHandler(formname, msg, conversionInfo), 
+							function(err) { $log.error("Error getting form state (svy) when trying to handle msg. from server: " + err); });
+				}
+				else {
+					getFormMessageHandler(formname, msg, conversionInfo)($sabloApplication.getFormStateEvenIfNotYetResolved(formname));
+				}
 			}
 			
 			function setFindMode(beanData)
@@ -419,7 +423,7 @@ angular.module('servoyApp', ['sabloApp', 'servoy','webStorageModule','servoy-com
 				throw new Error("formname is undefined");
 			}
 			$sabloApplication.getFormState(formname).then(function (formState) {
-				// if first show of this form in browser window then request initial data (dataproviders and such)
+				// if first show of this form in browser window then request initial data (dataproviders and such);
 				if (notifyFormVisibility) $sabloApplication.callService('formService', 'formvisibility', {formname:formname,visible:true,parentForm:parentForm,bean:beanName,relation:relationname,formIndex:formIndex}, true);
 				if (formState.initializing && !formState.initialDataRequested) $servoyInternal.requestInitialData(formname, formState);
 			});
@@ -808,7 +812,7 @@ angular.module('servoyApp', ['sabloApp', 'servoy','webStorageModule','servoy-com
 						blocked = true;
 						// so the form is already (being) loaded in non-hidden div; hidden div can relax; it shouldn't load form twice
 					} else {
-						// else it is already loaded in hidden div but now it wants to load in non-hidden div; so this has priority; allow it
+						// else it is already loaded in hidden div but now it wants to load in non-hidden div; so this has priority; allow it; here getScope() is the scope provided by the hidden div load; the new one was not yet contributed
 						if (formState.getScope) formState.getScope().hiddenDivFormDiscarded = true; // skip altering form state on hidden form scope destroy (as destroy might happen after the other place loads the form); new load will soon resolve the form again if it hasn't already at that time
 						if ($sabloApplication.hasResolvedFormState(formName)) $sabloApplication.unResolveFormState(formName);
 						else formState.blockPostLinkInHidden = true;
@@ -828,21 +832,20 @@ angular.module('servoyApp', ['sabloApp', 'servoy','webStorageModule','servoy-com
 						delete formState.blockPostLinkInHidden; // the form began to load in a real location; don't resolve it in hidden div anymore
 						return;
 					}
-					if ($log.debugEnabled) $log.debug("svy * svyFormload will resolve = " + formName);
 
-					// some info about why I suspect this timeout was added: normally this post link impl was intendended to mean "all directives below the form are linked/ready"; but
-					// when directives in angular use template reference instead of inline html template this is not true; so the timeout was added I think just to postpone
-					// resolving a form some more to avoid trouble; normally we should implement a way of really detecting when all child directives are linked and removing this timeout
-					$timeout(function() {
-						// check again (because of the use of $timeout above) if the form was shown in a real location meanwhile in which case we must not resolve it from hidden div
-						if (inHiddenDiv && formState && formState.blockPostLinkInHidden) {
-							delete formState.blockPostLinkInHidden; // the form began to load in a real location; don't resolve it in hidden div anymore
-							return;
-						}
-						
-						var resolvedFormState = $sabloApplication.resolveFormState(formName);
-						if (resolvedFormState) {
-							$sabloApplication.callService('formService', 'formLoaded', { formname: formName }, true)
+					// we used to do the rest of the following code in a $timeout to make sure components (that use templateURL so they load async) did register their APIs in their link methods;
+					// but now the API call code will wait itself for a while so that the APIs to be contributed by components; all other usages of 'resolved' form states don't need the actual
+					// components to be fully loaded, and avoiding that $timeout makes the app. run faster + avoids the form being already hidden before it executes
+					
+					if ($log.debugEnabled) $log.debug("svy * svyFormload is now resolving form: " + formName);
+					var resolvedFormState = $sabloApplication.resolveFormState(formName);
+
+					if (resolvedFormState) {
+						if ($log.debugEnabled) $log.debug("svy * svyFormload is letting server know that form in now resolved: " + formName);
+						$sabloApplication.callService('formService', 'formLoaded', { formname: formName }, true)
+
+						function initializeFormSizes()
+						{
 							var formWidth = element.prop('offsetWidth');
 							var formHeight = element.prop('offsetHeight');
 							// for some reason, height is not 0 in firefox for svy-formload tag; should we just assume the structure and remove this test altogether?
@@ -850,11 +853,25 @@ angular.module('servoyApp', ['sabloApp', 'servoy','webStorageModule','servoy-com
 							{
 								var formWidth = element.children().prop('offsetWidth');
 								var formHeight = element.children().prop('offsetHeight');
-							}	
+							}
+		
 							resolvedFormState.properties.size.width = formWidth; // formState.properties == formState.getScope().formProperties here
 							resolvedFormState.properties.size.height = formHeight;
+
 						}
-					});
+						
+						// also update this size in a timeout as here it seems element bounds are not yet stable (sometimes they are 0,0 sometimes height is wrong)
+						$timeout(function() {
+							// check again (because of the use of $timeout above) if the form was shown in a real location meanwhile in which case we must not rely on these DOM elements anymore
+							if (inHiddenDiv && formState && formState.blockPostLinkInHidden) {
+								delete formState.blockPostLinkInHidden; // the form began to load in a real location; don't resolve it in hidden div anymore
+								return;
+							}
+							
+							initializeFormSizes();
+							if ($log.debugEnabled) $log.debug("svy * in postLink TOut of svyFormload (" + formName + "): resolvedFormState.properties.size = (" + resolvedFormState.properties.size.width + ", " + resolvedFormState.properties.size.height + ")");
+						});
+					}
 				}
 			}
 		}
@@ -1070,51 +1087,67 @@ angular.module('servoyApp', ['sabloApp', 'servoy','webStorageModule','servoy-com
 			keyboard: false
 		});				
 	}
+	var uiProperties;
+	function getUiProperties() {
+		if (!angular.isDefined(uiProperties)) {
+			var json = webStorage.session.get("uiProperties");
+			if (json) {
+				uiProperties = JSON.parse(json);
+			} else {
+				uiProperties = {};
+			}
+		}
+		return uiProperties;
+	}
+	
+	var userProperties;
+	function getUserProperties() {
+		if (!angular.isDefined(userProperties)) {
+			var json = webStorage.session.get("userProperties");
+			if (json) {
+				userProperties = JSON.parse(json);
+			} else {
+				userProperties = {};
+			}
+		}
+		return userProperties;
+	}
+	
+	function trustAsHtml(beanModel) {
+		
+		if (beanModel && beanModel.clientProperty && angular.isDefined(beanModel.clientProperty.trustDataAsHtml))
+		{
+			return beanModel.clientProperty.trustDataAsHtml;
+		}
+		
+		return getUiProperties()["trustDataAsHtml"];
+	}
+	
 	return {
 		setStyleSheets: function(paths) {
 			$solutionSettings.styleSheetPaths = paths;
 			if (!$rootScope.$$phase) $rootScope.$digest();
 		},
 		getUserProperty: function(key) {
-			var json = webStorage.local.get("userProperties");
-			if (json) {
-				return JSON.parse(json)[key];
-			}
-			return null;
+			return getUserProperties()[key];
 		},
 		setUserProperty: function(key,value) {
-			var obj = {}
-			var json = webStorage.local.get("userProperties");
-			if (json) {
-				obj = JSON.parse(json);
-			}
-			if (value == null) delete obj[key]
-			else obj[key] = value;
-			webStorage.local.add("userProperties", JSON.stringify(obj))
+			var userProps = getUserProperties();
+			if (value == null) delete userProps[key];
+			else userProps[key] = value;
+			webStorage.local.add("userProperties", JSON.stringify(userProps))
 		},
 		getUIProperty: function(key) {
-			var json = webStorage.session.get("uiProperties");
-			if (json) {
-				return JSON.parse(json)[key];
-			}
-			return null;
+			return getUiProperties()[key];
 		},
 		setUIProperty: function(key,value) {
-			var obj = {}
-			var json = webStorage.session.get("uiProperties");
-			if (json) {
-				obj = JSON.parse(json);
-			}
-			if (value == null) delete obj[key]
-			else obj[key] = value;
-			webStorage.session.add("uiProperties", JSON.stringify(obj))
+			var uiProps = getUiProperties();
+			if (value == null) delete uiProps[key];
+			else uiProps[key] = value;
+			webStorage.session.add("uiProperties", JSON.stringify(uiProps))
 		},
 		getUserPropertyNames: function() {
-			var json = webStorage.local.get("userProperties");
-			if (json) {
-				return Object.getOwnPropertyNames(JSON.parse(json));
-			}
-			return [];
+			return Object.getOwnPropertyNames(getUserProperties());
 		},
 		showMessage: function(message) {
 			$window.alert(message);
@@ -1273,7 +1306,8 @@ angular.module('servoyApp', ['sabloApp', 'servoy','webStorageModule','servoy-com
 		},
 		getSolutionName: function() {
 			return $solutionSettings.solutionName;
-		}
+		},
+		trustAsHtml: trustAsHtml
 	}
 
 }])

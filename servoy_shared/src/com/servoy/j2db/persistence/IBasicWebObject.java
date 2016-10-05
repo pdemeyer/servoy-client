@@ -52,4 +52,5 @@ public interface IBasicWebObject extends ISupportChilds
 
 	void clearChanged();
 
+	Object getOwnProperty(String propertyName);
 }

@@ -47,7 +47,6 @@ import com.servoy.j2db.ApplicationException;
 import com.servoy.j2db.IApplication;
 import com.servoy.j2db.component.ComponentFactory;
 import com.servoy.j2db.dataprocessing.ValueFactory.DbIdentValue;
-import com.servoy.j2db.dataprocessing.datasource.JSDataSources;
 import com.servoy.j2db.documentation.ServoyDocumented;
 import com.servoy.j2db.persistence.Column;
 import com.servoy.j2db.persistence.ColumnInfo;
@@ -123,7 +122,7 @@ public class JSDatabaseManager implements IJSDatabaseManager
 		{
 			public Class< ? >[] getAllReturnedTypes()
 			{
-				return new Class< ? >[] { COLUMNTYPE.class, SQL_ACTION_TYPES.class, JSColumn.class, JSDataSet.class, JSDataSources.class, JSFoundSetUpdater.class, Record.class, FoundSet.class, JSTable.class, //
+				return new Class< ? >[] { COLUMNTYPE.class, SQL_ACTION_TYPES.class, JSColumn.class, JSDataSet.class, JSFoundSetUpdater.class, Record.class, FoundSet.class, JSTable.class, //
 				QBSelect.class, QBAggregate.class, QBColumn.class, QBColumns.class, QBCondition.class, //
 				QBFunction.class, QBGroupBy.class, QBJoin.class, QBJoins.class, QBLogicalCondition.class, QBWhereCondition.class, QBResult.class, //
 				QBSort.class, QBSorts.class, QBTableClause.class, QBPart.class, QBParameter.class, QBParameters.class, QBFunctions.class, QUERY_COLUMN_TYPES.class };
@@ -1648,6 +1647,10 @@ public class JSDatabaseManager implements IJSDatabaseManager
 	/**
 	 * Returns an array of edited records with outstanding (unsaved) data.
 	 *
+	 * This is different form JSRecord.isEditing() because this call actually checks if there are changes between the current
+	 * record data and the stored data in the database. If there are no changes then the record is removed from the edited records
+	 * list (so after this call JSRecord.isEditing() can return false when it returned true just before this call)
+	 *
 	 * NOTE: To return a dataset of outstanding (unsaved) edited data for each record, see JSRecord.getChangedData();
 	 * NOTE2: The fields focus may be lost in user interface in order to determine the edits.
 	 *
@@ -2226,7 +2229,7 @@ public class JSDatabaseManager implements IJSDatabaseManager
 		checkAuthorized();
 		try
 		{
-			return application.getFoundSetManager().getTable(dataSource) != null;
+			return application.getFoundSetManager().dataSourceExists(dataSource);
 		}
 		catch (RepositoryException e)
 		{

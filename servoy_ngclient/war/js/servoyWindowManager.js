@@ -194,7 +194,7 @@ angular.module('servoyWindowManager',['sabloApp'])	// TODO Refactor so that wind
 		var realFormUrl = formTemplateUrls[formName];
 		if (realFormUrl == null || realFormUrl == undefined) {
 			formTemplateUrls[formName] = "";
-			$sabloApplication.callService("$windowService", "touchForm", {name:formName},true);
+			$sabloApplication.callService("$windowService", "touchForm", { name: formName }, true);
 		}
 		else if (realFormUrl.length == 0)
 		{
@@ -205,19 +205,27 @@ angular.module('servoyWindowManager',['sabloApp'])	// TODO Refactor so that wind
 	}
 
 	function prepareFormForUseInHiddenDiv(formName) {
-		// the code should work even if we remove all the following timeouts, just execute directly - but these are mean as an optimization for the common cases
+		// the code should work even if we remove all the following timeouts, just execute directly - but these are meant as an optimization for the common cases
 		$timeout(function() { // $timeout (a random number of multiple ones) are used to try to avoid cases in which a component already will use the template URL in which case we avoid loading it in hidden div unnecessarily
 			$timeout(function() {
 				$timeout(function() {
 					$timeout(function() {
-						if ($log.debugEnabled) $log.debug("svy * checking if prepareFormForUseInHiddenDiv needs to do something: " + formName);
+						if ($log.debugEnabled) $log.debug("svy * checking if prepareFormForUseInHiddenDiv still needs to do something (form isn't already loaded elsewhere): " + formName);
 						if (!$sabloApplication.hasResolvedFormState(formName)) {
 							// in order to call web component API's for example we will create appropriate DOM and create the directives/scopes (but hidden) so that API call doesn't go to destroyed web component...
 							var formURL = formTemplateUrls[formName];
-							if (formURL && formURL.length > 0) $rootScope.updatingFormUrl = formURL; // normally the form URL is already there
-							else {
-								$log.error("svy * Trying to reload hidden form, but rel URL is empty; forcing reload... " + formName);
-								$rootScope.updatingFormUrl = getFormUrl(formName);
+							
+							// the form URL should be already there (sync/async api calls or other things that require forms to be loaded somewhere usually also do touchForm which populates the URL beforehand);
+							// the exception here is delayed-until-form-load API calls (like requestFocus) that will not do touchForm but those shouldn't call prepareFormForUseInHiddenDiv anyway, they just wait for the form to get loaded by someone else
+							if (formURL && formURL.length > 0) {
+								$rootScope.updatingFormUrl = formURL;
+								$sabloApplication.getFormState(formName).then(function (formState) {
+									// if first show of this form in browser window then request initial data (dataproviders and such);
+									if (formState.initializing && !formState.initialDataRequested) $servoyInternal.requestInitialData(formName, formState);
+								});
+							} else {
+								$log.error("svy * Trying to load form in hidden, but form URL is empty (not yet prepared); forcing reload... " + formName);
+								$rootScope.updatingFormUrl = getFormUrl(formName); // will still be null, but it will call a force touch on server that should end up loading it in hidden... see updateController
 							}
 							if ($log.debugEnabled) $log.debug("svy * $rootScope.updatingFormUrl = " + $rootScope.updatingFormUrl + " [prepareFormForUseInHiddenDiv - " + formName + "]");
 							$rootScope.updatingFormName = formName;
@@ -345,7 +353,7 @@ angular.module('servoyWindowManager',['sabloApp'])	// TODO Refactor so that wind
 					$sabloTestability.increaseEventLoop();
 					instance.bsWindowInstance.$el.on('bswin.resize',instance.onResize)
 					instance.bsWindowInstance.$el.on('bswin.move',instance.onMove)
-					instance.bsWindowInstance.$el.on("setActive", function(ev, active) {
+					instance.bsWindowInstance.$el.on("bswin.active", function(ev, active) {
 						$(ev.currentTarget).trigger(active ? "enableTabseq" : "disableTabseq");
 					});
 					instance.bsWindowInstance.setActive(true);
@@ -492,7 +500,8 @@ angular.module('servoyWindowManager',['sabloApp'])	// TODO Refactor so that wind
 				$sabloApplication.clearFormState(formName)
 				eval(controllerCode);
 				formTemplateUrls[formName] = realFormUrl;
-				// if the form was already intialized and visible, then make sure it is initialized again.
+				
+				// if the form was already initialized and visible, then make sure it is reinitialized
 				if (formState && formState.getScope != undefined)
 				{
 					$sabloApplication.getFormState(formName).then(function (formState) {
@@ -500,11 +509,17 @@ angular.module('servoyWindowManager',['sabloApp'])	// TODO Refactor so that wind
 						if (formState.initializing && !formState.initialDataRequested) $servoyInternal.requestInitialData(formName, formState);
 					});
 				}
+				
 				// TODO can this be an else if the above if? will it always force load anyway?
-				if(forceLoad) {
+				// getFormURL can force a touch when it needs to be shown in hidden div - that is why we put it in updatingFormUrl here; otherwise we'd need a promise-based formURL impl
+				if (forceLoad) {
 					$rootScope.updatingFormUrl = realFormUrl;
 					$rootScope.updatingFormName = formName;
 					if ($log.debugEnabled) $log.debug("svy * $rootScope.updatingFormUrl = " + $rootScope.updatingFormUrl + " [updateController FORCED - " + formName + "]");
+					$sabloApplication.getFormState(formName).then(function (formState) {
+						// if first show of this form in browser window then request initial data (dataproviders and such);
+						if (formState.initializing && !formState.initialDataRequested) $servoyInternal.requestInitialData(formName, formState);
+					});
 				}
 				if (!$rootScope.$$phase) $rootScope.$digest();
 			} else if ($log.debugEnabled) {
@@ -568,14 +583,8 @@ angular.module('servoyWindowManager',['sabloApp'])	// TODO Refactor so that wind
 		if(!win.size && win.navigatorForm.size){
 			width += win.navigatorForm.size.width;
 		}
-		if ($scope.shouldDisplay  == "none") {
-			$timeout(function(){
-				$scope.shouldDisplay = "block"
-			});
-		}
 		return {'width':width+'px','height':height+'px'}
 	}
-	$scope.shouldDisplay = "none" 
 
 	$formService.formWillShow(windowInstance.form.name, false);
 
@@ -588,4 +597,31 @@ angular.module('servoyWindowManager',['sabloApp'])	// TODO Refactor so that wind
 //			}
 //		})
 	};
+}).directive('unwantedDialogScrollbarsWorkaround', function($log, $timeout) { 
+	return {
+		restrict: 'A',
+		
+		link: function($scope, $element) {
+			// workaround for unneeded scrollbars appearing in dialogs in Chrome (although sizes seem ok and just toggling on and off overflow: auto in the form-in-dialog body part makes them go away) - see SVY-9172;
+			// the workaround uses some obscure JS code that force relayout of the dialog (hide, get width, show); as it will do hide an show in the same browser event cycle one after the other, there's no risk that
+			// api calls on that form (such as say a requestFocus) can get executed while content is hidden temporarily and misbehave... 
+			$timeout(function() { // TODO shouldn't this be done when we know form contents are shown rather then rely on this timeout?
+					if ($log.debugEnabled) $log.debug("svy * Unneeded scrollbars in dialog workaround is being applied... ");
+					var oldDisplay = $element.css('display');
+					var focusedChild = $element.find(":focus");
+			
+					$element.css('display', 'none');
+					$element.height();
+					$element.css('display', oldDisplay);
+					
+					try {
+						if ($log.debugEnabled && focusedChild.length > 0) $log.debug("svy * Restoring focus after unneded scrollbars workaround execution... Fe: " + focusedChild.length);
+						focusedChild.focus(); // restore child element focus if needed (focusedChild is a jQuery collection that will have either 1 elements or 0 elements - if a child was focused or not)
+					} catch (ie) {
+						/* docs say IE can end up throwing errors in a scenario that in not likely to happen here; but anyway avoid that */
+						if ($log.debugEnabled) $log.debug("svy * Restoring focus after unneded scrollbars workaround execution failed. Error: " + ie);
+					}
+			}, 0);
+		}
+	}
 });

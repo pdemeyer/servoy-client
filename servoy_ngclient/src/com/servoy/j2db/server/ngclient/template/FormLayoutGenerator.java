@@ -44,6 +44,7 @@ import com.servoy.j2db.persistence.Form;
 import com.servoy.j2db.persistence.IAnchorConstants;
 import com.servoy.j2db.persistence.IFormElement;
 import com.servoy.j2db.persistence.IPersist;
+import com.servoy.j2db.persistence.ISupportExtendsID;
 import com.servoy.j2db.persistence.LayoutContainer;
 import com.servoy.j2db.persistence.Part;
 import com.servoy.j2db.persistence.PositionComparator;
@@ -52,6 +53,7 @@ import com.servoy.j2db.server.ngclient.FormElementHelper;
 import com.servoy.j2db.server.ngclient.IFormElementCache;
 import com.servoy.j2db.server.ngclient.IServoyDataConverterContext;
 import com.servoy.j2db.server.ngclient.WebFormUI;
+import com.servoy.j2db.util.PersistHelper;
 import com.servoy.j2db.util.Settings;
 import com.servoy.j2db.util.Utils;
 
@@ -67,7 +69,7 @@ public class FormLayoutGenerator
 	{
 		StringWriter out = new StringWriter();
 		PrintWriter writer = new PrintWriter(out);
-		Iterator<IPersist> components = form.getAllObjects(PositionComparator.XY_PERSIST_COMPARATOR);
+		Iterator<IPersist> components = fs.getFlattenedForm(form).getAllObjects(PositionComparator.XY_PERSIST_COMPARATOR);
 		while (components.hasNext())
 		{
 			IPersist component = components.next();
@@ -470,7 +472,8 @@ public class FormLayoutGenerator
 				}
 
 
-				if (!fe.getForm().equals(form)) //is this inherited?
+				if (!fe.getForm().equals(form) || fe.getPersistIfAvailable() instanceof ISupportExtendsID &&
+					PersistHelper.getSuperPersist((ISupportExtendsID)fe.getPersistIfAvailable()) != null) //is this inherited or override element?
 				{
 					ngClass.put("inheritedElement", true);
 				}

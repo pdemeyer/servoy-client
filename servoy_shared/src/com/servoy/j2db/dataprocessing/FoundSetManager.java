@@ -80,6 +80,7 @@ import com.servoy.j2db.util.DataSourceUtils;
 import com.servoy.j2db.util.DatabaseUtils;
 import com.servoy.j2db.util.Debug;
 import com.servoy.j2db.util.ServoyException;
+import com.servoy.j2db.util.ServoyJSONObject;
 import com.servoy.j2db.util.SortedList;
 import com.servoy.j2db.util.StringComparator;
 import com.servoy.j2db.util.Utils;
@@ -1011,8 +1012,51 @@ public class FoundSetManager implements IFoundSetManagerInternal
 					throw new RepositoryException(e);
 				}
 			}
+			else if (DataSourceUtils.getDataSourceServerName(dataSource) == IServer.INMEM_SERVER)
+			{
+				if (!inMemDataSources.containsKey(dataSource) && dataSourceExists(dataSource))
+				{
+					try
+					{
+						createDataSourceFromDataSet(DataSourceUtils.getDataSourceTableName(dataSource), new BufferedDataSet(), null, null);
+					}
+					catch (Exception e)
+					{
+						Debug.error(e);
+					}
+				}
+				return inMemDataSources.get(dataSource);
+			}
 		}
 		return table;
+	}
+
+	public boolean dataSourceExists(String dataSource) throws RepositoryException
+	{
+		if (DataSourceUtils.getDataSourceServerName(dataSource) == IServer.INMEM_SERVER)
+		{
+			if (inMemDataSources.containsKey(dataSource))
+			{
+				return true;
+			}
+			ServoyJSONObject columnsDef = null;
+			Iterator<TableNode> tblIte = application.getFlattenedSolution().getTableNodes(dataSource);
+			while (tblIte.hasNext() && columnsDef == null)
+			{
+				TableNode tn = tblIte.next();
+				columnsDef = tn.getColumns();
+			}
+
+			if (columnsDef != null)
+			{
+				return true;
+			}
+			return false;
+		}
+		else
+		{
+			return getTable(dataSource) != null;
+		}
 	}
 
 	public Collection<String> getInMemDataSourceNames()
@@ -1403,6 +1447,11 @@ public class FoundSetManager implements IFoundSetManagerInternal
 		if (dataSource == null || !application.getFlattenedSolution().isMainSolutionLoaded())
 		{
 			return getNoTableFoundSet();
+		}
+		else
+		{
+			// make sure inmem table is created
+			getTable(dataSource);
 		}
 
 		FoundSet foundset = sharedDataSourceFoundSet.get(dataSource);
@@ -2457,16 +2506,24 @@ public class FoundSetManager implements IFoundSetManagerInternal
 
 		String dataSource = DataSourceUtils.createInmemDataSource(name);
 		FlattenedSolution s = application.getFlattenedSolution();
-		Iterator<TableNode> tblIte = s.getTableNodes(dataSource);
-
 
 		IDataSet fixedDataSet = dataSet;
 		int[] fixedIntTypes = intTypes;
 
-		if (tblIte.hasNext())
+		// get column def from the first in-mem datasource found
+		ServoyJSONObject columnsDef = null;
+		Iterator<TableNode> tblIte = s.getTableNodes(dataSource);
+		while (tblIte.hasNext() && columnsDef == null)
 		{
-			TableDef tableInfo = DatabaseUtils.deserializeTableInfo(tblIte.next().getColumns());
+			TableNode tn = tblIte.next();
+			columnsDef = tn.getColumns();
+		}
+
+		if (columnsDef != null)
+		{
+			TableDef tableInfo = DatabaseUtils.deserializeTableInfo(columnsDef);
 			ArrayList<String> inmemColumnNames = new ArrayList<String>();
+			ArrayList<String> inmemPKs = new ArrayList<String>();
 			int[] inmemColumnTypes = null;
 			ArrayList<Integer> inmemColumnTypesA = new ArrayList<Integer>();
 			for (int j = 0; j < tableInfo.columnInfoDefSet.size(); j++)
@@ -2474,8 +2531,15 @@ public class FoundSetManager implements IFoundSetManagerInternal
 				ColumnInfoDef cid = tableInfo.columnInfoDefSet.get(j);
 				inmemColumnNames.add(cid.name);
 				inmemColumnTypesA.add(Integer.valueOf(cid.columnType.getSqlType()));
+				if ((cid.flags & Column.IDENT_COLUMNS) > 0)
+				{
+					inmemPKs.add(cid.name);
+				}
 			}
-
+			if (pkNames == null && inmemPKs.size() > 0)
+			{
+				pkNames = inmemPKs.toArray(new String[0]);
+			}
 			if (inmemColumnTypesA.size() > 0)
 			{
 				inmemColumnTypes = new int[inmemColumnTypesA.size()];
@@ -2489,7 +2553,14 @@ public class FoundSetManager implements IFoundSetManagerInternal
 			{
 				fixedIntTypes = inmemColumnTypes;
 				fixedDataSet = new BufferedDataSet(inmemColumnNames.toArray(new String[inmemColumnNames.size()]), fixedIntTypes);
-				Debug.warn("Dataset definition does not match inmem table definition for datasource : " + dataSource);
+				if (!Arrays.equals(dataSet.getColumnNames(), inmemColumnNames.toArray(new String[inmemColumnNames.size()])) && dataSet.getColumnCount() > 0)
+				{
+					Debug.warn("Dataset column names definition does not match inmem table definition for datasource : " + dataSource);
+				}
+				if (!Arrays.equals(intTypes, inmemColumnTypes) && intTypes != null)
+				{
+					Debug.warn("Dataset column types definition does not match inmem table definition for datasource : " + dataSource);
+				}
 			}
 		}
 

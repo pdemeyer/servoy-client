@@ -40,11 +40,13 @@ import org.sablo.websocket.IWindow;
 import org.sablo.websocket.WebsocketSessionManager;
 
 import com.servoy.j2db.FlattenedSolution;
+import com.servoy.j2db.IApplication;
 import com.servoy.j2db.J2DBGlobals;
 import com.servoy.j2db.Messages;
 import com.servoy.j2db.persistence.Media;
 import com.servoy.j2db.persistence.RepositoryException;
 import com.servoy.j2db.persistence.Solution;
+import com.servoy.j2db.persistence.SolutionMetaData;
 import com.servoy.j2db.scripting.StartupArguments;
 import com.servoy.j2db.server.ngclient.eventthread.NGClientWebsocketSessionWindows;
 import com.servoy.j2db.server.ngclient.eventthread.NGEventDispatcher;
@@ -150,7 +152,8 @@ public class NGClientWebsocketSession extends BaseWebsocketSession implements IN
 				}
 				else
 				{
-					if (solution.isMainSolutionLoaded())
+					if (solution.isMainSolutionLoaded() ||
+						solution.getSolution() != null && solution.getSolution().getSolutionType() == SolutionMetaData.LOGIN_SOLUTION)
 					{
 						//this is needed for the situation when the solution is already loaded and the deeplink url was changed (different arg values for instance)
 						String method = args.getMethodName();
@@ -160,7 +163,7 @@ public class NGClientWebsocketSession extends BaseWebsocketSession implements IN
 							try
 							{
 								client.getScriptEngine().getScopesScope().executeGlobalFunction(null, method,
-									(firstArgument == null ? null : new Object[] { firstArgument, args.toJSMap() }), false, false);
+									(args.toJSMap().isEmpty() ? null : new Object[] { firstArgument, args.toJSMap() }), false, false);
 							}
 							catch (Exception e1)
 							{
@@ -196,6 +199,8 @@ public class NGClientWebsocketSession extends BaseWebsocketSession implements IN
 				{
 					try
 					{
+						sendUIProperties();
+
 						// the solution was not loaded or another was loaded, now create a main window and load the solution.
 						client.getRuntimeWindowManager().createMainWindow(CurrentWindow.get().getUuid());
 						client.handleArguments(
@@ -225,6 +230,14 @@ public class NGClientWebsocketSession extends BaseWebsocketSession implements IN
 		{
 			if (!client.isEventDispatchThread()) J2DBGlobals.setServiceProvider(null);
 		}
+	}
+
+	private void sendUIProperties()
+	{
+		// set default trustDataAsHtml based on system setting
+		Boolean trustDataAsHtml = Boolean.valueOf(Settings.getInstance().getProperty(Settings.TRUST_DATA_AS_HTML_SETTING, Boolean.FALSE.toString()));
+		getClientService(NGClient.APPLICATION_SERVICE).executeAsyncServiceCall("setUIProperty",
+			new Object[] { IApplication.TRUST_DATA_AS_HTML, trustDataAsHtml });
 	}
 
 	@Override

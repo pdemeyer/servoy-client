@@ -110,15 +110,29 @@ angular.module('servoyformat', []).factory("$formatterUtils", ['$filter', '$loca
 		//			data *= -1;
 		//		}
 
+		var currency;
+		
+		if (partchedFrmt.indexOf('$') >= 0) {
+			currency = '$';
+		}
+		
 		partchedFrmt = partchedFrmt.replaceAll('\u00A4', '$');
 		partchedFrmt = partchedFrmt.replaceAll('(#+)', '[$1]');
 		partchedFrmt = partchedFrmt.replaceAll('#', '0');
 
 		// test for currency, this should be improved inside numeral so it can handle literals inside the format.
-		var currency = getCurrency(servoyFormat);
+		if (!currency)
+		{
+			currency = getCurrency(servoyFormat);
+		}	
 		if (currency != "" && endsWith(partchedFrmt, currency))
+		{
 			partchedFrmt = (partchedFrmt.substring(0, partchedFrmt.indexOf(currency))).trim();
-
+		}	
+		if (currency != "" && partchedFrmt.indexOf(currency) === 0)
+		{
+			partchedFrmt = (partchedFrmt.substring(1)).trim();
+		}	
 		// get min digits
 		var minLen = 0;
 		for (i = 0; i < servoyFormat.length; i++) {
@@ -174,7 +188,7 @@ angular.module('servoyformat', []).factory("$formatterUtils", ['$filter', '$loca
 	function unformatNumbers(data, format) { // todo throw error when not coresponding to format (reimplement with state machine)
 		if (data === "") return data;
 		//treat scientiffic numbers
-		if (data.toLowerCase().indexOf('e') > -1) {
+		if (data.toString().toLowerCase().indexOf('e') > -1) {
 			return new Number(data).valueOf()
 		}
 

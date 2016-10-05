@@ -40,10 +40,10 @@ import java.util.Properties;
 import javax.crypto.Cipher;
 import javax.swing.JFrame;
 
-import net.jcip.annotations.ThreadSafe;
-
 import com.servoy.j2db.J2DBGlobals;
 import com.servoy.j2db.LAFManager;
+
+import net.jcip.annotations.ThreadSafe;
 
 @ThreadSafe
 @SuppressWarnings("nls")
@@ -72,6 +72,8 @@ public final class Settings extends SortedProperties
 	public static final String LOG_CLIENT_STATS = "servoy.log.clientstats";
 	public static final String WAIT_FOR_NATIVE_STARTUP = "waitForNativeStartup";
 	public static final String RMI_CONNECTION_TIMEOUT = "rmi.connection.timeout";
+
+	public static final String TRUST_DATA_AS_HTML_SETTING = "servoy.clientTrustDataAsHtml"; //$NON-NLS-1$
 
 	private boolean loadedFromServer = false;
 	private File file;
@@ -361,6 +363,28 @@ public final class Settings extends SortedProperties
 		}
 	}
 
+	public Object put(Object key, Object value, boolean encrypt)
+	{
+		Object val;
+		if (encrypt && value != null && !value.toString().startsWith(enc_prefix))
+		{
+			try
+			{
+				val = enc_prefix + SecuritySupport.encrypt(this, value.toString());
+			}
+			catch (Exception e)
+			{
+				Debug.error("Error encryptng setting " + key, e);
+				val = value;
+			}
+		}
+		else
+		{
+			val = value;
+		}
+		return put(key, val);
+	}
+
 	@Override
 	public synchronized void store(OutputStream out, String header) throws IOException
 	{
@@ -518,7 +542,8 @@ public final class Settings extends SortedProperties
 
 		Point l = component.getLocation();
 		Debug.trace("location of " + component.getName() + " " + l); //$NON-NLS-1$ //$NON-NLS-2$
-		put("rect_" + (solutionName != null ? solutionName + "_" : "") + component.getName() + "_bounds", PersistHelper.createRectangleString(component.getBounds())); //$NON-NLS-1$ //$NON-NLS-2$
+		put("rect_" + (solutionName != null ? solutionName + "_" : "") + component.getName() + "_bounds", //$NON-NLS-1$//$NON-NLS-2$
+			PersistHelper.createRectangleString(component.getBounds()));
 	}
 
 	public synchronized void saveBounds(Component component)

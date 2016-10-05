@@ -34,6 +34,7 @@ import org.sablo.specification.WebObjectFunctionDefinition;
 import org.sablo.specification.property.CustomJSONPropertyType;
 import org.sablo.specification.property.IBrowserConverterContext;
 import org.sablo.specification.property.IConvertedPropertyType;
+import org.sablo.specification.property.IPropertyType;
 import org.sablo.specification.property.ISupportsGranularUpdates;
 import org.sablo.util.ValueReference;
 import org.sablo.websocket.TypedData;
@@ -161,10 +162,13 @@ public class ComponentPropertyType extends CustomJSONPropertyType<ComponentTypeS
 		Set<Entry<String, PropertyDescription>> propertyDescriptors = formElement.getWebComponentSpec().getProperties().entrySet();
 		for (Entry<String, PropertyDescription> propertyDescriptorEntry : propertyDescriptors)
 		{
-			if (propertyDescriptorEntry.getValue().getType() instanceof IDataLinkedType)
+			PropertyDescription pd = propertyDescriptorEntry.getValue();
+			IPropertyType< ? > type = pd.getType();
+			if (type instanceof IDataLinkedType)
 			{
 				// as these are root-level component properties, their TargetDataLinks will always be cached (only array element values are not cached)
-				TargetDataLinks dataLinks = (TargetDataLinks)formElement.getPreprocessedPropertyInfo(IDataLinkedType.class, propertyDescriptorEntry.getValue());
+				TargetDataLinks dataLinks = ((IDataLinkedType)type).getDataLinks(formElement.getPropertyValue(pd.getName()), propertyDescriptorEntry.getValue(),
+					flattenedSolution, formElement);
 				if (dataLinks != TargetDataLinks.NOT_LINKED_TO_DATA && dataLinks != null && dataLinks.recordLinked)
 				{
 					m.add(propertyDescriptorEntry.getKey());
@@ -208,7 +212,7 @@ public class ComponentPropertyType extends CustomJSONPropertyType<ComponentTypeS
 		if (conversionMarkers != null) conversionMarkers.convert(ComponentPropertyType.TYPE_NAME); // so that the client knows it must use the custom client side JS for what JSON it gets
 
 		// create children of component as specified by this property
-		final FormElementContext feContext = new FormElementContext(formElementValue.element, formElementContext.getContext());
+		final FormElementContext feContext = new FormElementContext(formElementValue.element, formElementContext.getContext(), null);
 		JSONUtils.addKeyIfPresent(writer, key);
 
 		writer.object();

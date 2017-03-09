@@ -302,7 +302,6 @@ angular.module('window',['servoy'])
 					var formState = $sabloApplication.getFormStateEvenIfNotYetResolved(scope.model.popupform.form);
 					if (formState) {
 						formState.getScope().$destroy();
-						$sabloApplication.clearFormState(scope.model.popupform.form);
 					}
 				}
 				popup.remove();
@@ -327,7 +326,7 @@ angular.module('window',['servoy'])
 					if (cssClass == 'img_checkbox' && items[j].selected != true)
 					{
 						// not selected checkbox
-						cssClass = null;
+						cssClass = 'img_checkbox_unselected';
 					}
 					if (cssClass == 'img_radio_off' && items[j].selected == true)
 					{

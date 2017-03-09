@@ -68,6 +68,7 @@ public class Debug
 	{
 		try
 		{
+			// RAGTEST te laat
 			System.setProperty("org.apache.commons.logging.simplelog.showdatetime", "true");
 			System.setProperty("org.apache.commons.logging.simplelog.dateTimeFormat", "yyyy-MM-dd HH:mm");
 			System.setProperty("org.apache.commons.logging.simplelog.defaultlog", "warn");
@@ -139,7 +140,7 @@ public class Debug
 		if (HASMDC == null)
 		{
 			try
-			{
+			{// RAGTEST log4j2
 				Class.forName("org.slf4j.MDC");
 				HASMDC = Boolean.TRUE;
 			}

@@ -777,7 +777,7 @@ public class JSDatabaseManager implements IJSDatabaseManager
 	 *
 	 * @param values The values array.
 	 * @param dataproviderNames The property names array.
-	
+
 	 * @return JSDataSet with the data.
 	 */
 	public JSDataSet js_convertToDataSet(Object[] values, String[] dataproviderNames)
@@ -866,7 +866,7 @@ public class JSDatabaseManager implements IJSDatabaseManager
 	 * @sampleas js_convertToDataSet(IFoundSetInternal)
 	 *
 	 * @param values The values array.
-	
+
 	 * @return JSDataSet with the data.
 	 */
 	public JSDataSet js_convertToDataSet(Object[] values)
@@ -1020,7 +1020,7 @@ public class JSDatabaseManager implements IJSDatabaseManager
 	 *
 	 * @param name data source name
 	 * @param server_name The name of the server where the query should be executed.
-	 * @param sql_query The custom sql.
+	 * @param sql_query The custom sql, must start with 'select', 'call', 'with' or 'declare'.
 	 * @param arguments Specified arguments or null if there are no arguments.
 	 * @param max_returned_rows The maximum number of rows returned by the query.
 	 *
@@ -1057,7 +1057,7 @@ public class JSDatabaseManager implements IJSDatabaseManager
 	 *
 	 * @param name data source name
 	 * @param server_name The name of the server where the query should be executed.
-	 * @param sql_query The custom sql.
+	 * @param sql_query The custom sql, must start with 'select', 'call', 'with' or 'declare'.
 	 * @param arguments Specified arguments or null if there are no arguments.
 	 * @param max_returned_rows The maximum number of rows returned by the query.
 	 * @param types The column types
@@ -1095,7 +1095,7 @@ public class JSDatabaseManager implements IJSDatabaseManager
 	 *
 	 * @param name data source name
 	 * @param server_name The name of the server where the query should be executed.
-	 * @param sql_query The custom sql.
+	 * @param sql_query The custom sql, must start with 'select', 'call', 'with' or 'declare'.
 	 * @param arguments Specified arguments or null if there are no arguments.
 	 * @param max_returned_rows The maximum number of rows returned by the query.
 	 * @param columnTypes The column types
@@ -1314,7 +1314,7 @@ public class JSDatabaseManager implements IJSDatabaseManager
 	 * //employee_salary = dataset.getValue(row,column)
 	 *
 	 * @param server_name The name of the server where the query should be executed.
-	 * @param sql_query The custom sql.
+	 * @param sql_query The custom sql, must start with 'select', 'call', 'with' or 'declare'.
 	 * @param arguments Specified arguments or null if there are no arguments.
 	 * @param max_returned_rows The maximum number of rows returned by the query.
 	 *
@@ -2167,9 +2167,7 @@ public class JSDatabaseManager implements IJSDatabaseManager
 	@JSFunction
 	public String getDataSourceServerName(String dataSource)
 	{
-		String[] retval = DataSourceUtilsBase.getDBServernameTablename(dataSource);
-		if (retval == null) return null;
-		return retval[0];
+		return DataSourceUtils.getDataSourceServerName(dataSource);
 	}
 
 	/**
@@ -2190,9 +2188,7 @@ public class JSDatabaseManager implements IJSDatabaseManager
 	@JSFunction
 	public String getDataSourceTableName(String dataSource)
 	{
-		String[] retval = DataSourceUtilsBase.getDBServernameTablename(dataSource);
-		if (retval == null) return null;
-		return retval[1];
+		return DataSourceUtils.getDataSourceTableName(dataSource);
 	}
 
 	/**
@@ -2309,18 +2305,12 @@ public class JSDatabaseManager implements IJSDatabaseManager
 	 */
 	public JSTable js_getTable(String dataSource) throws ServoyException
 	{
-		String serverName = null;
-		String tableName = null;
-		if (dataSource != null)
+		ITable table = application.getFoundSetManager().getTable(dataSource);
+		if (table != null)
 		{
-			String[] server_table = DataSourceUtilsBase.getDBServernameTablename(dataSource);
-			if (server_table != null)
-			{
-				serverName = server_table[0];
-				tableName = server_table[1];
-			}
+			return new JSTable(table, application.getSolution().getServer(table.getServerName()));
 		}
-		return js_getTable(serverName, tableName);
+		return null;
 	}
 
 	/**
@@ -2668,7 +2658,7 @@ public class JSDatabaseManager implements IJSDatabaseManager
 	 * @sampleas saveData()
 	 *
 	 * @param foundset The JSFoundset to save.
-	
+
 	 * @return true if the save was done without an error.
 	 */
 	@JSFunction
@@ -2695,7 +2685,7 @@ public class JSDatabaseManager implements IJSDatabaseManager
 	 * @sampleas saveData()
 	 *
 	 * @param record The JSRecord to save.
-	
+
 	 * @return true if the save was done without an error.
 	 */
 	@JSFunction
@@ -2760,6 +2750,31 @@ public class JSDatabaseManager implements IJSDatabaseManager
 		{
 			throw new RuntimeException("Can't get new foundset for: " + dataSource, e); //$NON-NLS-1$
 		}
+	}
+
+	/**
+	 * Returns a named foundset object created under a specific name. If foundset does not exist, null will be returned.
+	 * Alternative method: datasources.db.server_name.table_name.getFoundSet(name)
+	 *
+	 * @sample
+	 * // type the foundset returned from the call with JSDoc, fill in the right server/tablename
+	 * /** @type {JSFoundset<db:/servername/tablename>} *&#47;
+	 * var fs = databaseManager.getNamedFoundSet('myname')
+	 * // same as datasources.db.example_data.orders.getFoundSet('myname')
+	 * var ridx = fs.newRecord()
+	 * var record = fs.getRecord(ridx)
+	 * record.emp_name = 'John'
+	 * databaseManager.saveData()
+	 *
+	 * @param name The named foundset name
+	 *
+	 * @return An existing named(separate) foundset.
+	 */
+	@JSFunction
+	public IJSFoundSet getNamedFoundSet(String name) throws ServoyException
+	{
+		checkAuthorized();
+		return (FoundSet)application.getFoundSetManager().getNamedFoundSet(name);
 	}
 
 	/**
@@ -3862,7 +3877,7 @@ public class JSDatabaseManager implements IJSDatabaseManager
 	 * @param source The source record or (java/javascript)object to be copied.
 	 * @param destination The destination record to copy to.
 	 * @param names The property names that shouldn't be overriden.
-	
+
 	 * @return true if no errors happened.
 	 */
 	public boolean js_copyMatchingFields(Object source, IRecordInternal destination, String[] names) throws ServoyException

@@ -38,6 +38,7 @@ import com.servoy.j2db.scripting.GlobalScope;
 import com.servoy.j2db.scripting.ScopesScope;
 import com.servoy.j2db.scripting.SolutionScope;
 import com.servoy.j2db.util.Debug;
+import com.servoy.j2db.util.Utils;
 
 
 /**
@@ -172,6 +173,12 @@ public abstract class BasicFormManager implements IBasicFormManager
 			return false;
 		}
 
+		// it has a parent form, that is not destroyed, form is used when parent form is visible, skip delete
+		if (fp.hasParentForm())
+		{
+			return false;
+		}
+
 		//  cannot be deleted if a global var has a ref
 		ScopesScope scopesScope = application.getScriptEngine().getScopesScope();
 		if (hasReferenceInScriptable(scopesScope, fp, new HashSet<Scriptable>()))
@@ -298,6 +305,17 @@ public abstract class BasicFormManager implements IBasicFormManager
 	public void touch(IFormController fp)
 	{
 		addAsLastInLeaseHistory(fp);
+	}
+
+	protected void hideFormIfVisible(IFormController fc)
+	{
+		if (fc.isFormVisible())
+		{
+			fc.getFormUI().setComponentVisible(false);
+			List<Runnable> invokeLaterRunnables = new ArrayList<Runnable>();
+			fc.notifyVisible(false, invokeLaterRunnables);
+			Utils.invokeLater(application, invokeLaterRunnables);
+		}
 	}
 
 	protected int getMaxFormsLoaded()

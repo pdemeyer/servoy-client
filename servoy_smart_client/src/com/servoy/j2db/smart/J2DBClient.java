@@ -1631,9 +1631,12 @@ public class J2DBClient extends ClientState
 
 								KeyStroke k = KeyStroke.getKeyStroke(keyStroke.getKeyCode(), modifiers);
 
-								Object mapVal = map.get(keyStroke);
-								map.remove(keyStroke);
-								map.put(k, mapVal);
+								if (map.get(k) == null)
+								{
+									Object mapVal = map.get(keyStroke);
+									map.remove(keyStroke);
+									map.put(k, mapVal);
+								}
 							}
 
 						}
@@ -4290,7 +4293,7 @@ public class J2DBClient extends ClientState
 				chooser = null;
 				registerWindow("JDateChooser", chooser);
 			}
-			String dateFormat = TagResolver.getFormatString(Date.class, getSettings());
+			String dateFormat = TagResolver.getFormatString(Date.class, this);
 			chooser = new JDateChooser((JFrame)windowParent, getI18NMessage("servoy.dateChooser.selectDate"), //$NON-NLS-1$
 				dateFormat);
 			registerWindow("JDateChooser", chooser);

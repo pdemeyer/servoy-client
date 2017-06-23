@@ -33,6 +33,7 @@ import org.sablo.IChangeListener;
 import org.sablo.WebComponent;
 import org.sablo.eventthread.WebsocketSessionWindows;
 import org.sablo.specification.PropertyDescription;
+import org.sablo.specification.SpecProviderState;
 import org.sablo.specification.WebObjectFunctionDefinition;
 import org.sablo.specification.WebObjectSpecification;
 import org.sablo.specification.WebObjectSpecification.PushToServerEnum;
@@ -271,8 +272,7 @@ public class NGClient extends AbstractApplication implements INGApplication, ICh
 			Collection<WebComponent> components = formUI.getComponents();
 			for (WebComponent component : components)
 			{
-				if (component instanceof WebFormComponent)
-					NGUtils.resetI18NProperties((WebFormComponent)component, component.getSpecification(), new ComponentGetAndSetter(component));
+				if (component instanceof WebFormComponent) NGUtils.resetI18NProperties((WebFormComponent)component, component.getSpecification());
 			}
 		}
 	}
@@ -651,31 +651,35 @@ public class NGClient extends AbstractApplication implements INGApplication, ICh
 		//cleanup here before script engine is destroyed
 		if (canClose || force)
 		{
-			WebObjectSpecification[] serviceSpecifications = WebServiceSpecProvider.getSpecProviderState().getAllWebComponentSpecifications();
-			for (WebObjectSpecification serviceSpecification : serviceSpecifications)
+			SpecProviderState specProviderState = WebServiceSpecProvider.getSpecProviderState();
+			if (specProviderState != null)
 			{
-				WebObjectFunctionDefinition apiFunction = serviceSpecification.getApiFunction("cleanup");
-				if (apiFunction != null && getScriptEngine() != null)
+				WebObjectSpecification[] serviceSpecifications = specProviderState.getAllWebComponentSpecifications();
+				for (WebObjectSpecification serviceSpecification : serviceSpecifications)
 				{
-					PluginScope scope = (PluginScope)getScriptEngine().getSolutionScope().get("plugins", getScriptEngine().getSolutionScope());
-					if (scope != null)
+					WebObjectFunctionDefinition apiFunction = serviceSpecification.getApiFunction("cleanup");
+					if (apiFunction != null && getScriptEngine() != null)
 					{
-						Scriptable service = (Scriptable)scope.get(serviceSpecification.getName(), null);
-						Object api = service.get(apiFunction.getName(), null);
-						if (api instanceof Function)
+						PluginScope scope = (PluginScope)getScriptEngine().getSolutionScope().get("plugins", getScriptEngine().getSolutionScope());
+						if (scope != null)
 						{
-							Context context = Context.enter();
-							try
+							Scriptable service = (Scriptable)scope.get(serviceSpecification.getScriptingName(), null);
+							Object api = service.get(apiFunction.getName(), null);
+							if (api instanceof Function)
 							{
-								((Function)api).call(context, scope, service, null);
-							}
-							catch (Exception ex)
-							{
-								Debug.error(ex);
-							}
-							finally
-							{
-								Context.exit();
+								Context context = Context.enter();
+								try
+								{
+									((Function)api).call(context, scope, service, null);
+								}
+								catch (Exception ex)
+								{
+									Debug.error(ex);
+								}
+								finally
+								{
+									Context.exit();
+								}
 							}
 						}
 					}
@@ -1300,9 +1304,9 @@ public class NGClient extends AbstractApplication implements INGApplication, ICh
 				break;
 			case "callServerSideApi" :
 			{
-				String serviceName = args.getString("service");
+				String serviceScriptingName = args.getString("service");
 				PluginScope scope = (PluginScope)getScriptEngine().getSolutionScope().get("plugins", getScriptEngine().getSolutionScope());
-				Object service = scope.get(serviceName, scope);
+				Object service = scope.get(serviceScriptingName, scope);
 
 				if (service instanceof WebServiceScriptable)
 				{
@@ -1314,12 +1318,13 @@ public class NGClient extends AbstractApplication implements INGApplication, ICh
 					// the call to webServiceScriptable.executeScopeFunction will do the java to Rhino one
 
 					// find spec for method
-					BaseWebObject serviceWebObject = (BaseWebObject)getWebsocketSession().getClientService(serviceName);
-					WebObjectSpecification serviceSpec = webServiceScriptable.getServiceSpecification();
-					WebObjectFunctionDefinition functionSpec = (serviceSpec != null ? serviceSpec.getApiFunction(serviceMethodName) : null);
+					WebObjectSpecification serviceSpec = webServiceScriptable.getServiceSpecification(); // get specification from plugins scope (which uses getScriptName() of service, then use the getClientService using the real name, to make sure client service is created if needed)
+					BaseWebObject serviceWebObject = (BaseWebObject)getWebsocketSession().getClientService(serviceSpec.getName());
+
+					WebObjectFunctionDefinition functionSpec = (serviceSpec != null ? serviceSpec.getInternalApiFunction(serviceMethodName) : null);
 					if (functionSpec == null)
 					{
-						functionSpec = (serviceSpec != null ? serviceSpec.getServerApiFunction(serviceMethodName) : null);
+						functionSpec = (serviceSpec != null ? serviceSpec.getApiFunction(serviceMethodName) : null);
 					}
 					List<PropertyDescription> argumentPDs = (functionSpec != null ? functionSpec.getParameters() : null);
 
@@ -1341,7 +1346,7 @@ public class NGClient extends AbstractApplication implements INGApplication, ICh
 				}
 				else
 				{
-					Debug.warn("callServerSideApi for unknown service '" + serviceName + "'");
+					Debug.warn("callServerSideApi for unknown service '" + serviceScriptingName + "'");
 				}
 				break;
 			}

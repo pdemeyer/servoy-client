@@ -23,6 +23,7 @@ import org.json.JSONException;
 import org.json.JSONWriter;
 import org.sablo.Container;
 import org.sablo.WebComponent;
+import org.sablo.specification.Package.IPackageReader;
 import org.sablo.specification.PropertyDescription;
 import org.sablo.specification.WebObjectSpecification;
 import org.sablo.specification.property.IBrowserConverterContext;
@@ -96,7 +97,7 @@ public class WebFormUI extends Container implements IWebFormUI, IContextProvider
 	{
 		private FormSpecification()
 		{
-			super("form_spec", "", "", null, null, null, "", null);
+			super("form_spec", "", IPackageReader.WEB_COMPONENT, "", null, null, null, "", null);
 			putProperty("size", new PropertyDescription("size", DimensionPropertyType.INSTANCE, PushToServerEnum.allow));
 			putProperty("visible", new PropertyDescription("visible", VisiblePropertyType.INSTANCE, PushToServerEnum.allow));
 			putProperty(WebFormUI.ENABLED, new PropertyDescription(WebFormUI.ENABLED, NGEnabledPropertyType.NG_INSTANCE, PushToServerEnum.allow));
@@ -150,7 +151,6 @@ public class WebFormUI extends Container implements IWebFormUI, IContextProvider
 		dataAdapterList = new DataAdapterList(formController);
 
 		ElementScope elementsScope = initElementScope(formController);
-		int counter = 0;
 		List<FormElement> formElements = getFormElements();
 		for (FormElement fe : formElements)
 		{
@@ -167,7 +167,7 @@ public class WebFormUI extends Container implements IWebFormUI, IContextProvider
 
 			if (component != null)
 			{
-				counter = contributeComponentToElementsScope(elementsScope, counter, fe, componentSpec, component);
+				contributeComponentToElementsScope(elementsScope, fe, componentSpec, component);
 			}
 		}
 
@@ -197,27 +197,62 @@ public class WebFormUI extends Container implements IWebFormUI, IContextProvider
 		}
 	}
 
+	// this should be the opposite of formUI.contributeComponentToElementsScope(...)
+	public void removeComponentFromElementsScope(FormElement fe, WebObjectSpecification componentSpec, WebFormComponent component)
+	{
+		ElementScope elementsScope = getElementsScope();
+		if (elementsScope != null)
+		{
+			if (!FormElement.ERROR_BEAN.equals(componentSpec.getName()) && (!fe.getName().startsWith("svy_") ||
+				((fe.getPersistIfAvailable() instanceof IFormElement) && ((IFormElement)fe.getPersistIfAvailable()).getGroupID() != null)))
+			{
+				if (!fe.getName().startsWith("svy_"))
+				{
+					RuntimeWebComponent runtimeComponent = (RuntimeWebComponent)elementsScope.remove(fe.getRawName());
+					elementsScope.removeIndexByValue(runtimeComponent);
+				}
+
+				String groupID = fe.getPersistIfAvailable() instanceof IFormElement ? ((IFormElement)fe.getPersistIfAvailable()).getGroupID() : null;
+				if (groupID != null)
+				{
+					RuntimeWebGroup group = groups.get(groupID);
+					if (group != null)
+					{
+						String groupName = FormElementGroup.getName(groupID);
+						group.remove(component);
+						if (group.getComponentCount() == 0) elementsScope.remove(groupName);
+						groups.remove(groupID);
+					}
+				}
+			}
+		}
+		else
+		{
+			Debug.error(new RuntimeException("Trying to remove component from a non-existent elements scope for form: " + getName()));
+		}
+	}
+
 	public void contributeComponentToElementsScope(FormElement fe, WebObjectSpecification componentSpec, WebFormComponent component)
 	{
 		ElementScope elementsScope = getElementsScope();
 		if (elementsScope != null)
 		{
-			Object tmp = elementsScope.get("length", elementsScope);
-			int counter = tmp instanceof Integer ? ((Integer)tmp).intValue() : 0;
-			contributeComponentToElementsScope(elementsScope, counter, fe, componentSpec, component);
+			contributeComponentToElementsScope(elementsScope, fe, componentSpec, component);
 		}
 		else
 		{
-			Debug.error(new RuntimeException("Trying to contribute to a non-existent elements scope for form: " + getName()));
+			Debug.error(new RuntimeException("Trying to contribute a component to a non-existent elements scope for form: " + getName()));
 		}
 	}
 
-	private int contributeComponentToElementsScope(ElementScope elementsScope, int counterStart, FormElement fe, WebObjectSpecification componentSpec,
+	private void contributeComponentToElementsScope(ElementScope elementsScope, FormElement fe, WebObjectSpecification componentSpec,
 		WebFormComponent component)
 	{
-		int counter = counterStart;
+		Object lengthOfEl = elementsScope.get("length", elementsScope);
+		int lastElementByIndex = (lengthOfEl instanceof Integer ? ((Integer)lengthOfEl).intValue() : 0);
+
 		if (!FormElement.ERROR_BEAN.equals(componentSpec.getName()) && (!fe.getName().startsWith("svy_") ||
-			(fe.getPersistIfAvailable() instanceof IFormElement) && ((IFormElement)fe.getPersistIfAvailable()).getGroupID() != null))
+			((fe.getPersistIfAvailable() instanceof IFormElement) && ((IFormElement)fe.getPersistIfAvailable()).getGroupID() != null)))
 		{
 			RuntimeWebComponent runtimeComponent = new RuntimeWebComponent(component, componentSpec);
 			if (fe.isLegacy() || ((fe.getForm().getView() == IForm.LIST_VIEW || fe.getForm().getView() == FormController.LOCKED_LIST_VIEW ||
@@ -231,7 +266,7 @@ public class WebFormUI extends Container implements IWebFormUI, IContextProvider
 			if (!fe.getName().startsWith("svy_"))
 			{
 				elementsScope.put(fe.getRawName(), formController.getFormScope(), runtimeComponent);
-				elementsScope.put(counter++, formController.getFormScope(), runtimeComponent);
+				elementsScope.put(lastElementByIndex, formController.getFormScope(), runtimeComponent);
 			}
 
 			String groupID = fe.getPersistIfAvailable() instanceof IFormElement ? ((IFormElement)fe.getPersistIfAvailable()).getGroupID() : null;
@@ -249,7 +284,6 @@ public class WebFormUI extends Container implements IWebFormUI, IContextProvider
 				group.add(runtimeComponent);
 			}
 		}
-		return counter;
 	}
 
 	public IServoyDataConverterContext getDataConverterContext()

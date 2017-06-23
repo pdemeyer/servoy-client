@@ -19,9 +19,11 @@ package com.servoy.j2db.server.ngclient;
 
 import java.io.IOException;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
+import java.util.WeakHashMap;
 import java.util.concurrent.CancellationException;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeoutException;
 
 import org.sablo.Container;
@@ -32,11 +34,13 @@ import org.sablo.specification.WebObjectFunctionDefinition;
 import org.sablo.specification.property.IBrowserConverterContext;
 import org.sablo.websocket.BaseWindow;
 import org.sablo.websocket.CurrentWindow;
+import org.sablo.websocket.IClientService;
 import org.sablo.websocket.IToJSONWriter;
 import org.sablo.websocket.IWebsocketEndpoint;
 
 import com.servoy.j2db.FlattenedSolution;
 import com.servoy.j2db.persistence.Form;
+import com.servoy.j2db.persistence.Relation;
 import com.servoy.j2db.persistence.Solution;
 import com.servoy.j2db.server.ngclient.endpoint.INGClientWebsocketEndpoint;
 import com.servoy.j2db.util.Debug;
@@ -55,7 +59,8 @@ public class NGClientWindow extends BaseWindow implements INGClientWindow
 
 	private final WeakHashSet<IWebFormUI> pendingApiCallFormsOnNextResponse = new WeakHashSet<>();
 
-	private final HashSet<String> allowedForms = new HashSet<>();
+	private final ConcurrentMap<String, WeakHashSet<INGFormElement>> allowedForms = new ConcurrentHashMap<>();
+	private final ConcurrentMap<String, WeakHashMap<INGFormElement, String>> allowedRelation = new ConcurrentHashMap<>();
 
 	public NGClientWindow(INGClientWebsocketSession websocketSession, String windowUuid, String windowName)
 	{
@@ -87,7 +92,8 @@ public class NGClientWindow extends BaseWindow implements INGClientWindow
 	@Override
 	public Container getForm(String formName)
 	{
-		return (Container)getSession().getClient().getFormManager().getForm(formName).getFormUI();
+		if (getClient() == null) return null;
+		return (Container)getClient().getFormManager().getForm(formName).getFormUI();
 	}
 
 	@Override
@@ -162,9 +168,53 @@ public class NGClientWindow extends BaseWindow implements INGClientWindow
 	}
 
 	@Override
-	public void registerAllowedForm(String formName)
+	public void registerAllowedForm(String formName, INGFormElement element)
 	{
-		allowedForms.add(formName);
+		WeakHashSet<INGFormElement> weakSet = allowedForms.get(formName);
+		if (weakSet == null)
+		{
+			weakSet = new WeakHashSet<>();
+			WeakHashSet<INGFormElement> current = allowedForms.putIfAbsent(formName, weakSet);
+			if (current != null) weakSet = current;
+		}
+		weakSet.add(element);
+	}
+
+	@Override
+	public String registerAllowedRelation(String relationName, INGFormElement element)
+	{
+		String relName = "-1";
+		if (relationName != null)
+		{
+			Relation relation = getSession().getClient().getFlattenedSolution().getRelation(relationName);
+			if (relation != null)
+			{
+				relName = Integer.toHexString(relation.getID());
+			}
+		}
+
+		WeakHashMap<INGFormElement, String> weakSet = allowedRelation.get(relName);
+		if (weakSet == null)
+		{
+			weakSet = new WeakHashMap<>();
+			WeakHashMap<INGFormElement, String> current = allowedRelation.putIfAbsent(relName, weakSet);
+			if (current != null) weakSet = current;
+		}
+		weakSet.put(element, relationName);
+		return relName;
+	}
+
+	@Override
+	public String isVisibleAllowed(String formName, String uuidRelationName, INGFormElement element) throws IllegalAccessException
+	{
+		WeakHashSet<INGFormElement> weakHashSet = allowedForms.get(formName);
+		if (weakHashSet != null && weakHashSet.contains(element))
+		{
+			if (uuidRelationName == null) return null;
+			WeakHashMap<INGFormElement, String> relationMap = allowedRelation.get(uuidRelationName);
+			if (relationMap != null && relationMap.containsKey(element)) return relationMap.get(element);
+		}
+		throw new IllegalAccessException("Can't show form " + formName + " for component + " + element);
 	}
 
 	@Override
@@ -172,7 +222,7 @@ public class NGClientWindow extends BaseWindow implements INGClientWindow
 	{
 		if (form == null) return;
 		String formName = realInstanceName == null ? form.getName() : realInstanceName;
-		if (testForValidForm && !allowedForms.contains(formName) && getEndpoint().getFormUrl(formName) == null)
+		if (testForValidForm && !allowedForms.containsKey(formName) && getEndpoint().getFormUrl(formName) == null)
 		{
 			throw new IllegalStateException("Can't show form: " + formName + " because it is not allowed in the client");
 		}
@@ -411,13 +461,13 @@ public class NGClientWindow extends BaseWindow implements INGClientWindow
 	}
 
 	@Override
-	public Object executeServiceCall(String serviceName, String functionName, Object[] arguments, WebObjectFunctionDefinition apiFunction,
+	public Object executeServiceCall(IClientService clientService, String functionName, Object[] arguments, WebObjectFunctionDefinition apiFunction,
 		IToJSONWriter<IBrowserConverterContext> pendingChangesWriter, boolean blockEventProcessing) throws IOException
 	{
-		Pair<UUID, UUID> perfId = getClient().onStartSubAction(serviceName, functionName, apiFunction, arguments);
+		Pair<UUID, UUID> perfId = getClient().onStartSubAction(clientService.getName(), functionName, apiFunction, arguments);
 		try
 		{
-			return super.executeServiceCall(serviceName, functionName, arguments, apiFunction, pendingChangesWriter, blockEventProcessing);
+			return super.executeServiceCall(clientService, functionName, arguments, apiFunction, pendingChangesWriter, blockEventProcessing);
 		}
 		finally
 		{

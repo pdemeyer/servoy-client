@@ -18,8 +18,10 @@ package com.servoy.j2db.util;
 
 import org.mozilla.javascript.Context;
 import org.mozilla.javascript.EcmaError;
+import org.mozilla.javascript.JavaScriptException;
 import org.mozilla.javascript.RhinoException;
 import org.mozilla.javascript.ScriptRuntime;
+import org.mozilla.javascript.Scriptable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
@@ -276,11 +278,16 @@ public class Debug
 		{
 			t = t.getCause();
 		}
+		String scriptStackTrace = getScriptStackTrace(message, s);
 		if (t instanceof ServoyException && ((ServoyException)t).getContext() != null)
 		{
-			log.error(message + getScriptStackTrace(message, s) + "\nContext: " + ((ServoyException)t).getContext(), s);
+			log.error(message + scriptStackTrace + "\nContext: " + ((ServoyException)t).getContext(), s);
 		}
-		else log.error(message + getScriptStackTrace(message, s), s);
+		if (t instanceof JavaScriptException && ((JavaScriptException)t).getValue() instanceof Scriptable)
+		{
+			log.error(message + " " + Utils.getScriptableString((Scriptable)((JavaScriptException)t).getValue()) + "\n" + scriptStackTrace);
+		}
+		else log.error(message + (scriptStackTrace != null ? scriptStackTrace : ""), s);
 		if (wasInserted) insertClientInfo(false);
 	}
 
@@ -326,7 +333,7 @@ public class Debug
 				// just ignore
 			}
 		}
-		return null;
+		return "";
 	}
 
 	public static void error(Object s)

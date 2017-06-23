@@ -31,7 +31,6 @@ import org.sablo.specification.WebObjectSpecification;
 import org.sablo.specification.WebServiceSpecProvider;
 import org.sablo.websocket.CurrentWindow;
 import org.sablo.websocket.IWindow;
-import org.sablo.websocket.impl.ClientService;
 
 import com.servoy.j2db.BasicFormController;
 import com.servoy.j2db.IBasicFormManager;
@@ -39,6 +38,8 @@ import com.servoy.j2db.IDebugNGClient;
 import com.servoy.j2db.IDesignerCallback;
 import com.servoy.j2db.IFormController;
 import com.servoy.j2db.dataprocessing.FoundSet;
+import com.servoy.j2db.dataprocessing.IDataServer;
+import com.servoy.j2db.dataprocessing.ValidatingDelegateDataServer;
 import com.servoy.j2db.persistence.AbstractBase;
 import com.servoy.j2db.persistence.FlattenedForm;
 import com.servoy.j2db.persistence.Form;
@@ -116,6 +117,22 @@ public class DebugNGClient extends NGClient implements IDebugNGClient
 		getWebsocketSession().registerServerService("developerService", new DeveloperServiceHandler(this));
 	}
 
+	/*
+	 * (non-Javadoc)
+	 *
+	 * @see com.servoy.j2db.ClientState#createDataServer()
+	 */
+	@Override
+	protected IDataServer createDataServer()
+	{
+		IDataServer dataServer = super.createDataServer();
+		if (dataServer != null)
+		{
+			dataServer = new ProfileDataServer(new ValidatingDelegateDataServer(dataServer, this));
+		}
+		return dataServer;
+	}
+
 	@Override
 	public synchronized void shutDown(boolean force)
 	{
@@ -153,8 +170,7 @@ public class DebugNGClient extends NGClient implements IDebugNGClient
 		{
 			if (serviceSpecification.getApiFunctions().size() != 0 || serviceSpecification.getAllPropertiesNames().size() != 0)
 			{
-				scope.put(ClientService.convertToJSName(serviceSpecification.getName()), scope,
-					new WebServiceScriptable(this, serviceSpecification, engine.getSolutionScope()));
+				scope.put(serviceSpecification.getScriptingName(), scope, new WebServiceScriptable(this, serviceSpecification, engine.getSolutionScope()));
 			}
 		}
 		scope.setLocked(true);
@@ -279,7 +295,7 @@ public class DebugNGClient extends NGClient implements IDebugNGClient
 			{
 				boolean isVisible = controller.isFormVisible();
 				if (isVisible) controller.notifyVisible(false, invokeLaterRunnables);
-				if (!Utils.stringSafeEquals(controller.getDataSource(), controller.getFormModel().getDataSource()))
+				if (controller.getFormModel() != null && !Utils.stringSafeEquals(controller.getDataSource(), controller.getFormModel().getDataSource()))
 				{
 					// for now we just destroy the form and recreate it with the other datasource;
 					// TODO we just load the shared foundset for that datasource - can we improve this somehow so that the loaded foundset is closer to the current runtime situation of the form? (related tabs etc.)
@@ -308,7 +324,7 @@ public class DebugNGClient extends NGClient implements IDebugNGClient
 		if (reload)
 		{
 			WebsocketSessionWindows allendpoints = new NGClientWebsocketSessionWindows(getWebsocketSession());
-			allendpoints.executeAsyncServiceCall(NGRuntimeWindowManager.WINDOW_SERVICE, "reload", null, null);
+			allendpoints.executeAsyncServiceCall(getWebsocketSession().getClientService(NGRuntimeWindowManager.WINDOW_SERVICE), "reload", null, null);
 			try
 			{
 				allendpoints.flush();

@@ -227,6 +227,55 @@ angular.module('servoy',['sabloApp','servoyformat','servoytooltip','servoyfileup
 		// search for svy-servoyApi attribute on element, within parents (svy-autoapply could be used on a child DOM element of the web component)
 		findAttribute: function (element, parent, attributeName) {
 			return findAttribute(element, parent, attributeName);
+		},
+		
+		createJSEvent : function(event,eventType,contextFilter,contextFilterElement) {
+			var targetEl = event;
+			if (event.target) targetEl = event.target;
+			else if (event.srcElement) targetEl = event.srcElement;
+			
+			var form;
+			var parent = targetEl;
+			var targetElNameChain = new Array();
+			var contextMatch = false;
+			while (parent) {
+				form = parent.getAttribute("ng-controller");
+				if (form) {
+					//global shortcut or context match
+					var shortcuthit = !contextFilter || (contextFilter && form == contextFilter);
+					if (!shortcuthit) break;
+					contextMatch = true;
+					break;
+				}
+				if(parent.getAttribute("name")) targetElNameChain.push(parent.getAttribute("name"));
+				parent = parent.parentNode;
+			}
+			
+			if (!contextMatch) return null;
+			
+			var jsEvent = {svyType: 'JSEvent', eventType: eventType, "timestamp":new Date().getTime()};
+			
+			var modifiers = (event.altKey ? 8 : 0) | (event.shiftKey ? 1 : 0) | (event.ctrlKey ? 2 : 0) | (event.metaKey ? 4 : 0);
+			jsEvent['modifiers'] = modifiers;
+			jsEvent['x'] = event.pageX;
+			jsEvent['y'] = event.pageY;
+
+			
+			if(form != 'MainController') {
+				jsEvent['formName'] = form;
+				var formScope = angular.element(parent).scope();
+				for (var i = 0; i < targetElNameChain.length; i++) {
+					if(formScope['model'][targetElNameChain[i]]) {
+						jsEvent['elementName'] = targetElNameChain[i];
+						break;
+					}
+				}
+				
+				if(contextFilterElement && (contextFilterElement != jsEvent['elementName'])) {
+					return null;
+				}
+			}
+			return jsEvent;
 		}
 	}
 }).factory("$svyProperties",function($svyTooltipUtils, $timeout:angular.ITimeoutService, $scrollbarConstants, $svyUIProperties) {
@@ -382,9 +431,9 @@ angular.module('servoy',['sabloApp','servoyformat','servoytooltip','servoyfileup
 		createTooltipState: function(element,value) {
 			var tooltip =  value;
 			var initialDelay = $svyUIProperties.getUIProperty("tooltipInitialDelay");
-			if(isNaN(initialDelay)) initialDelay = 750;
+			if(initialDelay === null || isNaN(initialDelay)) initialDelay = 750;
 			var dismissDelay = $svyUIProperties.getUIProperty("tooltipDismissDelay"); 
-			if(isNaN(dismissDelay)) dismissDelay = 5000;
+			if(dismissDelay=== null || isNaN(dismissDelay)) dismissDelay = 5000;
 
 			function doShow(event) {
 	        	$svyTooltipUtils.showTooltip(event, tooltip, initialDelay, dismissDelay);
@@ -1079,7 +1128,12 @@ angular.module('servoy',['sabloApp','servoyformat','servoytooltip','servoyfileup
 
 	return {
 		getUIProperty: function(key) {
-			return getUiProperties()[key];
+			var value=getUiProperties()[key];
+			if (value === undefined)
+			{
+				value = null;
+			}
+			return value;
 		},
 		setUIProperty: function(key,value) {
 			var uiProps = getUiProperties();

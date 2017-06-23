@@ -25,6 +25,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 import org.mozilla.javascript.BaseFunction;
 import org.mozilla.javascript.Callable;
@@ -49,6 +50,7 @@ import com.servoy.j2db.persistence.StaticContentSpecLoader;
 import com.servoy.j2db.persistence.TabPanel;
 import com.servoy.j2db.scripting.IInstanceOf;
 import com.servoy.j2db.server.ngclient.WebFormComponent;
+import com.servoy.j2db.server.ngclient.property.types.DataproviderPropertyType;
 import com.servoy.j2db.server.ngclient.property.types.NGConversions;
 import com.servoy.j2db.server.ngclient.property.types.NGConversions.ISabloComponentToRhino;
 import com.servoy.j2db.server.ngclient.property.types.ValueListTypeSabloValue;
@@ -208,11 +210,14 @@ public class RuntimeLegacyComponent implements Scriptable, IInstanceOf
 							if (styleClass == null) styleClass = "";
 							if ("addStyleClass".equals(nameFinal))
 							{
-								styleClass = styleClass + " " + args[0];
+								if (!Pattern.compile("(?<!\\S)\\b" + Pattern.quote(args[0].toString()) + "\\b(?!\\S)").matcher(styleClass).find())
+								{
+									styleClass = styleClass + " " + args[0];
+								}
 							}
 							else
 							{
-								styleClass = styleClass.replaceAll(args[0].toString(), "");
+								styleClass = styleClass.replaceAll("(?<!\\S)\\b" + Pattern.quote(args[0].toString()) + "\\b(?!\\S)", "");
 							}
 							component.setProperty(StaticContentSpecLoader.PROPERTY_STYLECLASS.getPropertyName(), styleClass);
 						}
@@ -245,8 +250,11 @@ public class RuntimeLegacyComponent implements Scriptable, IInstanceOf
 
 		if (component.isDesignOnlyProperty(name) || component.isPrivateProperty(name))
 		{
-			// cannot get design only or private properties
-			return Scriptable.NOT_FOUND;
+			// cannot get design only or private properties; make an exception for dp properties, should be able to get the dpid
+			if (!(component.getSpecification().getProperty(name).getType() instanceof DataproviderPropertyType))
+			{
+				return Scriptable.NOT_FOUND;
+			}
 		}
 
 		Object value = convertValue(name, component.getProperty(convertName(name)), webComponentSpec.getProperties().get(convertName(name)), start);
@@ -259,10 +267,6 @@ public class RuntimeLegacyComponent implements Scriptable, IInstanceOf
 		return value;
 	}
 
-	/**
-	 * @param name
-	 * @return
-	 */
 	protected String generatePropertyName(String name)
 	{
 		String newName = name.substring(name.startsWith("is") ? 2 : 3);

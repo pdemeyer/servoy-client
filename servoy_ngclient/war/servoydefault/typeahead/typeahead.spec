@@ -2,7 +2,7 @@
 	"name": "servoydefault-typeahead",
 	"displayName": "Type Ahead ",
 	"version": 1,
-	"icon": "servoydefault/typeahead/bhdropdownlisticon.gif",
+	"icon": "servoydefault/typeahead/typeahead.png",
 	"definition": "servoydefault/typeahead/typeahead.js",
 	"libraries": [],
 	"model":
@@ -29,7 +29,7 @@
 	        "text" : { "type" : "tagstring", "displayTagsPropertyName" : "displaysTags" }, 
 	        "toolTipText" : { "type" : "tagstring", "displayTagsPropertyName" : "displaysTags" }, 
 	        "transparent" : "boolean", 
-	        "valuelistID" : { "type" : "valuelist", "tags": { "scope" :"design", "logWhenOverMax":false}, "for": "dataProviderID", "default":"autoVL", "max":100}, 
+	        "valuelistID" : { "type" : "valuelist", "lazyLoading" : true, "tags": { "scope" :"design", "logWhenOverMax":false}, "for": "dataProviderID", "default":"autoVL", "max":100}, 
 	        "visible" : "visible" 
 	},
 	"handlers":

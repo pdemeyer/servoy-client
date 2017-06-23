@@ -109,6 +109,10 @@ public class RuntimeWebComponent implements Scriptable, IInstanceOf
 				if (func != null) apiFunctions.put(def.getName(), func);
 				else apiFunctions.put(def.getName(), new WebComponentFunction(component, def));
 			}
+			for (WebObjectFunctionDefinition def : webComponentSpec.getInternalApiFunctions().values())
+			{
+				apiFunctions.put(def.getName(), new WebComponentFunction(component, def));
+			}
 			Map<String, PropertyDescription> specs = webComponentSpec.getProperties();
 			for (String propName : specs.keySet())
 			{
@@ -448,6 +452,9 @@ public class RuntimeWebComponent implements Scriptable, IInstanceOf
 		// legacy for now, should we do it more general, from the spec
 		if (component.getFormElement() != null && component.getFormElement().getPersistIfAvailable() instanceof TabPanel)
 		{
+			Object visibleTabPanel = component.getProperty("visible");
+			if (visibleTabPanel instanceof Boolean && !((Boolean)visibleTabPanel).booleanValue()) return visibleContainedForms;
+
 			Object tabIndex = component.getProperty("tabIndex");
 			Object tabs = component.getProperty("tabs");
 			if (tabs instanceof List && ((List)tabs).size() > 0)

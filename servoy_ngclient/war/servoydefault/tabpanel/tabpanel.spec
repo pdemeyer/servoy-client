@@ -2,7 +2,7 @@
 	"name": "servoydefault-tabpanel",
 	"displayName": "Tab Panel",
 	"version": 1,
-	"icon": "servoydefault/tabpanel/tabs.gif",
+	"icon": "servoydefault/tabpanel/tab.png",
 	"definition": "servoydefault/tabpanel/tabpanel.js",
 	"serverscript": "servoydefault/tabpanel/tabpanel_server.js",
 	"libraries": [{"name":"accordionpanel", "version":"1", "url":"servoydefault/tabpanel/accordionpanel.css", "mimetype":"text/css"}],
@@ -24,7 +24,8 @@
 	        "tabSeq" : {"type" :"tabseq", "tags": { "scope" :"design" }}, 
 	        "tabs" : {"type":"tab[]", "pushToServer": "shallow", "droppable":true}, 
 	        "transparent" : "boolean", 
-	        "visible" : "visible" 
+	        "visible" : "visible",
+			"activeTabIndex": { "type": "int", "default": 0, "tags": { "scope": "runtime" }, "pushToServer": "shallow" }
 	},
 	"handlers":
 	{

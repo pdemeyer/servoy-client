@@ -51,6 +51,7 @@ import com.servoy.j2db.dataprocessing.SQLSheet.ConverterInfo;
 import com.servoy.j2db.persistence.AbstractBase;
 import com.servoy.j2db.persistence.Column;
 import com.servoy.j2db.persistence.EnumDataProvider;
+import com.servoy.j2db.persistence.Form;
 import com.servoy.j2db.persistence.IColumn;
 import com.servoy.j2db.persistence.IDataProvider;
 import com.servoy.j2db.persistence.IScriptProvider;
@@ -100,7 +101,7 @@ public class FoundSetManager implements IFoundSetManagerInternal
 	private static final Entry<String, SoftReference<RelatedFoundSet>>[] EMPTY_ENTRY_ARRAY = new Map.Entry[0];
 
 	private final IApplication application;
-	private Map<IFoundSetListener, FoundSet> separateFoundSets; //FoundSetListener -> FoundSet ... 1 foundset per listener
+	private Map<Object, FoundSet> separateFoundSets; //FoundSetListener -> FoundSet ... 1 foundset per listener
 	private Map<String, FoundSet> sharedDataSourceFoundSet; //dataSource -> FoundSet ... 1 foundset per data source
 	private Set<FoundSet> foundSets;
 	private WeakReference<IFoundSetInternal> noTableFoundSet;
@@ -840,7 +841,7 @@ public class FoundSetManager implements IFoundSetManagerInternal
 	private void initMembers()
 	{
 		sharedDataSourceFoundSet = new ConcurrentHashMap<String, FoundSet>(64);
-		separateFoundSets = Collections.synchronizedMap(new WeakHashMap<IFoundSetListener, FoundSet>(32));
+		separateFoundSets = Collections.synchronizedMap(new WeakHashMap<Object, FoundSet>(32));
 		foundSets = Collections.synchronizedSet(new WeakHashSet<FoundSet>(64));
 		noTableFoundSet = null;
 
@@ -1418,15 +1419,42 @@ public class FoundSetManager implements IFoundSetManagerInternal
 			getTable(l.getDataSource());
 		}
 
-		FoundSet foundset = separateFoundSets.get(l);
+		FoundSet foundset = l.getSharedFoundsetName() != null ? separateFoundSets.get(l.getSharedFoundsetName()) : separateFoundSets.get(l);
 		if (foundset == null)
 		{
-			SQLSheet sheet = getSQLGenerator().getCachedTableSQLSheet(l.getDataSource());
-			foundset = (FoundSet)foundsetfactory.createFoundSet(this, sheet, null, defaultSortColumns);
-			if (createEmptyFoundsets) foundset.clear();
-			separateFoundSets.put(l, foundset);
-			// inform global foundset event listeners that a new foundset has been created
-			globalFoundSetEventListener.foundSetCreated(foundset);
+			foundset = createSeparateFoundset(l.getDataSource(), l.getSharedFoundsetName() != null ? l.getSharedFoundsetName() : l, defaultSortColumns);
+		}
+		return foundset;
+	}
+
+	private FoundSet createSeparateFoundset(String datasource, Object key, List<SortColumn> defaultSortColumns) throws ServoyException
+	{
+		SQLSheet sheet = getSQLGenerator().getCachedTableSQLSheet(datasource);
+		FoundSet foundset = (FoundSet)foundsetfactory.createFoundSet(this, sheet, null, defaultSortColumns);
+		if (createEmptyFoundsets) foundset.clear();
+		separateFoundSets.put(key, foundset);
+		// inform global foundset event listeners that a new foundset has been created
+		globalFoundSetEventListener.foundSetCreated(foundset);
+		return foundset;
+	}
+
+	@Override
+	public IFoundSet getNamedFoundSet(String name) throws ServoyException
+	{
+		if (name == null) throw new RuntimeException("can't ask for a named foundset with a null name");
+		IFoundSet foundset = separateFoundSets.get(name);
+		if (foundset == null)
+		{
+			Iterator<Form> forms = application.getFlattenedSolution().getForms(false);
+			while (forms.hasNext())
+			{
+				Form form = forms.next();
+				if (name.equals(form.getSharedFoundsetName()))
+				{
+					foundset = createSeparateFoundset(form.getDataSource(), name, getSortColumns(form.getDataSource(), form.getInitialSort()));
+					break;
+				}
+			}
 		}
 		return foundset;
 	}

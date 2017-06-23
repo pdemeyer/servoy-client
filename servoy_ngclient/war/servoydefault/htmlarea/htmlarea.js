@@ -9,18 +9,32 @@ angular.module('servoydefaultHtmlarea',['servoy','ui.tinymce']).directive('servo
 		},
 		controller: function($scope, $element, $attrs) {
 			$scope.findMode = false;
+			$scope.tinyValue = '';
+			$scope.init = false;
 			//evaluated by ui-tinymce directive
 			$scope.tinyConfig ={
 					/*overwrite ui-tinymce setup routine()*/
 					setup: function(ed){
 						editor = ed;
 						$scope.editor = editor;
-						$scope.$watch('model.editable',function (newVal,oldVal){    			   		
+						editor.on('init', function() {
+							$scope.init = true;
+							ed.getBody().setAttribute('contenteditable', $scope.model.editable);
+						});
+						$scope.$watch('model.editable',function (newVal,oldVal){
+							if (!$scope.init) return;
 							if(oldVal != newVal){
 								ed.getBody().setAttribute('contenteditable', newVal);
 							}    			   		
 						})
-						ed.on('blur ExecCommand', function () {    				 
+						$scope.$watch('model.dataProviderID', function(newVal, oldVal) {
+							// only update tinyValue on init or if content really changed, so we don't lose current selection
+							if(!$scope.init || newVal != '<html><body>'+ed.getContent()+'</body></html>') {
+								$scope.tinyValue = newVal;
+							}							
+						})
+
+						ed.on('blur ExecCommand', function () { 
 							$scope.model.dataProviderID = '<html><body>'+ed.getContent()+'</body></html>'
 							$scope.$apply(function(){    	                	
 								$scope.svyServoyapi.apply('dataProviderID');

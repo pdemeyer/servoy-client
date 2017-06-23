@@ -49,12 +49,9 @@ import com.servoy.j2db.server.ngclient.DataAdapterList;
 import com.servoy.j2db.server.ngclient.FormElement;
 import com.servoy.j2db.server.ngclient.FormElementContext;
 import com.servoy.j2db.server.ngclient.FormElementExtension;
-import com.servoy.j2db.server.ngclient.IGetAndSetter;
 import com.servoy.j2db.server.ngclient.INGFormElement;
-import com.servoy.j2db.server.ngclient.MapGetAndSetter;
 import com.servoy.j2db.server.ngclient.WebFormComponent;
 import com.servoy.j2db.server.ngclient.component.RhinoMapOrArrayWrapper;
-import com.servoy.j2db.server.ngclient.property.ComponentTypeFormElementValue;
 import com.servoy.j2db.server.ngclient.property.types.NGConversions.IDesignDefaultToFormElement;
 import com.servoy.j2db.server.ngclient.property.types.NGConversions.IDesignToFormElement;
 import com.servoy.j2db.server.ngclient.property.types.NGConversions.IFormElementToSabloComponent;
@@ -62,7 +59,6 @@ import com.servoy.j2db.server.ngclient.property.types.NGConversions.IFormElement
 import com.servoy.j2db.server.ngclient.property.types.NGConversions.IRhinoToSabloComponent;
 import com.servoy.j2db.server.ngclient.property.types.NGConversions.ISabloComponentToRhino;
 import com.servoy.j2db.server.ngclient.property.types.NGConversions.InitialToJSONConverter;
-import com.servoy.j2db.server.ngclient.utils.NGUtils;
 import com.servoy.j2db.util.IRhinoDesignConverter;
 import com.servoy.j2db.util.ServoyJSONObject;
 
@@ -78,7 +74,7 @@ public class NGCustomJSONObjectType<SabloT, SabloWT, FormElementT> extends Custo
 	IFormElementToTemplateJSON<Map<String, FormElementT>, Map<String, SabloT>>, IFormElementToSabloComponent<Map<String, FormElementT>, Map<String, SabloT>>,
 	ISabloComponentToRhino<Map<String, SabloT>>, IRhinoToSabloComponent<Map<String, SabloT>>, ISupportTemplateValue<Map<String, FormElementT>>,
 	ITemplateValueUpdaterType<ChangeAwareMap<SabloT, SabloWT>>, IFindModeAwareType<Map<String, FormElementT>, Map<String, SabloT>>,
-	IDataLinkedType<Map<String, FormElementT>, Map<String, SabloT>>, IRhinoDesignConverter, II18NPropertyType
+	IDataLinkedType<Map<String, FormElementT>, Map<String, SabloT>>, IRhinoDesignConverter, II18NPropertyType<Map<String, SabloT>>
 {
 
 	public NGCustomJSONObjectType(String typeName, PropertyDescription definition)
@@ -190,11 +186,6 @@ public class NGCustomJSONObjectType<SabloT, SabloWT, FormElementT> extends Custo
 			Map<String, SabloT> map = new HashMap<>(formElementValue.size());
 			for (Entry<String, FormElementT> e : formElementValue.entrySet())
 			{
-				if (e.getValue() instanceof ComponentTypeFormElementValue &&
-					!((ComponentTypeFormElementValue)e.getValue()).isSecurityViewable(dal.getApplication().getFlattenedSolution()))
-				{
-					continue;
-				}
 				Object v = NGConversions.INSTANCE.convertFormElementToSabloComponentValue(e.getValue(), getCustomJSONTypeDefinition().getProperty(e.getKey()),
 					new FormElementExtension(formElement, formElementValue, getCustomJSONTypeDefinition()), component, dal);
 				if (v != null) map.put(e.getKey(), (SabloT)v);
@@ -375,21 +366,22 @@ public class NGCustomJSONObjectType<SabloT, SabloWT, FormElementT> extends Custo
 		return value;
 	}
 
-	/*
-	 * (non-Javadoc)
-	 *
-	 * @see com.servoy.j2db.server.ngclient.property.types.II18NPropertyType#resetValue(com.servoy.j2db.server.ngclient.IGetAndSetter,
-	 * org.sablo.specification.PropertyDescription, com.servoy.j2db.server.ngclient.WebFormComponent)
-	 */
 	@Override
-	public void resetValue(IGetAndSetter getAndSetter, PropertyDescription pd, WebFormComponent component)
+	public Map<String, SabloT> resetI18nValue(Map<String, SabloT> property, PropertyDescription pd, WebFormComponent component)
 	{
-		Object property = getAndSetter.getProperty(pd.getName());
-		if (property instanceof Map< ? , ? >)
+		if (property != null)
 		{
 			PropertyDescription customPd = ((CustomJSONObjectType< ? , ? >)pd.getType()).getCustomJSONTypeDefinition();
-			NGUtils.resetI18NProperties(component, customPd, new MapGetAndSetter((Map<String, Object>)property));
+			for (String prop : property.keySet())
+			{
+				if (customPd.getProperty(prop).getType() instanceof II18NPropertyType)
+				{
+					property.put(prop, (SabloT)((II18NPropertyType)customPd.getProperty(prop).getType()).resetI18nValue(property.get(prop),
+						customPd.getProperty(prop), component));
+				}
+			}
 		}
+		return property;
 	}
 
 }

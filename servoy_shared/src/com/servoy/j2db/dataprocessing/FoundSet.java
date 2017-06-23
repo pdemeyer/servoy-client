@@ -250,7 +250,7 @@ public abstract class FoundSet implements IFoundSetInternal, IRowListener, Scrip
 
 		RECORD_IS_LOCKED = fsm.getApplication().getI18NMessage("servoy.foundSet.recordLocked"); //$NON-NLS-1$
 		NO_RECORD = fsm.getApplication().getI18NMessage("servoy.foundSet.noRecord"); //$NON-NLS-1$
-		NO_ACCESS = fsm.getApplication().getI18NMessage("servoy.foundSet.error.noModifyAccess"); //$NON-NLS-1$
+		NO_ACCESS = fsm.getApplication().getI18NMessage("servoy.foundSet.error.noModifyAccess", new Object[] { getDataSource() }); //$NON-NLS-1$
 
 		rowManager = fsm.getRowManager(fsm.getDataSource(sheet.getTable()));
 		if (rowManager != null && !(a_parent instanceof FindState)) rowManager.register(this);
@@ -1926,11 +1926,11 @@ public abstract class FoundSet implements IFoundSetInternal, IRowListener, Scrip
 			// if the query cannot be parsed according to the old methods, we just use the entire sql as
 			// subquery. NOTE: this means that the ordering defined in the order-by part is lost.
 			if (((from_index = sql_lowercase.indexOf("from")) == -1) //$NON-NLS-1$
-				|| (sql_lowercase.indexOf(Utils.toEnglishLocaleLowerCase(sheet.getTable().getSQLName())) == -1) || (sql_lowercase.indexOf("group by") != -1) //$NON-NLS-1$
-				|| (sql_lowercase.indexOf("having") != -1) //$NON-NLS-1$
-				|| (sql_lowercase.indexOf("union") != -1) //$NON-NLS-1$
-				|| (sql_lowercase.indexOf("join") != -1) //$NON-NLS-1$
-				|| (sql_lowercase.indexOf(".") == -1)) //$NON-NLS-1$
+			|| (sql_lowercase.indexOf(Utils.toEnglishLocaleLowerCase(sheet.getTable().getSQLName())) == -1) || (sql_lowercase.indexOf("group by") != -1) //$NON-NLS-1$
+			|| (sql_lowercase.indexOf("having") != -1) //$NON-NLS-1$
+			|| (sql_lowercase.indexOf("union") != -1) //$NON-NLS-1$
+			|| (sql_lowercase.indexOf("join") != -1) //$NON-NLS-1$
+			|| (sql_lowercase.indexOf(".") == -1)) //$NON-NLS-1$
 			{
 				analyse_query_parts = false;
 			}
@@ -2120,7 +2120,7 @@ public abstract class FoundSet implements IFoundSetInternal, IRowListener, Scrip
 			{
 				String tableName = tok.nextToken().trim();
 				String[] lcTableName = tableName.toLowerCase().split(whitespace);
-				if (lcTableName[0].equals(mainTable))
+				if (matchesMainTablename(lcTableName[0]))
 				{
 					foundTable = true;
 					// either 'tabname', 'tabname aliasname' or 'tabname AS aliasname', when no alias is given, use table name as alias
@@ -2157,6 +2157,65 @@ public abstract class FoundSet implements IFoundSetInternal, IRowListener, Scrip
 		}
 
 		return loadByQuery(sqlSelect);
+	}
+
+	/** Check if the tableName matches the main table.
+	 *
+	 * For example: "THECAT"."THESCHEMA"."THETABLE" matches thetable.
+	 */
+	private boolean matchesMainTablename(String tableName)
+	{
+		Table table = sheet.getTable();
+		if (table.getName().equalsIgnoreCase(tableName) || table.getSQLName().equalsIgnoreCase(tableName))
+		{
+			return true;
+		}
+
+		String[] catschemtab = tableName.split("\\.");
+		if (catschemtab.length == 2)
+		{
+			// catalogorschema.table
+			String catschem = dequote(catschemtab[0]);
+			String tab = dequote(catschemtab[1]);
+			if ((catschem.equalsIgnoreCase(table.getCatalog()) || catschem.equalsIgnoreCase(table.getSchema())) &&
+				(table.getName().equalsIgnoreCase(tab) || table.getSQLName().equalsIgnoreCase(tab)))
+			{
+				return true;
+			}
+		}
+		else if (catschemtab.length == 3)
+		{
+			// catalog.schema.table
+			String cat = dequote(catschemtab[0]);
+			String schem = dequote(catschemtab[1]);
+			String tab = dequote(catschemtab[2]);
+			if (cat.equalsIgnoreCase(table.getCatalog()) && schem.equalsIgnoreCase(table.getSchema()) &&
+				(table.getName().equalsIgnoreCase(tab) || table.getSQLName().equalsIgnoreCase(tab)))
+			{
+				return true;
+			}
+		}
+
+		// no match
+		return false;
+	}
+
+	/**
+	 * @param string
+	 * @return
+	 */
+	private static String dequote(String name)
+	{
+		if (name.length() > 2 && isquote(name.charAt(0)) && isquote(name.charAt(name.length() - 1)))
+		{
+			return name.substring(1, name.length() - 1);
+		}
+		return name;
+	}
+
+	private static boolean isquote(char c)
+	{
+		return c == '"' || c == '\'';
 	}
 
 	public boolean loadExternalPKList(IDataSet ds) throws ServoyException
@@ -3211,11 +3270,12 @@ public abstract class FoundSet implements IFoundSetInternal, IRowListener, Scrip
 	}
 
 	/**
-	 * Get the record object at the index.
+	 * Get the record object at the given index.
+	 * Argument "index" is 1 based (so first record is 1).
 	 *
 	 * @sample var record = %%prefix%%foundset.getRecord(index);
 	 *
-	 * @param index int record index
+	 * @param index int record index (1 based).
 	 *
 	 * @return Record record.
 	 */
@@ -3957,7 +4017,7 @@ public abstract class FoundSet implements IFoundSetInternal, IRowListener, Scrip
 		{
 			if (!hasAccess(IRepository.DELETE))
 			{
-				throw new ApplicationException(ServoyException.NO_DELETE_ACCESS);
+				throw new ApplicationException(ServoyException.NO_DELETE_ACCESS, new Object[] { table.getName() });
 			}
 
 			boolean hasRelationsWithDelete = false;
@@ -4117,7 +4177,7 @@ public abstract class FoundSet implements IFoundSetInternal, IRowListener, Scrip
 		}
 		if (!hasAccess(IRepository.DELETE) && (state == null || state.existInDataSource()))
 		{
-			throw new ApplicationException(ServoyException.NO_DELETE_ACCESS);
+			throw new ApplicationException(ServoyException.NO_DELETE_ACCESS, new Object[] { sheet.getTable().getName() });
 		}
 
 		if (state != null && !(state instanceof PrototypeState) && !findMode)
@@ -4153,12 +4213,13 @@ public abstract class FoundSet implements IFoundSetInternal, IRowListener, Scrip
 
 
 				// check for related data
-				Iterator<Relation> it = fsm.getApplication().getFlattenedSolution().getRelations(sheet.getTable(), true, false);
+				FlattenedSolution flattenedSolution = fsm.getApplication().getFlattenedSolution();
+				Iterator<Relation> it = flattenedSolution.getRelations(sheet.getTable(), true, false);
 				while (it.hasNext())
 				{
 					Relation rel = it.next();
-					if (!rel.getAllowParentDeleteWhenHavingRelatedRecords() && !rel.isExactPKRef(fsm.getApplication().getFlattenedSolution()) &&
-						!rel.isGlobal())
+					if (Relation.isValid(rel, flattenedSolution) && !rel.getAllowParentDeleteWhenHavingRelatedRecords() &&
+						!rel.isExactPKRef(fsm.getApplication().getFlattenedSolution()) && !rel.isGlobal())
 					{
 						IFoundSetInternal set = state.getRelatedFoundSet(rel.getName());
 						if (set != null && set.getSize() > 0)
@@ -4178,11 +4239,11 @@ public abstract class FoundSet implements IFoundSetInternal, IRowListener, Scrip
 				{
 
 					// delete the related data
-					it = fsm.getApplication().getFlattenedSolution().getRelations(sheet.getTable(), true, false);
+					it = flattenedSolution.getRelations(sheet.getTable(), true, false);
 					while (it.hasNext())
 					{
 						Relation rel = it.next();
-						if (rel.getDeleteRelatedRecords() && !rel.isGlobal())//if completely global never delete do cascade delete
+						if (Relation.isValid(rel, flattenedSolution) && rel.getDeleteRelatedRecords() && !rel.isGlobal())//if completely global never delete do cascade delete
 						{
 							IFoundSetInternal set = state.getRelatedFoundSet(rel.getName());
 							if (set != null)
@@ -4731,7 +4792,7 @@ public abstract class FoundSet implements IFoundSetInternal, IRowListener, Scrip
 
 		if (javascriptRecord && !hasAccess(IRepository.INSERT))
 		{
-			throw new ApplicationException(ServoyException.NO_CREATE_ACCESS);
+			throw new ApplicationException(ServoyException.NO_CREATE_ACCESS, new Object[] { getTable().getName() });
 		}
 
 		if (rowData == null && relationName != null)
@@ -5000,11 +5061,11 @@ public abstract class FoundSet implements IFoundSetInternal, IRowListener, Scrip
 			{
 				fireSelectionAdjusting();
 				pksAndRecords.setPksAndQuery(findPKs, findPKs.getRowCount(), findSqlSelect);
-				initialized = true;
 
 				clearInternalState(true);
 				fireAggregateChangeWithEvents(null); //notify about aggregate change,because the find has cleared them all.
 			}
+			initialized = true;
 
 			fireDifference(numberOfFindStates, getSize());
 
@@ -6739,7 +6800,7 @@ public abstract class FoundSet implements IFoundSetInternal, IRowListener, Scrip
 		if (!hasAccess(IRepository.READ))
 		{
 			fireDifference(getSize(), 0);
-			throw new ApplicationException(ServoyException.NO_ACCESS);
+			throw new ApplicationException(ServoyException.NO_ACCESS, new Object[] { getSQLSheet().getTable().getName() });
 		}
 
 		IDataSet dataSet = SQLGenerator.getEmptyDataSetForDummyQuery(theQuery);

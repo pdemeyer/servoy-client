@@ -1,5 +1,5 @@
 angular.module('servoydefaultTypeahead', ['servoy'])
-.directive('servoydefaultTypeahead', ['formatFilterFilter', '$apifunctions', '$svyProperties', '$formatterUtils', '$sabloConstants', function(formatFilter, $apifunctions, $svyProperties, $formatterUtils, $sabloConstants) {
+.directive('servoydefaultTypeahead', ['formatFilterFilter', '$apifunctions', '$svyProperties', '$formatterUtils', '$sabloConstants','$applicationService', function(formatFilter, $apifunctions, $svyProperties, $formatterUtils, $sabloConstants,$applicationService) {
 	return {
 		restrict: 'E',
 		require: 'ngModel',
@@ -8,6 +8,24 @@ angular.module('servoydefaultTypeahead', ['servoy'])
 			svyServoyapi: "=",
 			handlers: "=svyHandlers",
 			api: "=svyApi"
+		},
+		controller: function ($scope) {
+			var showValues = null;
+			if ($scope.model.clientProperty && $scope.model.clientProperty['TypeAhead'] && $scope.model.clientProperty['TypeAhead']['showPopupOnFocusGain'] !== null && $scope.model.clientProperty['TypeAhead']['showPopupOnFocusGain'] !== undefined )
+			{
+				showValues = $scope.model.clientProperty['TypeAhead']['showPopupOnFocusGain'];
+			}
+			if (showValues === null)
+			{
+				showValues = $applicationService.getUIProperty('TypeAhead.showPopupOnFocusGain');
+			}	
+			$scope.canShowValues = function(){
+				if (showValues !== undefined && showValues != null)
+				{
+					return showValues;
+				}
+				return true;
+			};
 		},
 		link: function($scope, $element, $attrs, ngModel) {
 
@@ -75,14 +93,15 @@ angular.module('servoydefaultTypeahead', ['servoy'])
 			$scope.doSvyApply = function(doNotStopEditing) {
 				if (!editing) 
 					return;
-				if ($('[typeahead-popup]').attr('aria-hidden') == "true") {
+				if ($('[uib-typeahead-popup]').attr('aria-hidden') == "true") {
 					if(!doNotStopEditing) {
 						editing = false;
 					}
 					if ($scope.model.valuelistID) {
 						var hasMatchingDisplayValue = false;
 						for (var i = 0; i < $scope.model.valuelistID.length; i++) {
-							if ($scope.value === $scope.model.valuelistID[i].displayValue) {
+							// compare trimmed values, typeahead will trim the selected value
+							if ($.trim($scope.value) === $.trim($scope.model.valuelistID[i].displayValue)) {
 								hasMatchingDisplayValue = true;
 								$scope.model.dataProviderID = $scope.model.valuelistID[i].realValue;
 								break;

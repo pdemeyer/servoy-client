@@ -23,7 +23,7 @@ import org.json.JSONStringer;
 import org.json.JSONWriter;
 import org.mozilla.javascript.NativeObject;
 import org.mozilla.javascript.Scriptable;
-import org.sablo.BaseWebObject;
+import org.sablo.IWebObjectContext;
 import org.sablo.specification.PropertyDescription;
 import org.sablo.specification.property.types.PointPropertyType;
 import org.sablo.websocket.utils.DataConversion;
@@ -64,19 +64,19 @@ public class NGPointPropertyType extends PointPropertyType implements IDesignToF
 	}
 
 	@Override
-	public boolean isValueAvailableInRhino(Point webComponentValue, PropertyDescription pd, BaseWebObject componentOrService)
+	public boolean isValueAvailableInRhino(Point webComponentValue, PropertyDescription pd, IWebObjectContext webObjectContext)
 	{
 		return true;
 	}
 
 	@Override
-	public Object toRhinoValue(Point webComponentValue, PropertyDescription pd, BaseWebObject componentOrService, Scriptable startScriptable)
+	public Object toRhinoValue(Point webComponentValue, PropertyDescription pd, IWebObjectContext componentOrService, Scriptable startScriptable)
 	{
 		return PersistHelper.createPointString(webComponentValue);
 	}
 
 	@Override
-	public Point toSabloComponentValue(Object rhinoValue, Point previousComponentValue, PropertyDescription pd, BaseWebObject componentOrService)
+	public Point toSabloComponentValue(Object rhinoValue, Point previousComponentValue, PropertyDescription pd, IWebObjectContext componentOrService)
 	{
 		if (rhinoValue instanceof Object[])
 		{

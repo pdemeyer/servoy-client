@@ -27,15 +27,13 @@ import org.mozilla.javascript.NativeArray;
 import org.mozilla.javascript.NativeObject;
 import org.mozilla.javascript.Scriptable;
 import org.mozilla.javascript.ScriptableObject;
-import org.sablo.BaseWebObject;
+import org.sablo.IWebObjectContext;
 import org.sablo.specification.PropertyDescription;
-import org.sablo.specification.property.ChangeAwareList;
-import org.sablo.specification.property.ChangeAwareMap;
 import org.sablo.specification.property.CustomJSONArrayType;
 import org.sablo.specification.property.IPropertyType;
 
 import com.servoy.j2db.server.ngclient.property.ComponentTypeSabloValue;
-import com.servoy.j2db.server.ngclient.property.types.IRhinoNativeProxy;
+import com.servoy.j2db.server.ngclient.property.types.IRhinoPrototypeProvider;
 import com.servoy.j2db.server.ngclient.property.types.NGConversions;
 import com.servoy.j2db.server.ngclient.property.types.NGConversions.ISabloComponentToRhino;
 import com.servoy.j2db.util.Utils;
@@ -49,23 +47,15 @@ public final class RhinoMapOrArrayWrapper implements Scriptable
 	private final PropertyDescription propertyDescription;
 	private Scriptable prototype;
 	private Scriptable parent;
-	private final BaseWebObject baseWebObject;
+	private final IWebObjectContext webObjectContext;
 
-	public RhinoMapOrArrayWrapper(Object wrappedValue, BaseWebObject baseWebObject, PropertyDescription propertyDescription, Scriptable startScriptable)
+	public RhinoMapOrArrayWrapper(Object wrappedValue, IWebObjectContext webObjectContext, PropertyDescription propertyDescription, Scriptable startScriptable)
 	{
-		this.baseWebObject = baseWebObject;
+		this.webObjectContext = webObjectContext;
 		this.wrappedValue = wrappedValue;
 		this.propertyDescription = propertyDescription;
-		Object baseObject = null;
-		if (wrappedValue instanceof ChangeAwareList< ? , ? >) baseObject = ((ChangeAwareList)wrappedValue).getBaseList();
-		if (wrappedValue instanceof ChangeAwareMap< ? , ? >) baseObject = ((ChangeAwareMap)wrappedValue).getBaseMap();
 
-		if (baseObject instanceof IRhinoNativeProxy)
-		{
-			// allow it to use for example methods defined in Rhino although it's properties are kept in a Java map or array
-			setPrototype(((IRhinoNativeProxy)baseObject).getBaseRhinoScriptable());
-		}
-		else if (wrappedValue instanceof List)
+		if (wrappedValue instanceof List)
 		{
 			// allow it to use native JS array methods
 			NativeArray proto = new NativeArray(0);
@@ -75,8 +65,15 @@ public final class RhinoMapOrArrayWrapper implements Scriptable
 		else if (wrappedValue instanceof Map)
 		{
 			// allow it to use native JS array methods
-			NativeObject proto = new NativeObject();
-			if (startScriptable != null) proto.setPrototype(ScriptableObject.getObjectPrototype(startScriptable));
+			Scriptable proto;
+
+			if (wrappedValue instanceof IRhinoPrototypeProvider) proto = ((IRhinoPrototypeProvider)wrappedValue).getRhinoPrototype(); // for example window_server.js popup menus create objects with prototypes; and while we do change the object ('instrument' it) we want to keep the prototype the same so that all the functions defined in it still work
+			else
+			{
+				// standard object
+				proto = new NativeObject();
+				if (startScriptable != null) proto.setPrototype(ScriptableObject.getObjectPrototype(startScriptable));
+			}
 			setPrototype(proto); // new instance so that JS can use usual put/set even for non-defined things in PropertyDescription by forwarding to prototype
 		}
 		if (startScriptable != null) parent = ScriptableObject.getTopLevelScope(startScriptable);
@@ -121,7 +118,7 @@ public final class RhinoMapOrArrayWrapper implements Scriptable
 					if (element instanceof ComponentTypeSabloValue && Utils.equalObjects(name, ((ComponentTypeSabloValue)element).getName()))
 					{
 						return NGConversions.INSTANCE.convertSabloComponentToRhinoValue(element,
-							((ComponentTypeSabloValue)element).getComponentPropertyDescription(), baseWebObject, start);
+							((ComponentTypeSabloValue)element).getComponentPropertyDescription(), webObjectContext, start);
 					}
 				}
 			}
@@ -129,7 +126,7 @@ public final class RhinoMapOrArrayWrapper implements Scriptable
 		}
 
 		PropertyDescription propDesc = propertyDescription.getProperty(name);
-		return propDesc != null ? NGConversions.INSTANCE.convertSabloComponentToRhinoValue(value, propDesc, baseWebObject, start) : Scriptable.NOT_FOUND;
+		return propDesc != null ? NGConversions.INSTANCE.convertSabloComponentToRhinoValue(value, propDesc, webObjectContext, start) : Scriptable.NOT_FOUND;
 	}
 
 	protected Object getSabloValueForIndex(int index)
@@ -149,7 +146,7 @@ public final class RhinoMapOrArrayWrapper implements Scriptable
 	{
 		Object value = getSabloValueForIndex(index);
 		return value == Scriptable.NOT_FOUND ? Scriptable.NOT_FOUND
-			: NGConversions.INSTANCE.convertSabloComponentToRhinoValue(value, getArrayElementDescription(), baseWebObject, start);
+			: NGConversions.INSTANCE.convertSabloComponentToRhinoValue(value, getArrayElementDescription(), webObjectContext, start);
 	}
 
 	protected PropertyDescription getArrayElementDescription()
@@ -171,7 +168,7 @@ public final class RhinoMapOrArrayWrapper implements Scriptable
 				IPropertyType< ? > type = pd.getType();
 				// it is available by default, so if it doesn't have conversion, or if it has conversion and is explicitly available
 				return !(type instanceof ISabloComponentToRhino< ? >) ||
-					((ISabloComponentToRhino)type).isValueAvailableInRhino(getAsSabloValue(name), pd, baseWebObject);
+					((ISabloComponentToRhino)type).isValueAvailableInRhino(getAsSabloValue(name), pd, webObjectContext);
 			}
 		}
 		return false;
@@ -199,7 +196,7 @@ public final class RhinoMapOrArrayWrapper implements Scriptable
 			PropertyDescription pd = propertyDescription.getProperty(name);
 			if (pd != null)
 			{
-				Object convertedValue = NGConversions.INSTANCE.convertRhinoToSabloComponentValue(value, getAsSabloValue(name), pd, baseWebObject);
+				Object convertedValue = NGConversions.INSTANCE.convertRhinoToSabloComponentValue(value, getAsSabloValue(name), pd, webObjectContext);
 				((Map)wrappedValue).put(name, convertedValue);
 			}
 			else
@@ -239,7 +236,7 @@ public final class RhinoMapOrArrayWrapper implements Scriptable
 			List<Object> lst = (List<Object>)wrappedValue;
 			Object prev = getSabloValueForIndex(index);
 			Object val = NGConversions.INSTANCE.convertRhinoToSabloComponentValue(value, prev == Scriptable.NOT_FOUND ? null : prev,
-				getArrayElementDescription(), baseWebObject);
+				getArrayElementDescription(), webObjectContext);
 			while (lst.size() <= index)
 			{
 				lst.add(null);
@@ -326,7 +323,7 @@ public final class RhinoMapOrArrayWrapper implements Scriptable
 				IPropertyType< ? > type = pd.getType();
 				// it is available by default, so if it doesn't have conversion, or if it has conversion and is explicitly available
 				if (!(type instanceof ISabloComponentToRhino< ? >) ||
-					((ISabloComponentToRhino)type).isValueAvailableInRhino(entry.getValue(), pd, baseWebObject))
+					((ISabloComponentToRhino)type).isValueAvailableInRhino(entry.getValue(), pd, webObjectContext))
 				{
 					result.add(entry.getKey());
 				}

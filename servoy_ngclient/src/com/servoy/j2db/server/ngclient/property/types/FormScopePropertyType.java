@@ -19,7 +19,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.json.JSONWriter;
 import org.mozilla.javascript.Scriptable;
-import org.sablo.BaseWebObject;
+import org.sablo.IWebObjectContext;
 import org.sablo.specification.PropertyDescription;
 import org.sablo.specification.property.IBrowserConverterContext;
 import org.sablo.specification.property.IPropertyConverterForBrowser;
@@ -67,7 +67,7 @@ public class FormScopePropertyType extends DefaultPropertyType<Object>
 	}
 
 	@Override
-	public Object toSabloComponentValue(Object rhinoValue, Object previousComponentValue, PropertyDescription pd, BaseWebObject componentOrService)
+	public Object toSabloComponentValue(Object rhinoValue, Object previousComponentValue, PropertyDescription pd, IWebObjectContext componentOrService)
 	{
 		INGApplication app = ((IContextProvider)componentOrService).getDataConverterContext().getApplication();
 		if (rhinoValue instanceof String && app != null)
@@ -110,13 +110,13 @@ public class FormScopePropertyType extends DefaultPropertyType<Object>
 	}
 
 	@Override
-	public boolean isValueAvailableInRhino(Object webComponentValue, PropertyDescription pd, BaseWebObject componentOrService)
+	public boolean isValueAvailableInRhino(Object webComponentValue, PropertyDescription pd, IWebObjectContext webObjectContext)
 	{
 		return true;
 	}
 
 	@Override
-	public Object toRhinoValue(Object webComponentValue, PropertyDescription pd, BaseWebObject componentOrService, Scriptable startScriptable)
+	public Object toRhinoValue(Object webComponentValue, PropertyDescription pd, IWebObjectContext componentOrService, Scriptable startScriptable)
 	{
 		INGApplication app = ((IContextProvider)componentOrService).getDataConverterContext().getApplication();
 		if (webComponentValue instanceof String && app != null)
@@ -127,7 +127,7 @@ public class FormScopePropertyType extends DefaultPropertyType<Object>
 	}
 
 	@Override
-	public Object fromServerRhinoToRhinoValue(Object serverSideScriptingReturnValue, PropertyDescription pd, BaseWebObject componentOrService,
+	public Object fromServerRhinoToRhinoValue(Object serverSideScriptingReturnValue, PropertyDescription pd, IWebObjectContext componentOrService,
 		Scriptable startScriptable)
 	{
 		return toRhinoValue(serverSideScriptingReturnValue, pd, componentOrService, startScriptable);

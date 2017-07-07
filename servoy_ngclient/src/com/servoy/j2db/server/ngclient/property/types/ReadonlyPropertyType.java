@@ -21,7 +21,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.json.JSONWriter;
 import org.mozilla.javascript.Scriptable;
-import org.sablo.BaseWebObject;
+import org.sablo.IWebObjectContext;
 import org.sablo.specification.PropertyDescription;
 import org.sablo.specification.property.IBrowserConverterContext;
 import org.sablo.specification.property.IConvertedPropertyType;
@@ -43,15 +43,13 @@ import com.servoy.j2db.server.ngclient.property.types.NGConversions.ISabloCompon
  * @author gganea
  *
  */
-public class ReadonlyPropertyType extends DefaultPropertyType<ReadonlySabloValue> implements IConvertedPropertyType<ReadonlySabloValue>,
-IFormElementDefaultValueToSabloComponent<JSONObject, ReadonlySabloValue>, ISabloComponentToRhino<ReadonlySabloValue>,
-IRhinoToSabloComponent<ReadonlySabloValue>, IFormElementToTemplateJSON<String, ReadonlySabloValue>
+public class ReadonlyPropertyType extends DefaultPropertyType<ReadonlySabloValue>
+	implements IConvertedPropertyType<ReadonlySabloValue>, IFormElementDefaultValueToSabloComponent<JSONObject, ReadonlySabloValue>,
+	ISabloComponentToRhino<ReadonlySabloValue>, IRhinoToSabloComponent<ReadonlySabloValue>, IFormElementToTemplateJSON<String, ReadonlySabloValue>
 {
 
 	public static final ReadonlyPropertyType INSTANCE = new ReadonlyPropertyType();
 	public static final String TYPE_NAME = "readOnly";
-
-	private static final ReadonlySabloValue defaultValue = new ReadonlySabloValue(null, false);
 
 	@Override
 	public String getName()
@@ -86,8 +84,8 @@ IRhinoToSabloComponent<ReadonlySabloValue>, IFormElementToTemplateJSON<String, R
 	}
 
 	@Override
-	public ReadonlySabloValue toSabloComponentValue(JSONObject formElementValue, PropertyDescription pd, INGFormElement formElement,
-			WebFormComponent component, DataAdapterList dataAdapterList)
+	public ReadonlySabloValue toSabloComponentValue(JSONObject formElementValue, PropertyDescription pd, INGFormElement formElement, WebFormComponent component,
+		DataAdapterList dataAdapterList)
 	{
 		return new ReadonlySabloValue((ReadonlyConfig)pd.getConfig(), !(Boolean)formElement.getPropertyValue(((ReadonlyConfig)pd.getConfig()).getOppositeOf()));
 	}
@@ -102,7 +100,7 @@ IRhinoToSabloComponent<ReadonlySabloValue>, IFormElementToTemplateJSON<String, R
 	@Override
 	public ReadonlySabloValue defaultValue(PropertyDescription pd)
 	{
-		return defaultValue;
+		return null; // toSabloComponentDefaultValue will be used instead
 	}
 
 	@Override
@@ -119,20 +117,20 @@ IRhinoToSabloComponent<ReadonlySabloValue>, IFormElementToTemplateJSON<String, R
 	@SuppressWarnings("boxing")
 	@Override
 	public ReadonlySabloValue toSabloComponentValue(Object rhinoValue, ReadonlySabloValue previousComponentValue, PropertyDescription pd,
-		BaseWebObject componentOrService)
+		IWebObjectContext componentOrService)
 	{
 		return new ReadonlySabloValue((ReadonlyConfig)pd.getConfig(), (Boolean)rhinoValue, previousComponentValue.getOldOppositeOfValue());
 	}
 
 	@Override
-	public boolean isValueAvailableInRhino(ReadonlySabloValue webComponentValue, PropertyDescription pd, BaseWebObject componentOrService)
+	public boolean isValueAvailableInRhino(ReadonlySabloValue webComponentValue, PropertyDescription pd, IWebObjectContext webObjectContext)
 	{
 		return true;
 	}
 
 	@SuppressWarnings("boxing")
 	@Override
-	public Object toRhinoValue(ReadonlySabloValue webComponentValue, PropertyDescription pd, BaseWebObject componentOrService, Scriptable startScriptable)
+	public Object toRhinoValue(ReadonlySabloValue webComponentValue, PropertyDescription pd, IWebObjectContext componentOrService, Scriptable startScriptable)
 	{
 		return webComponentValue.getValue();//
 	}

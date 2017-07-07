@@ -34,12 +34,14 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.json.JSONWriter;
 import org.sablo.IChangeListener;
+import org.sablo.IWebObjectContext;
 import org.sablo.IllegalComponentAccessException;
 import org.sablo.specification.PropertyDescription;
 import org.sablo.specification.WebObjectSpecification;
 import org.sablo.specification.property.ISmartPropertyValue;
 import org.sablo.websocket.CurrentWindow;
 import org.sablo.websocket.TypedData;
+import org.sablo.websocket.TypedDataWithChangeInfo;
 import org.sablo.websocket.utils.DataConversion;
 import org.sablo.websocket.utils.JSONUtils;
 import org.sablo.websocket.utils.JSONUtils.ChangesToJSONConverter;
@@ -105,7 +107,8 @@ public class ComponentTypeSabloValue implements ISmartPropertyValue
 	protected ComponentDataLinkedPropertyListener dataLinkedPropertyRegistrationListener; // only used in case component is foundset-linked
 	protected final List<String> recordBasedProperties;
 
-	protected WebFormComponent parentComponent;
+	private IWebObjectContext webObjectContext;
+	private IChangeListener foundsetStateChangeListener;
 	protected IChangeListener monitor;
 	protected PropertyDescription componentPropertyDescription;
 
@@ -135,19 +138,18 @@ public class ComponentTypeSabloValue implements ISmartPropertyValue
 	}
 
 	@Override
-	public void attachToBaseObject(IChangeListener changeMonitor, org.sablo.BaseWebObject parentComp)
+	public void attachToBaseObject(IChangeListener changeMonitor, IWebObjectContext webObjectCtxt)
 	{
 		// the code below that clears component should not be needed as detach will do these and it should never happen that attach is called twice in a row without a detach in-between
 		// but due to some code in ChangeAwareList.detach(int idx, WT el, boolean remove) that might skip the actual detach to improve operation of Rhino side .splice ... it can happen that the value gets attached twice
 		if (componentIsCreated) detach();
 
-		this.parentComponent = (WebFormComponent)parentComp;
+		this.webObjectContext = webObjectCtxt;
 		this.monitor = changeMonitor;
 
-		createComponentIfNeededAndPossible();
 		if (forFoundsetTypedPropertyName != null)
 		{
-			this.parentComponent.addPropertyChangeListener(forFoundsetTypedPropertyName, forFoundsetPropertyListener = new PropertyChangeListener()
+			this.webObjectContext.addPropertyChangeListener(forFoundsetTypedPropertyName, forFoundsetPropertyListener = new PropertyChangeListener()
 			{
 				@Override
 				public void propertyChange(PropertyChangeEvent evt)
@@ -156,6 +158,7 @@ public class ComponentTypeSabloValue implements ISmartPropertyValue
 				}
 			});
 		}
+		createComponentIfNeededAndPossible();
 	}
 
 	private void setDataproviderNameToFoundset()
@@ -180,11 +183,16 @@ public class ComponentTypeSabloValue implements ISmartPropertyValue
 	{
 		if (forFoundsetPropertyListener != null)
 		{
-			parentComponent.removePropertyChangeListener(forFoundsetTypedPropertyName, forFoundsetPropertyListener);
+			webObjectContext.removePropertyChangeListener(forFoundsetTypedPropertyName, forFoundsetPropertyListener);
 
 			FoundsetTypeSabloValue foundsetPropValue = getFoundsetValue();
 			if (foundsetPropValue != null)
 			{
+				if (foundsetStateChangeListener != null)
+				{
+					foundsetPropValue.removeStateChangeListener(foundsetStateChangeListener);
+					foundsetStateChangeListener = null;
+				}
 				if (viewPortChangeMonitor != null)
 				{
 					foundsetPropValue.removeViewportDataChangeMonitor(viewPortChangeMonitor);
@@ -198,10 +206,11 @@ public class ComponentTypeSabloValue implements ISmartPropertyValue
 				foundsetPropValue.setRecordDataLinkedPropertyIDToColumnDP(childComponent.getName(), null);
 			}
 		}
-		if (readonlyPropertyListener != null) parentComponent.removePropertyChangeListener(WebFormUI.READONLY, readonlyPropertyListener);
+		if (readonlyPropertyListener != null) webObjectContext.removePropertyChangeListener(WebFormUI.READONLY, readonlyPropertyListener);
 
 		// unregister this component from formcontroller "elements" scope if needed
-		IWebFormUI formUI = parentComponent.findParent(IWebFormUI.class);
+		WebFormComponent parentComponent = getParentComponent();
+		IWebFormUI formUI = parentComponent != null ? parentComponent.findParent(IWebFormUI.class) : null;
 		if (formUI != null && componentPropertyDescription != null && Utils.getAsBoolean(componentPropertyDescription.getTag("addToElementsScope")))
 		{
 			formUI.removeComponentFromElementsScope(formElementValue.element, formElementValue.element.getWebComponentSpec(), childComponent);
@@ -221,33 +230,39 @@ public class ComponentTypeSabloValue implements ISmartPropertyValue
 		}
 
 		this.monitor = null;
-		this.parentComponent = null;
+		this.webObjectContext = null;
 	}
 
 	private FoundsetTypeSabloValue getFoundsetValue()
 	{
-		if (parentComponent != null)
+		if (webObjectContext != null)
 		{
 			if (forFoundsetTypedPropertyName != null)
 			{
-				return (FoundsetTypeSabloValue)parentComponent.getProperty(forFoundsetTypedPropertyName);
+				return (FoundsetTypeSabloValue)webObjectContext.getProperty(forFoundsetTypedPropertyName);
 			}
 		}
 		return null;
+	}
+
+	private WebFormComponent getParentComponent()
+	{
+		return webObjectContext != null ? (WebFormComponent)webObjectContext.getUnderlyingWebObject() : null;
 	}
 
 	protected void createComponentIfNeededAndPossible()
 	{
 		// this method should get called only after init() got called on all properties from this component (including this one)
 		// so now we should be able to find a potentially linked foundset property value
-		if (componentIsCreated || parentComponent == null) return;
+		if (componentIsCreated || webObjectContext == null) return;
 
 		final FoundsetTypeSabloValue foundsetPropValue = getFoundsetValue();
+		if (foundsetPropValue != null) foundsetPropValue.addStateChangeListener(getFoundsetStateChangeListener());
 
-		if (foundsetPropValue == null && forFoundsetTypedPropertyName != null) return;
+		if ((foundsetPropValue == null || foundsetPropValue.getDataAdapterList() == null) && forFoundsetTypedPropertyName != null) return; // foundset property value is not yet set or not yet attached to component
 
 		componentIsCreated = true;
-		IWebFormUI formUI = parentComponent.findParent(IWebFormUI.class);
+		IWebFormUI formUI = getParentComponent().findParent(IWebFormUI.class);
 		final IDataAdapterList dal = (foundsetPropValue != null ? foundsetPropValue.getDataAdapterList() : formUI.getDataAdapterList());
 
 		if (foundsetPropValue != null)
@@ -256,7 +271,7 @@ public class ComponentTypeSabloValue implements ISmartPropertyValue
 			((FoundsetDataAdapterList)dal).addDataLinkedPropertyRegistrationListener(createDataLinkedPropertyRegistrationListener());
 		}
 
-		childComponent = ComponentFactory.createComponent(dal.getApplication(), dal, formElementValue.element, parentComponent,
+		childComponent = ComponentFactory.createComponent(dal.getApplication(), dal, formElementValue.element, getParentComponent(),
 			formUI.getController().getForm());
 
 		if (foundsetPropValue != null)
@@ -300,7 +315,7 @@ public class ComponentTypeSabloValue implements ISmartPropertyValue
 							// else this change was probably determined by the fact that we reuse components, changing the record in the DAL to get data for a specific row;
 							// so we need to clear component changes for this property because we do not notify the parent here (we want to ignore the change) so
 							// we shouldn't keep the property marked as dirty - thus blocking future property changes to generate a valueChanged on parent's monitor
-							childComponent.flagPropertyAsDirty(propertyName, false);
+							childComponent.clearChangedStatusForProperty(propertyName);
 						}
 					}
 					else
@@ -379,22 +394,36 @@ public class ComponentTypeSabloValue implements ISmartPropertyValue
 			setDataproviderNameToFoundset();
 		}
 
-		addPropertyChangeListener(WebFormUI.READONLY, parentComponent.getProperty(WebFormUI.READONLY));
+		addPropagatingPropertyChangeListener(WebFormUI.READONLY, webObjectContext.getProperty(WebFormUI.READONLY));
 
 
 		if (childComponent.hasChanges()) monitor.valueChanged();
 	}
 
-	private void addPropertyChangeListener(final String property, Object initialValue)
+	private IChangeListener getFoundsetStateChangeListener()
 	{
-		if (parentComponent.getSpecification().getProperty(property) != null && childComponent.getSpecification().getProperty(property) != null)
+		if (foundsetStateChangeListener == null) foundsetStateChangeListener = new IChangeListener()
 		{
-			PropertyDescription propertyDescChild = childComponent.getSpecification().getProperty(property);
+			@Override
+			public void valueChanged()
+			{
+				createComponentIfNeededAndPossible();
+			}
+		};
+
+		return foundsetStateChangeListener;
+	}
+
+	private void addPropagatingPropertyChangeListener(final String property, Object initialValue)
+	{
+		if (webObjectContext.getPropertyDescription(property) != null && childComponent.getPropertyDescription(property) != null)
+		{
+			PropertyDescription propertyDescChild = childComponent.getPropertyDescription(property);
 			if (childComponent.getProperty(property) == null || !propertyDescChild.hasDefault() ||
 				childComponent.getProperty(property).equals(propertyDescChild.getDefaultValue()))
 			{
 				setChildProperty(property, initialValue);
-				this.parentComponent.addPropertyChangeListener(property, readonlyPropertyListener = new PropertyChangeListener()
+				this.webObjectContext.addPropertyChangeListener(property, readonlyPropertyListener = new PropertyChangeListener()
 				{
 					@Override
 					public void propertyChange(PropertyChangeEvent evt)
@@ -502,7 +531,7 @@ public class ComponentTypeSabloValue implements ISmartPropertyValue
 
 		DataConversion conversions = new DataConversion();
 		// send component model (when linked to foundset only props that are not record related)
-		childComponent.writeProperties(InitialToJSONConverter.INSTANCE, destinationJSON, allProps.content, allProps.contentType, conversions);
+		childComponent.writeProperties(InitialToJSONConverter.INSTANCE, null, destinationJSON, allProps, conversions);
 		JSONUtils.writeClientConversions(destinationJSON, conversions);
 
 		destinationJSON.endObject();
@@ -527,7 +556,7 @@ public class ComponentTypeSabloValue implements ISmartPropertyValue
 
 		if (conversionMarkers != null) conversionMarkers.convert(ComponentPropertyType.TYPE_NAME); // so that the client knows it must use the custom client side JS for what JSON it gets
 
-		TypedData<Map<String, Object>> changes = childComponent.getAndClearChanges();
+		TypedDataWithChangeInfo changes = childComponent.getAndClearChanges();
 		removeRecordDependentProperties(changes);
 
 		boolean modelChanged = (changes.content.size() > 0);
@@ -548,7 +577,7 @@ public class ComponentTypeSabloValue implements ISmartPropertyValue
 
 			DataConversion conversions = new DataConversion();
 			// send component model (when linked to foundset only props that are not record related)
-			childComponent.writeProperties(ChangesToJSONConverter.INSTANCE, destinationJSON, changes.content, changes.contentType, conversions);
+			childComponent.writeProperties(ChangesToJSONConverter.INSTANCE, FullValueToJSONConverter.INSTANCE, destinationJSON, changes, conversions);
 			JSONUtils.writeClientConversions(destinationJSON, conversions);
 
 			destinationJSON.endObject();
@@ -675,8 +704,8 @@ public class ComponentTypeSabloValue implements ISmartPropertyValue
 				DataConversion dataConversion = new DataConversion();
 				JSONUtils.writeData(FormElementToJSON.INSTANCE, writer, formElementProperties.content, formElementProperties.contentType, dataConversion,
 					formElementContext);
-				childComponent.writeProperties(JSONUtils.FullValueToJSONConverter.INSTANCE, writer, runtimeProperties.content, runtimeProperties.contentType,
-					dataConversion);
+				// always use full to JSON converter here; second arg. is null due to that
+				childComponent.writeProperties(JSONUtils.FullValueToJSONConverter.INSTANCE, null, writer, runtimeProperties, dataConversion);
 				JSONUtils.writeClientConversions(writer, dataConversion);
 				writer.endObject();
 			}
@@ -872,13 +901,18 @@ public class ComponentTypeSabloValue implements ISmartPropertyValue
 						else
 						{
 							childComponent.putBrowserProperty(propertyName, value);
-							IWebFormUI formUI = parentComponent.findParent(IWebFormUI.class);
+							IWebFormUI formUI = getParentComponent().findParent(IWebFormUI.class);
 							dal = formUI.getDataAdapterList();
 						}
+
+
 						if (forFoundsetTypedPropertyName != null && !recordBasedProperties.contains(propertyName))
 						{
-							childComponent.flagPropertyAsDirty(propertyName, true);
+							// TODO why is this needed? so if it's a dataprovider that is not linked to a record but inside a foundset linked component and it is changed on client
+							// and pushed to server... why do we need to send it back to client? I think this 'if' should be removed
+							childComponent.markPropertyAsChangedByRef(propertyName);
 						}
+
 						// apply change to record/dp
 						dal.pushChanges(childComponent, propertyName);
 					}
@@ -932,7 +966,7 @@ public class ComponentTypeSabloValue implements ISmartPropertyValue
 					}
 					else
 					{
-						IWebFormUI formUI = parentComponent.findParent(IWebFormUI.class);
+						IWebFormUI formUI = getParentComponent().findParent(IWebFormUI.class);
 						dal = formUI.getDataAdapterList();
 					}
 

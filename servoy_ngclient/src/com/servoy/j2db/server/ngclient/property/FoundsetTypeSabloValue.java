@@ -17,6 +17,7 @@
 
 package com.servoy.j2db.server.ngclient.property;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -31,15 +32,14 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.json.JSONWriter;
-import org.sablo.BaseWebObject;
 import org.sablo.IChangeListener;
+import org.sablo.IWebObjectContext;
 import org.sablo.WebComponent;
 import org.sablo.specification.PropertyDescription;
 import org.sablo.specification.WebObjectSpecification.PushToServerEnum;
 import org.sablo.specification.property.BrowserConverterContext;
 import org.sablo.specification.property.CustomJSONPropertyType;
 import org.sablo.specification.property.IBrowserConverterContext;
-import org.sablo.specification.property.IConvertedPropertyType;
 import org.sablo.specification.property.types.TypesRegistry;
 import org.sablo.util.ValueReference;
 import org.sablo.websocket.utils.DataConversion;
@@ -56,6 +56,10 @@ import com.servoy.j2db.dataprocessing.ISwingFoundSet;
 import com.servoy.j2db.dataprocessing.PrototypeState;
 import com.servoy.j2db.dataprocessing.SortColumn;
 import com.servoy.j2db.dataprocessing.ValueFactory.DbIdentValue;
+import com.servoy.j2db.persistence.Form;
+import com.servoy.j2db.persistence.ITable;
+import com.servoy.j2db.persistence.Relation;
+import com.servoy.j2db.persistence.RepositoryException;
 import com.servoy.j2db.persistence.Table;
 import com.servoy.j2db.scripting.JSEvent;
 import com.servoy.j2db.server.ngclient.DataAdapterList;
@@ -63,7 +67,6 @@ import com.servoy.j2db.server.ngclient.IDataAdapterList;
 import com.servoy.j2db.server.ngclient.INGApplication;
 import com.servoy.j2db.server.ngclient.IWebFormController;
 import com.servoy.j2db.server.ngclient.IWebFormUI;
-import com.servoy.j2db.server.ngclient.WebFormComponent;
 import com.servoy.j2db.server.ngclient.property.types.FormatPropertyType;
 import com.servoy.j2db.server.ngclient.property.types.IDataLinkedType.TargetDataLinks;
 import com.servoy.j2db.server.ngclient.utils.NGUtils;
@@ -80,7 +83,7 @@ import com.servoy.j2db.util.Utils;
  * @author acostescu
  */
 @SuppressWarnings("nls")
-public class FoundsetTypeSabloValue implements IDataLinkedPropertyValue, TableModelListener
+public class FoundsetTypeSabloValue implements IDataLinkedPropertyValue, TableModelListener, IHasUnderlyingState
 {
 
 	public static final String FORM_FOUNDSET_SELECTOR = "";
@@ -142,7 +145,8 @@ public class FoundsetTypeSabloValue implements IDataLinkedPropertyValue, TableMo
 
 	protected final DataAdapterList parentDAL;
 
-	protected BaseWebObject webObject;
+	protected IWebObjectContext webObjectContext;
+	private final List<IChangeListener> underlyingStateListeners = new ArrayList<>();
 
 	protected final FoundsetPropertyTypeConfig specConfig;
 	private String lastSortString;
@@ -159,9 +163,10 @@ public class FoundsetTypeSabloValue implements IDataLinkedPropertyValue, TableMo
 		viewPort = new FoundsetTypeViewport(changeMonitor, specConfig);
 		// nothing to do here; foundset is not initialized until it's attached to a component
 		recordDataLinkedPropertyIDToColumnDP = new HashMap<String, String>();
-		// foundsetSelector as defined in component design XML.
+		// foundsetSelector as defined in component design json
 		if (designJSONValue != null)
 		{
+			// IMPORTANT if any changes are made in the way we store the form element json (designJSONValue) please change code in FormatPropertyType that uses it as well!
 			foundsetSelector = ((JSONObject)designJSONValue).optString(FoundsetPropertyType.FOUNDSET_SELECTOR, null);
 			initializeDataproviders(((JSONObject)designJSONValue).optJSONObject(FoundsetPropertyType.DATAPROVIDERS_KEY_FOR_DESIGN));
 		}
@@ -209,10 +214,15 @@ public class FoundsetTypeSabloValue implements IDataLinkedPropertyValue, TableMo
 		return foundset;
 	}
 
-	@Override
-	public void attachToBaseObject(IChangeListener changeNotifier, BaseWebObject webObject)
+	public String getFoundsetSelector()
 	{
-		this.webObject = webObject;
+		return foundsetSelector;
+	}
+
+	@Override
+	public void attachToBaseObject(IChangeListener changeNotifier, IWebObjectContext webObjectCntxt)
+	{
+		this.webObjectContext = webObjectCntxt;
 		dataAdapterList = null;
 		changeMonitor.setChangeNotifier(changeNotifier);
 
@@ -234,6 +244,8 @@ public class FoundsetTypeSabloValue implements IDataLinkedPropertyValue, TableMo
 
 		// register parent record changed listener
 		if (parentDAL != null) parentDAL.addDataLinkedProperty(this, TargetDataLinks.LINKED_TO_ALL);
+
+		fireUnderlyingStateChangedListeners(); // we now have a webObjectContext so getDataAdapterList() might return non-null now; in some cases this is all other properties need, they don't need the foundset itself
 	}
 
 	/**
@@ -251,9 +263,11 @@ public class FoundsetTypeSabloValue implements IDataLinkedPropertyValue, TableMo
 	 */
 	protected void updateFoundset(IRecordInternal record)
 	{
+		// IMPORTANT if the following code regarding foundsetSelector is changed please update code in getTableBasedOfFoundsetPropertyFromFoundsetIdentifier(...) below as well
 		if (foundsetSelector == null) return; // this foundset is only meant to be set from Rhino scripting; do not automatically set it and do not automatically clear it once it's set from Rhino
 
 		IFoundSetInternal newFoundset = null;
+
 		if (FORM_FOUNDSET_SELECTOR.equals(foundsetSelector))
 		{
 			// it is the form's foundset then
@@ -264,7 +278,7 @@ public class FoundsetTypeSabloValue implements IDataLinkedPropertyValue, TableMo
 		}
 		else if (!DataSourceUtils.isDatasourceUri(foundsetSelector))
 		{
-			// is is a relation then
+			// it is a relation then
 			if (record != null)
 			{
 				Object o = record.getValue(foundsetSelector);
@@ -310,6 +324,48 @@ public class FoundsetTypeSabloValue implements IDataLinkedPropertyValue, TableMo
 		updateFoundset(newFoundset);
 	}
 
+	public static ITable getTableBasedOfFoundsetPropertyFromFoundsetIdentifier(String foundsetId, INGApplication application, Form form)
+	{
+		// IMPORTANT if the following code regarding foundsetSelector is changed please update code in updateFoundset(IRecordInternal record) above as well
+		ITable table = null;
+
+		if (FoundsetTypeSabloValue.FORM_FOUNDSET_SELECTOR.equals(foundsetId))
+		{
+			// it is the form's foundset then
+			IFoundSetManagerInternal foundSetManager = application.getFoundSetManager();
+			if (foundSetManager == null)
+			{
+				table = application.getFlattenedSolution().getTable(form.getDataSource());
+			}
+			else
+			{
+				try
+				{
+					table = foundSetManager.getTable(form.getDataSource());
+				}
+				catch (RepositoryException e)
+				{
+					Debug.error(e);
+				}
+			}
+		}
+		else if (!DataSourceUtils.isDatasourceUri(foundsetId))
+		{
+			// it is a relation then, not a datasource (separate or named foundset)
+			Relation[] relations = application.getFlattenedSolution().getRelationSequence(foundsetId);
+			if (relations != null && relations.length > 0)
+			{
+				table = application.getFlattenedSolution().getTable(relations[relations.length - 1].getForeignDataSource());
+			}
+		}
+		else // DataSourceUtils.isDatasourceUri(foundsetName)
+		{
+			// if this is a separate or named foundset selector or it is a foundset value that was set from Rhino
+			table = application.getFlattenedSolution().getTable(foundsetId);
+		}
+		return table;
+	}
+
 	protected IFoundSetManagerInternal getFoundSetManager()
 	{
 		return getFormUI().getDataConverterContext().getApplication().getFoundSetManager();
@@ -346,12 +402,14 @@ public class FoundsetTypeSabloValue implements IDataLinkedPropertyValue, TableMo
 				((ISwingFoundSet)foundset).addTableModelListener(this);
 			}
 			if (foundset != null && getDataAdapterList() != null) getDataAdapterList().setFindMode(foundset.isInFindMode());
+
+			fireUnderlyingStateChangedListeners(); // some listening properties might be interested in the underlying foundset itself
 		}
 	}
 
 	protected boolean updateColumnFormatsIfNeeded()
 	{
-		if (specConfig.sendDefaultFormats && columnFormats == null && getFoundset() != null && webObject != null)
+		if (specConfig.sendDefaultFormats && columnFormats == null && getFoundset() != null && webObjectContext != null)
 		{
 			columnFormats = new HashMap<>();
 			for (Entry<String, String> dp : dataproviders.entrySet())
@@ -435,11 +493,11 @@ public class FoundsetTypeSabloValue implements IDataLinkedPropertyValue, TableMo
 			destinationJSON.key((update ? UPDATE_PREFIX : "") + COLUMN_FORMATS).object();
 			if (columnFormats != null)
 			{
-				IConvertedPropertyType<Object> formatPropertyType = (IConvertedPropertyType<Object>)TypesRegistry.getType(FormatPropertyType.TYPE_NAME); // just get it nicely in case it's overridden in designer for example
+				FormatPropertyType formatPropertyType = (FormatPropertyType)TypesRegistry.getType(FormatPropertyType.TYPE_NAME); // just get it nicely in case it's overridden in designer for example
 
 				for (Entry<String, ComponentFormat> columnFormat : columnFormats.entrySet())
 				{
-					formatPropertyType.toJSON(destinationJSON, columnFormat.getKey(), columnFormat.getValue(), null, null, dataConverterContext);
+					formatPropertyType.writeComponentFormatToJSON(destinationJSON, columnFormat.getKey(), columnFormat.getValue(), null, dataConverterContext);
 				}
 			} // else just an empty object if fine (but we do write it because when changing dataproviders from scripting it could change from something to null and the client should know about it)
 			destinationJSON.endObject();
@@ -670,10 +728,6 @@ public class FoundsetTypeSabloValue implements IDataLinkedPropertyValue, TableMo
 		}
 	}
 
-	/**
-	 * @param dataProvider
-	 * @return
-	 */
 	private PropertyDescription getDataProviderPropertyDescription(String dataProvider)
 	{
 		if (parentDAL != null)
@@ -681,10 +735,10 @@ public class FoundsetTypeSabloValue implements IDataLinkedPropertyValue, TableMo
 			return NGUtils.getDataProviderPropertyDescription(dataProvider, parentDAL.getApplication().getFlattenedSolution(), parentDAL.getForm().getForm(),
 				foundset.getTable(), false);
 		}
-		else if (webObject instanceof WebFormComponent)
+		else
 		{
-			IDataAdapterList dl = ((WebFormComponent)webObject).getDataAdapterList();
-			return NGUtils.getDataProviderPropertyDescription(dataProvider, dl.getApplication().getFlattenedSolution(), dl.getForm().getForm(),
+			IDataAdapterList dl = NGComponentDALContext.getDataAdapterList(webObjectContext);
+			if (dl != null) return NGUtils.getDataProviderPropertyDescription(dataProvider, dl.getApplication().getFlattenedSolution(), dl.getForm().getForm(),
 				foundset.getTable(), false);
 		}
 		return NGUtils.getDataProviderPropertyDescription(dataProvider, foundset.getTable(), false);
@@ -889,7 +943,6 @@ public class FoundsetTypeSabloValue implements IDataLinkedPropertyValue, TableMo
 
 								if (recordIndex != -1)
 								{
-									IWebFormUI formUI = getFormUI(); // this will no longer be needed once 'component' type handles the global/form variables
 									IRecordInternal record = foundset.getRecord(recordIndex);
 									// convert Dates where it's needed
 
@@ -910,6 +963,7 @@ public class FoundsetTypeSabloValue implements IDataLinkedPropertyValue, TableMo
 											catch (IllegalArgumentException e)
 											{
 												// TODO handle the validaton errors.
+												IWebFormUI formUI = getFormUI();
 												formUI.getController().getApplication().reportError(
 													"Validation for " + dataProviderName + " for value: " + value + " failed.", e);
 											}
@@ -959,16 +1013,17 @@ public class FoundsetTypeSabloValue implements IDataLinkedPropertyValue, TableMo
 	{
 		// this method gets called by linked component type property/properties
 		// that means here we are working with components, not with services - so we can cast webObject and create a new data adapter list
-		if (dataAdapterList == null && webObject instanceof WebComponent)
+		if (dataAdapterList == null && webObjectContext != null && webObjectContext.getUnderlyingWebObject() instanceof WebComponent)
 		{
 			dataAdapterList = new FoundsetDataAdapterList(getFormUI().getController());
+			if (foundset != null) dataAdapterList.setFindMode(foundset.isInFindMode());
 		}
 		return dataAdapterList;
 	}
 
 	protected IWebFormUI getFormUI()
 	{
-		return ((WebComponent)webObject).findParent(IWebFormUI.class);
+		return ((WebComponent)webObjectContext.getUnderlyingWebObject()).findParent(IWebFormUI.class);
 	}
 
 	public static Pair<String, Integer> splitPKHashAndIndex(String pkHashAndIndex)
@@ -1013,7 +1068,8 @@ public class FoundsetTypeSabloValue implements IDataLinkedPropertyValue, TableMo
 	public String toString()
 	{
 		return "Foundset '" + (foundset != null ? foundset.getDataSource() : null) + " on property '" + propertyName +
-			"': foundset type property on component " + (webObject != null ? webObject.getName() : "- not yet attached -");
+			"': foundset type property on component " +
+			(webObjectContext != null ? webObjectContext.getUnderlyingWebObject().getName() : "- not yet attached -");
 	}
 
 	public void setRecordDataLinkedPropertyIDToColumnDP(String id, String dataprovider)
@@ -1065,6 +1121,32 @@ public class FoundsetTypeSabloValue implements IDataLinkedPropertyValue, TableMo
 		if (getFoundset() != null && e.getColumn() == TableModelEvent.ALL_COLUMNS && e.getFirstRow() == 0)
 		{
 			if (!Utils.equalObjects(lastSortString, getSortStringAsNames())) changeMonitor.foundsetSortChanged();
+		}
+	}
+
+
+	@Override
+	public void addStateChangeListener(IChangeListener valueChangeListener)
+	{
+		if (!underlyingStateListeners.contains(valueChangeListener)) underlyingStateListeners.add(valueChangeListener);
+	}
+
+	@Override
+	public void removeStateChangeListener(IChangeListener valueChangeListener)
+	{
+		underlyingStateListeners.remove(valueChangeListener);
+	}
+
+	protected void fireUnderlyingStateChangedListeners()
+	{
+		if (underlyingStateListeners.size() > 0)
+		{
+			// just in case any listeners will end up trying to alter underlyingValueChangeListeners - avoid a ConcurrentModificationException
+			IChangeListener[] copyOfListeners = underlyingStateListeners.toArray(new IChangeListener[underlyingStateListeners.size()]);
+			for (IChangeListener l : copyOfListeners)
+			{
+				l.valueChanged();
+			}
 		}
 	}
 

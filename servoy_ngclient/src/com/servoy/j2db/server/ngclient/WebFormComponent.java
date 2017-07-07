@@ -1,11 +1,11 @@
 package com.servoy.j2db.server.ngclient;
 
-import java.beans.PropertyChangeListener;
-import java.beans.PropertyChangeSupport;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.SortedSet;
+import java.util.TreeSet;
 
 import org.json.JSONException;
 import org.json.JSONWriter;
@@ -14,13 +14,18 @@ import org.sablo.IEventHandler;
 import org.sablo.specification.PropertyDescription;
 import org.sablo.specification.WebComponentSpecProvider;
 import org.sablo.specification.property.IBrowserConverterContext;
+import org.sablo.specification.property.IPropertyType;
 import org.sablo.websocket.utils.DataConversion;
 import org.sablo.websocket.utils.JSONUtils.IToJSONConverter;
 
 import com.servoy.j2db.persistence.IPersist;
 import com.servoy.j2db.persistence.IRepository;
 import com.servoy.j2db.persistence.StaticContentSpecLoader;
+import com.servoy.j2db.server.ngclient.property.INGWebObjectContext;
+import com.servoy.j2db.server.ngclient.property.types.NGConversions;
+import com.servoy.j2db.server.ngclient.property.types.NGConversions.IDesignToFormElement;
 import com.servoy.j2db.server.ngclient.property.types.NGConversions.IFormElementDefaultValueToSabloComponent;
+import com.servoy.j2db.server.ngclient.property.types.NGConversions.IFormElementToSabloComponent;
 import com.servoy.j2db.util.Utils;
 
 /**
@@ -28,7 +33,7 @@ import com.servoy.j2db.util.Utils;
  * @author jcompagner
  */
 @SuppressWarnings("nls")
-public class WebFormComponent extends Container implements IContextProvider
+public class WebFormComponent extends Container implements IContextProvider, INGWebObjectContext
 {
 	public static final String TAG_SCOPE = "scope";
 
@@ -37,13 +42,17 @@ public class WebFormComponent extends Container implements IContextProvider
 
 	protected IDataAdapterList dataAdapterList;
 
-	protected PropertyChangeSupport propertyChangeSupport;
 	protected ComponentContext componentContext;
 	private IDirtyPropertyListener dirtyPropertyListener;
+
+	private boolean propertiesInitialized; // we want to be able to convert all initial property values from sablo to web component before 'attaching' them if they are instances of ISmartPropertyValue; so we wait for all to be set and then trigger onPropertyChanged on all of them
 
 	public WebFormComponent(String name, FormElement fe, IDataAdapterList dataAdapterList)
 	{
 		super(name, WebComponentSpecProvider.getSpecProviderState().getWebComponentSpecification(fe.getTypeName()));
+
+		propertiesInitialized = false;
+
 		this.formElement = fe;
 		this.dataAdapterList = dataAdapterList;
 
@@ -88,33 +97,6 @@ public class WebFormComponent extends Container implements IContextProvider
 		// NGConversions.INSTANCE.applyConversion3(...) could be used here as this is currently wrong value type, but
 		// it's better to remove it altogether as previous comment says; anyway right now I think the types that call/use this method don't have conversion 3 defined
 		return formElement.getPropertyValue(propertyName);
-	}
-
-	@Override
-	protected void onPropertyChange(String propertyName, Object oldValue, Object propertyValue)
-	{
-		super.onPropertyChange(propertyName, oldValue, propertyValue);
-
-		if (propertyChangeSupport != null) propertyChangeSupport.firePropertyChange(propertyName, oldValue, propertyValue);
-	}
-
-	/**
-	 * These listeners will be triggered when the property changes by reference.
-	 */
-	public void addPropertyChangeListener(String propertyName, PropertyChangeListener listener)
-	{
-		if (propertyChangeSupport == null) propertyChangeSupport = new PropertyChangeSupport(this);
-		if (propertyName == null) propertyChangeSupport.addPropertyChangeListener(listener);
-		else propertyChangeSupport.addPropertyChangeListener(propertyName, listener);
-	}
-
-	public void removePropertyChangeListener(String propertyName, PropertyChangeListener listener)
-	{
-		if (propertyChangeSupport != null)
-		{
-			if (propertyName == null) propertyChangeSupport.removePropertyChangeListener(listener);
-			else propertyChangeSupport.removePropertyChangeListener(propertyName, listener);
-		}
 	}
 
 	public void add(String eventType, int functionID)
@@ -191,7 +173,6 @@ public class WebFormComponent extends Container implements IContextProvider
 	@Override
 	public void dispose()
 	{
-		propertyChangeSupport = null;
 		super.dispose();
 	}
 
@@ -281,10 +262,26 @@ public class WebFormComponent extends Container implements IContextProvider
 	}
 
 	@Override
-	public boolean flagPropertyAsDirty(String key, boolean dirty)
+	public boolean markPropertyAsChangedByRef(String key)
 	{
-		boolean modified = super.flagPropertyAsDirty(key, dirty);
-		if (modified && dirtyPropertyListener != null) dirtyPropertyListener.propertyFlaggedAsDirty(key, dirty);
+		boolean modified = super.markPropertyAsChangedByRef(key);
+		if (modified && dirtyPropertyListener != null) dirtyPropertyListener.propertyFlaggedAsDirty(key, true);
+		return modified;
+	}
+
+	@Override
+	public boolean clearChangedStatusForProperty(String key)
+	{
+		boolean modified = super.clearChangedStatusForProperty(key);
+		if (modified && dirtyPropertyListener != null) dirtyPropertyListener.propertyFlaggedAsDirty(key, false);
+		return modified;
+	}
+
+	@Override
+	public boolean markPropertyContentsUpdated(String key)
+	{
+		boolean modified = super.markPropertyContentsUpdated(key);
+		if (modified && dirtyPropertyListener != null) dirtyPropertyListener.propertyFlaggedAsDirty(key, true);
 		return modified;
 	}
 
@@ -311,29 +308,72 @@ public class WebFormComponent extends Container implements IContextProvider
 		}
 	}
 
-	@Override
-	public Object getRawPropertyValue(String propertyName, boolean getDefaultFromSpecAsWellIfNeeded)
-	{
-		String[] parts = propertyName.split("\\.");
-		String firstProperty = parts[0];
-		if (firstProperty.indexOf('[') > 0)
-		{
-			firstProperty = firstProperty.substring(0, firstProperty.indexOf('['));
-		}
-		PropertyDescription propertyDesc = specification.getProperty(firstProperty);
-		if (propertyDesc != null && propertyDesc.getType() instanceof IFormElementDefaultValueToSabloComponent)
-		{
-			return super.getRawPropertyValue(propertyName, false);
-		}
-		return super.getRawPropertyValue(propertyName, getDefaultFromSpecAsWellIfNeeded);
-	}
-
-	/**
-	 * @return the dataAdapterList
-	 */
 	public IDataAdapterList getDataAdapterList()
 	{
 		return dataAdapterList;
+	}
+
+	@Override
+	public Object getDefaultFromPD(PropertyDescription propertyDesc)
+	{
+		Object defaultPropertyValue = null;
+
+
+		if (propertyDesc.hasDefault())
+		{
+			// short story here; if a web component .spec file defines a "defaultValue" then that is interpreted as a "design value"
+			// so before reaching our WebFormComponent it will pass through 2 conversions: design-to-formElement (IDesignToFormElement) and formElement-to-sablo (IFormElementToSabloComponent);
+			// if the type implements any of the two we cannot just return the pd.getDefaultValue() here as it will probably lead to a classcast exception (it is meant to be converted before reaching runtime); whoever wants the value will have to wait for it to be converted and set on the WebFormComponent before using it
+			// but it it doesn't implement any of those 2 conversions and a default is available in spec, then it can be returned here (passed through default conversions) - as it would reach the WebFormComponent unconverted anyway
+
+			// we could just return null here always (because the value will be set soon, it's just a matter of which properties are set first after being converted), but then properties like NGEnabledProperty type which ask for webObject.isEnabled on parents which then could look into enabled type properties and expect a boolean (so not null) wouldn't work in the same way; those properties don't want to wait...
+
+			IPropertyType< ? > type = propertyDesc.getType();
+			if (!(type instanceof IDesignToFormElement || type instanceof IFormElementToSabloComponent))
+			{
+				return NGConversions.INSTANCE.defaultDesignToFormElementValue(propertyDesc.getDefaultValue()); // there is currently no 'default' conversion from formElementToSablo - we would need to do that here as well otherwise
+			}
+		}
+		else
+		{
+			// so it doesn't have a default set in .spec; see if we can return type default or not then
+			if (!(propertyDesc.getType() instanceof IFormElementDefaultValueToSabloComponent))
+			{
+				defaultPropertyValue = propertyDesc.getType().defaultValue(propertyDesc);
+			} // else the form-element-default-to-sablo will generate the default value; don't get default from type (as this getDefaultFromPD might get called before IFormElementDefaultValueToSabloComponent had
+				// a chance to execute - if a property that depends on this property is initialized first and asks for this property's value)
+		}
+
+		return defaultPropertyValue;
+	}
+
+	@Override
+	protected void onPropertyChange(String propertyName, Object oldWrappedValue, Object newWrappedValue)
+	{
+		if (propertiesInitialized)
+		{
+			super.onPropertyChange(propertyName, oldWrappedValue, newWrappedValue);
+		} // else wait for all properties to be set before triggering changes and calling "attach" on ISmartPropertyValues
+	}
+
+	/**
+	 * Call this after all initial (form element - to - sablo) properties have been set (either in defaults map or in properties map).
+	 */
+	public void propertiesInitialized()
+	{
+		// so after all of them are converted from form element to sablo and set, attach them to the webComponent (so that when attach is called on any ISmartPropertyValue at least all the other properties are converted
+		// this could help initialize smart properties that depend on each other faster then if we would convert and then attach right away each value)
+		propertiesInitialized = true;
+
+		SortedSet<String> availableInitialKeys = new TreeSet<>();
+		availableInitialKeys.addAll(defaultPropertiesUnwrapped.keySet());
+		availableInitialKeys.addAll(properties.keySet());
+
+		// notify and attach initial values
+		for (String propName : availableInitialKeys)
+		{
+			onPropertyChange(propName, null, getRawPropertyValue(propName));
+		}
 	}
 
 }

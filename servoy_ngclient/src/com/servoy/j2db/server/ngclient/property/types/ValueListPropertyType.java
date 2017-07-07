@@ -15,15 +15,14 @@
  */
 package com.servoy.j2db.server.ngclient.property.types;
 
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.List;
 
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.json.JSONWriter;
 import org.mozilla.javascript.Scriptable;
-import org.sablo.BaseWebObject;
+import org.sablo.IPropertyDescriptionProvider;
+import org.sablo.IWebObjectContext;
 import org.sablo.specification.PropertyDescription;
 import org.sablo.specification.property.IBrowserConverterContext;
 import org.sablo.specification.property.IConvertedPropertyType;
@@ -35,31 +34,23 @@ import org.sablo.websocket.utils.DataConversion;
 import com.servoy.base.persistence.constants.IValueListConstants;
 import com.servoy.j2db.FlattenedSolution;
 import com.servoy.j2db.IApplication;
-import com.servoy.j2db.component.ComponentFormat;
-import com.servoy.j2db.dataprocessing.BufferedDataSet;
 import com.servoy.j2db.dataprocessing.CustomValueList;
 import com.servoy.j2db.dataprocessing.IDataSet;
 import com.servoy.j2db.dataprocessing.IValueList;
 import com.servoy.j2db.dataprocessing.JSDataSet;
 import com.servoy.j2db.dataprocessing.ValueListFactory;
-import com.servoy.j2db.persistence.ColumnWrapper;
-import com.servoy.j2db.persistence.IColumn;
-import com.servoy.j2db.persistence.IColumnTypes;
-import com.servoy.j2db.persistence.IDataProvider;
-import com.servoy.j2db.persistence.StaticContentSpecLoader;
 import com.servoy.j2db.persistence.ValueList;
 import com.servoy.j2db.scripting.solutionmodel.JSValueList;
 import com.servoy.j2db.scripting.solutionmodel.JSWebComponent;
-import com.servoy.j2db.server.ngclient.ColumnBasedValueList;
 import com.servoy.j2db.server.ngclient.DataAdapterList;
 import com.servoy.j2db.server.ngclient.FormElementContext;
 import com.servoy.j2db.server.ngclient.INGApplication;
 import com.servoy.j2db.server.ngclient.INGFormElement;
-import com.servoy.j2db.server.ngclient.IWebFormUI;
 import com.servoy.j2db.server.ngclient.WebFormComponent;
-import com.servoy.j2db.server.ngclient.WebFormUI;
+import com.servoy.j2db.server.ngclient.property.FoundsetLinkedConfig;
+import com.servoy.j2db.server.ngclient.property.FoundsetLinkedPropertyType;
+import com.servoy.j2db.server.ngclient.property.NGComponentDALContext;
 import com.servoy.j2db.server.ngclient.property.ValueListConfig;
-import com.servoy.j2db.server.ngclient.property.types.NGConversions.IDesignToFormElement;
 import com.servoy.j2db.server.ngclient.property.types.NGConversions.IFormElementToSabloComponent;
 import com.servoy.j2db.server.ngclient.property.types.NGConversions.IRhinoToSabloComponent;
 import com.servoy.j2db.server.ngclient.property.types.NGConversions.ISabloComponentToRhino;
@@ -161,206 +152,186 @@ public class ValueListPropertyType extends DefaultPropertyType<ValueListTypeSabl
 	public ValueListTypeSabloValue toSabloComponentValue(Object formElementValue, PropertyDescription pd, INGFormElement formElement,
 		WebFormComponent component, DataAdapterList dataAdapterList)
 	{
-		ValueList val = null;
-		IValueList valueList = null;
-		ValueListConfig config = (ValueListConfig)pd.getConfig();
-		String dataproviderID = (pd.getConfig() != null ? (String)formElement.getPropertyValue(config.getFor()) : null);
-
-		valueList = getIValueList(formElementValue, pd, formElement, component, dataAdapterList, val, valueList, config, dataproviderID);
-
-		return valueList != null ? new ValueListTypeSabloValue(valueList, dataAdapterList, config, dataproviderID, pd,
-			getComponentFormat(pd, dataAdapterList, formElement, config, dataproviderID), formElement) : null;
+		if (formElementValue != null)
+		{
+			ValuelistPropertyDependencies propertyDependencies = getDependenciesToOtherProperties(pd, formElement);
+			return new ValueListTypeSabloValue(formElementValue, pd, propertyDependencies,
+				propertyDependencies.dataproviderPropertyName != null && formElement.getPropertyValue(propertyDependencies.dataproviderPropertyName) != null,
+				propertyDependencies.formatPropertyName != null && formElement.getPropertyValue(propertyDependencies.formatPropertyName) != null,
+				dataAdapterList);
+		}
+		return null;
 	}
 
-	/**
-	 * @param formElementValue
-	 * @param pd
-	 * @param formElement
-	 * @param component
-	 * @param dataAdapterList
-	 * @param val
-	 * @param valueList
-	 * @param config
-	 * @param dataproviderID
-	 * @return
-	 */
-	protected IValueList getIValueList(Object formElementValue, PropertyDescription pd, INGFormElement formElement, WebFormComponent component,
-		DataAdapterList dataAdapterList, ValueList val, IValueList valueList, ValueListConfig config, String dataproviderID)
+	protected ValuelistPropertyDependencies getDependenciesToOtherProperties(PropertyDescription pd, IPropertyDescriptionProvider formElement)
 	{
-		int valuelistID = Utils.getAsInteger(formElementValue);
-		INGApplication application = dataAdapterList.getApplication();
-		if (valuelistID > 0)
-		{
-			val = application.getFlattenedSolution().getValueList(valuelistID);
-		}
-		else
-		{
-			UUID uuid = Utils.getAsUUID(formElementValue, false);
-			if (uuid != null) val = (ValueList)application.getFlattenedSolution().searchPersist(uuid);
-			else if (formElementValue instanceof String) val = application.getFlattenedSolution().getValueList(formElementValue.toString());
-		}
+		ValueListConfig config = (ValueListConfig)pd.getConfig();
+		String dataproviderPropertyName = config.getFor();
 
-
-		if (val != null)
+		String foundsetPropertyName = null;
+		String formatPropertyName = null; // this is really only used I think when you have a custom valuelist with date values (without separate display values) - to convert the String defined dates in the custom valuelist into actual Date values
+		if (dataproviderPropertyName != null)
 		{
-			ComponentFormat fieldFormat = getComponentFormat(pd, dataAdapterList, formElement, config, dataproviderID);
-			valueList = getRealValueList(application, val, fieldFormat, dataproviderID);
-		}
-		else
-		{
-			if ("autoVL".equals(config.getDefaultValue()))
+			PropertyDescription dpPropertyDef = formElement.getPropertyDescription(dataproviderPropertyName);
+			if (dpPropertyDef != null && (dpPropertyDef.getType() instanceof FoundsetLinkedPropertyType))
 			{
-				String dp = (String)formElement.getPropertyValue(StaticContentSpecLoader.PROPERTY_DATAPROVIDERID.getPropertyName());
-				IWebFormUI formUI = component.findParent(WebFormUI.class);
-				if (dp != null && formUI.getController().getTable() != null && formUI.getController().getTable().getColumnType(dp) != 0)
-				{
-					valueList = new ColumnBasedValueList(application, formElement.getForm().getServerName(), formElement.getForm().getTableName(),
-						(String)formElement.getPropertyValue(StaticContentSpecLoader.PROPERTY_DATAPROVIDERID.getPropertyName()));
-				}
-				else
-				{
-					// not supported empty valuelist (based on relations) just return an empty valuelist
-					valueList = new CustomValueList(application, null, "", false, IColumnTypes.TEXT, null);
-				}
+				foundsetPropertyName = ((FoundsetLinkedConfig)dpPropertyDef.getConfig()).getForFoundsetName();
 			}
 		}
-		return valueList;
-	}
 
-	protected ComponentFormat getComponentFormat(PropertyDescription pd, DataAdapterList dataAdapterList, INGFormElement formElement, ValueListConfig config,
-		String dataproviderID)
-	{
-		String format = null;
-		INGApplication application = dataAdapterList.getApplication();
-		if (dataproviderID != null)
+		Collection<PropertyDescription> properties = formElement.getProperties(FormatPropertyType.INSTANCE);
+		for (PropertyDescription formatPd : properties)
 		{
-			Collection<PropertyDescription> properties = formElement.getProperties(FormatPropertyType.INSTANCE);
-			for (PropertyDescription formatPd : properties)
+			// compare whether format and valueList property are for same property (dataprovider) or if format is used for valuelist property itself
+			if (formatPd.getConfig() instanceof String[] && ((String[])formatPd.getConfig()).length > 0)
 			{
-				// compare whether format and valuelist property are for same property (dataprovider) or if format is used for valuelist property itself
-				if (formatPd.getConfig() instanceof String[] && ((String[])formatPd.getConfig()).length > 0 &&
-					(config.getFor().equals(((String[])formatPd.getConfig())[0]) || pd.getName().equals(((String[])formatPd.getConfig())[0])))
+				for (String formatForClauseEntry : ((String[])formatPd.getConfig()))
 				{
-					Object formatValue = formElement.getPropertyValue(formatPd.getName());
-					if (formatValue != IDesignToFormElement.TYPE_DEFAULT_VALUE_MARKER)
+					if (dataproviderPropertyName.equals(formatForClauseEntry) || pd.getName().equals(formatForClauseEntry))
 					{
-						format = (String)formElement.getPropertyValue(formatPd.getName());
+						formatPropertyName = formatPd.getName();
 						break;
 					}
 				}
+				if (formatPropertyName != null) break; // there can/should be only one format property for a specific valuelist; we found it
 			}
 		}
-		return ComponentFormat.getComponentFormat(format, dataproviderID,
-			application.getFlattenedSolution().getDataproviderLookup(application.getFoundSetManager(), dataAdapterList.getForm().getForm()), application);
-	}
 
-	protected IValueList getRealValueList(INGApplication application, ValueList val, ComponentFormat fieldFormat, String dataproviderID)
-	{
-		return com.servoy.j2db.component.ComponentFactory.getRealValueList(application, val, true, fieldFormat.dpType, fieldFormat.parsedFormat,
-			dataproviderID);
+		return new ValuelistPropertyDependencies(dataproviderPropertyName, foundsetPropertyName, formatPropertyName);
 	}
 
 	@Override
 	public TargetDataLinks getDataLinks(Object formElementValue, PropertyDescription pd, FlattenedSolution flattenedSolution, INGFormElement formElement)
 	{
-		if (formElementValue instanceof IValueList)
-		{
-			IDataProvider[] dependedDataProviders = ((IValueList)formElementValue).getDependedDataProviders();
-			if (dependedDataProviders == null) return TargetDataLinks.NOT_LINKED_TO_DATA;
-			if (dependedDataProviders.length == 0) return TargetDataLinks.LINKED_TO_ALL;
-
-			boolean recordLinked = false;
-			String[] dataproviders = new String[dependedDataProviders.length];
-			for (int i = 0; i < dataproviders.length; i++)
-			{
-				dataproviders[i] = dependedDataProviders[i].getDataProviderID();
-				recordLinked = recordLinked || (dependedDataProviders[i] instanceof IColumn || dependedDataProviders[i] instanceof ColumnWrapper);
-			}
-			return new TargetDataLinks(dataproviders, recordLinked);
-		}
-		return null;
+		return null; // we don't have the IValueList yet (that is a runtime thing, not a form element thing); so for now say "not linked to data"; at runtime when valuelist sablo value might add
+		// itself as a listener to the DataAdapterList, any ComponentTypeSabloValue or FoundsetLinkedSabloValue using that should/will update their state
 	}
 
 	@Override
 	public ValueListTypeSabloValue toSabloComponentValue(Object rhinoValue, ValueListTypeSabloValue previousComponentValue, PropertyDescription pd,
-		BaseWebObject componentOrService)
+		IWebObjectContext webObjectContext)
 	{
-//		Object vl = componentOrService.getProperty(pd.getName()); // this only works for when ValueListTypeSabloValue is a non-nested property (so not in an array or custom object)
-		ValueListTypeSabloValue newValue = previousComponentValue;
-
-		if (rhinoValue instanceof String && componentOrService instanceof WebFormComponent)
+		if (previousComponentValue == null)
 		{
-			// the new value is a valuelist name
-			newValue = toSabloComponentValue(rhinoValue, pd, ((WebFormComponent)componentOrService).getFormElement(), (WebFormComponent)componentOrService,
-				(DataAdapterList)((WebFormComponent)componentOrService).getDataAdapterList());
+			return rhinoValue instanceof String ? createValuelistSabloValueByNameFromRhino((String)rhinoValue, pd, webObjectContext) : null;
 		}
-		else if (previousComponentValue != null)
+
+		if (!previousComponentValue.isInitialized())
 		{
-			// see if it's a setValuelistItems equivalent
-			ParsedFormat format = null;
-			int type = -1;
-			INGApplication application = previousComponentValue.dataAdapterList.getApplication();
-			IValueList list = previousComponentValue.getValueList();
-
-			IValueList newVl = null;
-			if (list != null && list instanceof CustomValueList && (rhinoValue instanceof JSDataSet || rhinoValue instanceof IDataSet))
+			if (rhinoValue instanceof String)
 			{
-				String name = list.getName();
-				ValueList valuelist = application.getFlattenedSolution().getValueList(name);
-				if (valuelist != null && valuelist.getValueListType() == IValueListConstants.CUSTOM_VALUES)
+				// weird; but we are going to create a new value anyway so it doesn't matter much
+				return createValuelistSabloValueByNameFromRhino((String)rhinoValue, pd, webObjectContext);
+			}
+			else if (rhinoValue == null) return null;// weird; but we are going to return null anyway so it doesn't matter much that it is not initialized
+			else
+			{
+				// we cannot set values from a dataset if the previous value is not ready for it
+				Debug.error(
+					"Trying to make changes (assignment) to an uninitialized valuelist property (this is not allowed): " + pd + " of " + webObjectContext,
+					new RuntimeException());
+				return previousComponentValue;
+			}
+		}
+
+		ParsedFormat format = null;
+		int type = -1;
+		IValueList list = previousComponentValue.getValueList();
+
+		if (list.getName().equals(rhinoValue))
+		{
+			// no need to create a new value if we have the same valuelist name
+			return previousComponentValue;
+		}
+
+		ValueListTypeSabloValue newValue;
+		IValueList newVl = null;
+
+		// see if it's a component.setValuelistItems (legacy) equivalent
+		if (list != null && list instanceof CustomValueList && (rhinoValue instanceof JSDataSet || rhinoValue instanceof IDataSet))
+		{
+			// here we create a NEW, separate (runtime) custom valuelist instance for this component only (no longer the 'global' custom valuelist with that name that can be affected by application.setValuelistItems(...))
+			INGApplication application = previousComponentValue.getDataAdapterList().getApplication();
+			ValueList valuelist = application.getFlattenedSolution().getValueList(list.getName());
+			if (valuelist != null && valuelist.getValueListType() == IValueListConstants.CUSTOM_VALUES)
+			{
+				format = ((CustomValueList)list).getFormat();
+				type = ((CustomValueList)list).getValueType();
+				newVl = ValueListFactory.fillRealValueList(application, valuelist, IValueListConstants.CUSTOM_VALUES, format, type, rhinoValue);
+
+				if (newVl != null)
 				{
-					format = ((CustomValueList)list).getFormat();
-					type = ((CustomValueList)list).getValueType();
-					newVl = ValueListFactory.fillRealValueList(application, valuelist, IValueListConstants.CUSTOM_VALUES, format, type, rhinoValue);
-
-					if (newVl != null)
-					{
-						ValueListConfig config = (ValueListConfig)pd.getConfig();
-
-						// FIXME this won't work for valuelists nested in arrays of objects (for example columns in servoy extra table)
-						// only if custom object properties start providing a special componentOrService value that also looks inside the custom object properties not just starting in component/service root
-						// it's the same problem as in case SVY-10932 - where the format property has to do something similar
-						Object dpPropertyValue = componentOrService.getProperty(config.getFor());
-						String dataproviderID = DataAdapterList.getDataProviderID(dpPropertyValue);
-
-						newValue = new ValueListTypeSabloValue(newVl, previousComponentValue.dataAdapterList, config, dataproviderID, pd,
-							new ComponentFormat(format, type, type), previousComponentValue.formElement);
-					}
+					previousComponentValue.setNewCustomValuelistInstance(newVl);
+					newValue = previousComponentValue;
+				}
+				else
+				{
+					// should never happen; ValueListFactory.fillRealValueList seems to always return non-null
+					Debug.error("Assignment to Valuelist typed property '" + pd.getName() + "' of component '" + webObjectContext +
+						"' failed for an unknown reason; dataset: " + rhinoValue, new RuntimeException());
+					newValue = previousComponentValue; // just keep old value
 				}
 			}
-
+			else
+			{
+				Debug.error("Assignment to Valuelist typed property '" + pd.getName() + "' of component '" + webObjectContext +
+					"' failed. Assigning a dataset is ONLY allowed for custom valuelists; dataset: " + rhinoValue, new RuntimeException());
+				newValue = previousComponentValue;
+			}
 		}
+		else if (rhinoValue instanceof String)
+		{
+			// the Rhino value is a different valuelist name; create a full new one
+			newValue = createValuelistSabloValueByNameFromRhino((String)rhinoValue, pd, webObjectContext);
+		}
+		else
+		{
+			Debug.error("Assignment to Valuelist typed property '" + pd.getName() + "' of component '" + webObjectContext +
+				"' failed. Assigning this value is not supported: " + rhinoValue, new RuntimeException());
+			newValue = previousComponentValue; // whatever was set here is not supported; so keep the previous value
+		}
+
 		return newValue;
+
+	}
+
+	private ValueListTypeSabloValue createValuelistSabloValueByNameFromRhino(String valuelistId, PropertyDescription pd, IWebObjectContext webObjectContext)
+	{
+		ValuelistPropertyDependencies propertyDependencies = getDependenciesToOtherProperties(pd, webObjectContext);
+
+		return new ValueListTypeSabloValue(valuelistId, pd, propertyDependencies, false, false, NGComponentDALContext.getDataAdapterList(webObjectContext));
+		// above both waitForDataproviderIfNull and waitForFormatIfNull are false because while in 'from Rhino' conversion, at this point, even if one would for example
+		// set a full custom object that contains this property with dependencies to other properties in that custom object - we don't know the order in which the other properties are set
+		// so we can check them; but that is not a problem because nothing is attached yet in this case (those flags are only used in attachToBaseObject) and when attach will be called, all
+		// rhino-to-sablo conversions on that custom object are already done (so at attach time the values are already there)
 	}
 
 	@Override
-	public boolean isValueAvailableInRhino(ValueListTypeSabloValue webComponentValue, PropertyDescription pd, BaseWebObject componentOrService)
+	public boolean isValueAvailableInRhino(ValueListTypeSabloValue webComponentValue, PropertyDescription pd, IWebObjectContext webObjectContext)
 	{
 		return webComponentValue != null;
 	}
 
 	@Override
-	public Object toRhinoValue(ValueListTypeSabloValue webComponentValue, PropertyDescription pd, BaseWebObject componentOrService, Scriptable startScriptable)
+	public Object toRhinoValue(ValueListTypeSabloValue webComponentValue, PropertyDescription pd, IWebObjectContext webObjectContext,
+		Scriptable startScriptable)
 	{
 		if (webComponentValue != null)
 		{
-			try
+			if (webComponentValue.getValueList() != null)
 			{
-				INGApplication application = webComponentValue.dataAdapterList.getApplication();
-				if (webComponentValue.valueList != null)
-				{
-					List<Object[]> rows = new ArrayList<Object[]>();
-					for (int i = 0; i < webComponentValue.valueList.getSize(); i++)
-					{
-						rows.add(new Object[] { webComponentValue.valueList.getElementAt(i), webComponentValue.valueList.getRealElementAt(i) });
-					}
-					return new JSDataSet(application, new BufferedDataSet(new String[] { "displayValue", "realValue" }, //$NON-NLS-1$ //$NON-NLS-2$
-						rows));
-				}
+				return webComponentValue.getValueList().getName();
 			}
-			catch (Exception e)
+			else
 			{
-				Debug.error(e);
+				// should never happen
+				String warnMsg;
+				if (!webComponentValue.isInitialized())
+					warnMsg = "Trying to get vl. name from an uninitialized valuelist property (this is not allowed): " + pd + " of " + webObjectContext;
+				else warnMsg = "Trying to get vl. name from an initialize valuelist property failed for an unknown reason: " + pd + " of " + webObjectContext; // this should happen even less then never :)
+
+				Debug.warn(warnMsg);
+				throw new RuntimeException(warnMsg);
 			}
 		}
 		return null;
@@ -408,17 +379,34 @@ public class ValueListPropertyType extends DefaultPropertyType<ValueListTypeSabl
 	}
 
 	@Override
-	public ValueListTypeSabloValue resetI18nValue(ValueListTypeSabloValue property, PropertyDescription pd, WebFormComponent component)
+	public ValueListTypeSabloValue resetI18nValue(ValueListTypeSabloValue propertyValue, PropertyDescription pd, WebFormComponent component)
 	{
 		// have to test if a real valuelist is there because a "autoVL" valuelist doesn't have an actual valuelist but is based on the column itself.
-		if (property != null && property.valueList.getValueList() != null)
+		if (propertyValue != null)
 		{
-			ValueListTypeSabloValue currentSabloValue = property;
-			ValueListTypeSabloValue newSabloValue = ((ValueListPropertyType)pd.getType()).toSabloComponentValue(
-				currentSabloValue.valueList.getValueList().getUUID(), pd, currentSabloValue.formElement, component, currentSabloValue.getDataAdapterList());
-			return newSabloValue;
+			propertyValue.resetI18nValue();
 		}
-		return property;
+		return propertyValue;
+	}
+
+	/**
+	 * Just a container for keeping names of properties that a valuelist property can depend on based on the for/forFoundset clauses in the .spec file.
+	 *
+	 * @author acostescu
+	 */
+	protected static class ValuelistPropertyDependencies
+	{
+
+		public final String dataproviderPropertyName;
+		public final String foundsetPropertyName;
+		public final String formatPropertyName;
+
+		public ValuelistPropertyDependencies(String dataproviderPropertyName, String foundsetPropertyName, String formatPropertyName)
+		{
+			this.dataproviderPropertyName = dataproviderPropertyName;
+			this.foundsetPropertyName = foundsetPropertyName;
+			this.formatPropertyName = formatPropertyName;
+		}
 	}
 
 }

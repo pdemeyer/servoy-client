@@ -20,7 +20,7 @@ package com.servoy.j2db.server.ngclient.property.types;
 import org.json.JSONException;
 import org.json.JSONWriter;
 import org.mozilla.javascript.Undefined;
-import org.sablo.BaseWebObject;
+import org.sablo.IWebObjectContext;
 import org.sablo.specification.PropertyDescription;
 import org.sablo.specification.property.IBrowserConverterContext;
 import org.sablo.specification.property.IConvertedPropertyType;
@@ -79,7 +79,7 @@ public class ServoyStringPropertyType extends StringPropertyType
 	}
 
 	@Override
-	public String toSabloComponentValue(Object rhinoValue, String previousComponentValue, PropertyDescription pd, BaseWebObject componentOrService)
+	public String toSabloComponentValue(Object rhinoValue, String previousComponentValue, PropertyDescription pd, IWebObjectContext componentOrService)
 	{
 		if (rhinoValue == Undefined.instance)
 		{

@@ -36,7 +36,7 @@ import org.json.JSONObject;
 import org.json.JSONStringer;
 import org.json.JSONWriter;
 import org.mozilla.javascript.Scriptable;
-import org.sablo.BaseWebObject;
+import org.sablo.IWebObjectContext;
 import org.sablo.specification.PropertyDescription;
 import org.sablo.specification.property.IBrowserConverterContext;
 import org.sablo.specification.property.IConvertedPropertyType;
@@ -436,7 +436,7 @@ public class BorderPropertyType extends DefaultPropertyType<Border>
 	}
 
 	@Override
-	public Border toSabloComponentValue(Object rhinoValue, Border previousComponentValue, PropertyDescription pd, BaseWebObject componentOrService)
+	public Border toSabloComponentValue(Object rhinoValue, Border previousComponentValue, PropertyDescription pd, IWebObjectContext componentOrService)
 	{
 		if (rhinoValue instanceof String)
 		{
@@ -446,13 +446,13 @@ public class BorderPropertyType extends DefaultPropertyType<Border>
 	}
 
 	@Override
-	public boolean isValueAvailableInRhino(Border webComponentValue, PropertyDescription pd, BaseWebObject componentOrService)
+	public boolean isValueAvailableInRhino(Border webComponentValue, PropertyDescription pd, IWebObjectContext webObjectContext)
 	{
 		return true;
 	}
 
 	@Override
-	public Object toRhinoValue(Border webComponentValue, PropertyDescription pd, BaseWebObject componentOrService, Scriptable startScriptable)
+	public Object toRhinoValue(Border webComponentValue, PropertyDescription pd, IWebObjectContext componentOrService, Scriptable startScriptable)
 	{
 		if (webComponentValue != null)
 		{

@@ -23,7 +23,7 @@ import org.json.JSONWriter;
 import org.mozilla.javascript.NativeObject;
 import org.mozilla.javascript.Scriptable;
 import org.mozilla.javascript.Undefined;
-import org.sablo.BaseWebObject;
+import org.sablo.IWebObjectContext;
 import org.sablo.specification.PropertyDescription;
 import org.sablo.specification.property.CustomJSONPropertyType;
 import org.sablo.specification.property.IBrowserConverterContext;
@@ -156,13 +156,14 @@ public class FoundsetPropertyType extends CustomJSONPropertyType<FoundsetTypeSab
 	}
 
 	@Override
-	public boolean isValueAvailableInRhino(FoundsetTypeSabloValue webComponentValue, PropertyDescription pd, BaseWebObject componentOrService)
+	public boolean isValueAvailableInRhino(FoundsetTypeSabloValue webComponentValue, PropertyDescription pd, IWebObjectContext webObjectContext)
 	{
 		return false;
 	}
 
 	@Override
-	public Object toRhinoValue(FoundsetTypeSabloValue webComponentValue, PropertyDescription pd, BaseWebObject componentOrService, Scriptable startScriptable)
+	public Object toRhinoValue(FoundsetTypeSabloValue webComponentValue, PropertyDescription pd, IWebObjectContext componentOrService,
+		Scriptable startScriptable)
 	{
 		return new FoundsetTypeSableValueWrapper(startScriptable, webComponentValue, pd);
 	}
@@ -299,7 +300,7 @@ public class FoundsetPropertyType extends CustomJSONPropertyType<FoundsetTypeSab
 
 	@Override
 	public FoundsetTypeSabloValue toSabloComponentValue(Object rhinoValue, FoundsetTypeSabloValue previousComponentValue, PropertyDescription pd,
-		BaseWebObject componentOrService)
+		IWebObjectContext componentOrService)
 	{
 		FoundsetTypeSabloValue newSabloValue = null;
 
@@ -320,6 +321,10 @@ public class FoundsetPropertyType extends CustomJSONPropertyType<FoundsetTypeSab
 		//    any of the keys above are optional except "foundset"
 		// 2. or it can directly be a IFoundSetInternal value in which case dataproviders is considered empty
 
+		if (rhinoValue instanceof FoundsetTypeSableValueWrapper)
+		{
+			return ((FoundsetTypeSableValueWrapper)rhinoValue).webComponentValue;
+		}
 		if (rhinoValue instanceof NativeObject)
 		{
 			NativeObject obj = (NativeObject)rhinoValue;

@@ -517,6 +517,24 @@ public class TableNode extends AbstractBase implements ISupportChilds
 		setTypedProperty(StaticContentSpecLoader.PROPERTY_ONAFTERCREATEMETHODID, arg);
 	}
 
+	/**
+	 * A method that is executed when an in memory table is first touched (by ui or scripting)
+	 *
+	 * @templatedescription Foundset load trigger, make sure a JSDataSet.createDataSource(inMemName) is called.
+	 * @templatename onFoundSetLoad
+	 * @templateparam String inMemName The in memory table name that is touched.
+	 * @templateaddtodo
+	 */
+	public int getOnFoundSetLoadMethodID()
+	{
+		return getTypedProperty(StaticContentSpecLoader.PROPERTY_ONFOUNDSETLOADMETHODID).intValue();
+	}
+
+	public void setOnFoundSetLoadMethodID(int arg)
+	{
+		setTypedProperty(StaticContentSpecLoader.PROPERTY_ONFOUNDSETLOADMETHODID, arg);
+	}
+
 	public boolean isEmpty()
 	{
 		// Table node is empty if it has no method/var and no property set (except for dataSource)

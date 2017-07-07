@@ -72,6 +72,7 @@ import com.servoy.j2db.persistence.SolutionMetaData;
 import com.servoy.j2db.persistence.ValidatorSearchContext;
 import com.servoy.j2db.server.ngclient.FormElementHelper;
 import com.servoy.j2db.server.ngclient.INGClientWebsocketSession;
+import com.servoy.j2db.server.ngclient.NGClient;
 import com.servoy.j2db.server.ngclient.endpoint.NGClientEndpoint;
 import com.servoy.j2db.server.ngclient.eventthread.NGClientWebsocketSessionWindows;
 import com.servoy.j2db.server.ngclient.property.types.Types;
@@ -257,15 +258,17 @@ public abstract class AbstractSolutionTest
 	@Before
 	public void buildSolution() throws Exception
 	{
+		TestNGClient.initSettings();
 		Types.getTypesInstance().registerTypes();
 
-		final File f = new File(PersistFieldInstanceTest.class.getProtectionDomain().getCodeSource().getLocation().getPath());
+		final File f = new File(NGClient.class.getProtectionDomain().getCodeSource().getLocation().getPath());
 
 		IPackageReader[] servicesReaders = null;
 		IPackageReader[] componentsReaders = null;
 		InMemPackageReader inMemPackageReader = getTestComponents();
-		if (f.isFile() && f.getName().startsWith("servoy_ngclient_") && f.getName().endsWith(".jar"))
+		if (f.isFile() && f.getName().startsWith("servoy_ngclient") && f.getName().endsWith(".jar"))
 		{
+			// it is running from bundles/jars
 			ZipFile zipFile = new ZipFile(f);
 			componentsReaders = inMemPackageReader != null
 				? new IPackageReader[] { new ZipPackageReader(zipFile, "war/servoycore/"), new ZipPackageReader(zipFile,
@@ -275,11 +278,11 @@ public abstract class AbstractSolutionTest
 		}
 		else
 		{
-			File userDir = new File(System.getProperty("user.dir"));
-			componentsReaders = getReaders(
-				new File[] { new File(userDir.getAbsoluteFile() + "/../war/servoycore/"), new File(userDir.getAbsoluteFile() + "/../war/servoydefault/") },
-				inMemPackageReader); //in eclipse we .. out of bin, in jenkins we .. out of @dot
-			servicesReaders = getReaders(new File[] { new File(userDir.getAbsoluteFile(), "/../war/servoyservices/") }, null);
+			// it is running from sources/projects
+			File ngClientProjDir = new File(f.getParentFile(), "servoy_ngclient");
+			componentsReaders = getReaders(new File[] { new File(ngClientProjDir.getAbsoluteFile() + "/war/servoycore/"), new File(
+				ngClientProjDir.getAbsoluteFile() + "/war/servoydefault/") }, inMemPackageReader); //in eclipse we .. out of bin, in jenkins we .. out of @dot
+			servicesReaders = getReaders(new File[] { new File(ngClientProjDir.getAbsoluteFile(), "/war/servoyservices/") }, null);
 		}
 
 		WebComponentSpecProvider.init(componentsReaders);

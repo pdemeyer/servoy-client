@@ -23,7 +23,7 @@ import org.json.JSONStringer;
 import org.json.JSONWriter;
 import org.mozilla.javascript.NativeObject;
 import org.mozilla.javascript.Scriptable;
-import org.sablo.BaseWebObject;
+import org.sablo.IWebObjectContext;
 import org.sablo.specification.PropertyDescription;
 import org.sablo.specification.property.types.DimensionPropertyType;
 import org.sablo.websocket.utils.DataConversion;
@@ -65,19 +65,19 @@ public class NGDimensionPropertyType extends DimensionPropertyType implements ID
 	}
 
 	@Override
-	public boolean isValueAvailableInRhino(Dimension webComponentValue, PropertyDescription pd, BaseWebObject componentOrService)
+	public boolean isValueAvailableInRhino(Dimension webComponentValue, PropertyDescription pd, IWebObjectContext webObjectContext)
 	{
 		return true;
 	}
 
 	@Override
-	public Object toRhinoValue(Dimension webComponentValue, PropertyDescription pd, BaseWebObject componentOrService, Scriptable startScriptable)
+	public Object toRhinoValue(Dimension webComponentValue, PropertyDescription pd, IWebObjectContext componentOrService, Scriptable startScriptable)
 	{
 		return PersistHelper.createDimensionString(webComponentValue);
 	}
 
 	@Override
-	public Dimension toSabloComponentValue(Object rhinoValue, Dimension previousComponentValue, PropertyDescription pd, BaseWebObject componentOrService)
+	public Dimension toSabloComponentValue(Object rhinoValue, Dimension previousComponentValue, PropertyDescription pd, IWebObjectContext componentOrService)
 	{
 		if (rhinoValue instanceof Object[])
 		{

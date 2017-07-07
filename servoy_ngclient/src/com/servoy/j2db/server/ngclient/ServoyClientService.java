@@ -17,6 +17,7 @@
 
 package com.servoy.j2db.server.ngclient;
 
+import org.sablo.specification.PropertyDescription;
 import org.sablo.specification.WebObjectSpecification;
 import org.sablo.websocket.impl.ClientService;
 
@@ -47,6 +48,19 @@ public class ServoyClientService extends ClientService implements IContextProvid
 	{
 		super.executeAsyncServiceCall(functionName, arguments);
 		session.valueChanged();
+	}
+
+	@Override
+	public Object getDefaultFromPD(PropertyDescription propertyDesc)
+	{
+		// this method is here just for this comment:
+		// we don't do here the same as we do in WebFormComponent - because services don't have 'design' values for properties nor do they have an associated FormElement
+		// so for services default value from .spec really should always only be a runtime/sablo value directly...
+		// TODO is this right? do we want to have a design - to runtime conversion for service default values as well? (so for example for custom array
+		// or custom obj. properties we can give default values in .spec and those get converted to their sablo/java array/map counterparts)
+
+		// so for now we use sablo default impl. for services
+		return super.getDefaultFromPD(propertyDesc);
 	}
 
 }

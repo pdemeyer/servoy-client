@@ -33,6 +33,7 @@ import org.mozilla.javascript.Context;
 import org.mozilla.javascript.Function;
 import org.mozilla.javascript.Scriptable;
 import org.sablo.Container;
+import org.sablo.IWebObjectContext;
 import org.sablo.WebComponent;
 import org.sablo.specification.PropertyDescription;
 import org.sablo.specification.WebObjectFunctionDefinition;
@@ -392,7 +393,8 @@ public class RuntimeWebComponent implements Scriptable, IInstanceOf
 									for (PropertyDescription visibleProperty : visibleProperties)
 									{
 										previousVal = siblingComponent.getProperty(visibleProperty.getName());
-										val = NGConversions.INSTANCE.convertRhinoToSabloComponentValue(value, previousVal, visibleProperty, siblingComponent);
+										val = NGConversions.INSTANCE.convertRhinoToSabloComponentValue(value, previousVal, visibleProperty,
+												(IWebObjectContext)siblingComponent);
 
 										if (val != previousVal) siblingComponent.setProperty(name, val);
 									}

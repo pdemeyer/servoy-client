@@ -18,7 +18,7 @@ package com.servoy.j2db.server.ngclient.property.types;
 import org.json.JSONException;
 import org.json.JSONWriter;
 import org.mozilla.javascript.Scriptable;
-import org.sablo.BaseWebObject;
+import org.sablo.IWebObjectContext;
 import org.sablo.specification.PropertyDescription;
 import org.sablo.specification.property.IBrowserConverterContext;
 import org.sablo.specification.property.IClassPropertyType;
@@ -83,20 +83,20 @@ public class FoundsetReferencePropertyType extends ReferencePropertyType<IFoundS
 	}
 
 	@Override
-	public boolean isValueAvailableInRhino(IFoundSetInternal webComponentValue, PropertyDescription pd, BaseWebObject componentOrService)
+	public boolean isValueAvailableInRhino(IFoundSetInternal webComponentValue, PropertyDescription pd, IWebObjectContext webObjectContext)
 	{
 		return true;
 	}
 
 	@Override
-	public Object toRhinoValue(IFoundSetInternal webComponentValue, PropertyDescription pd, BaseWebObject componentOrService, Scriptable startScriptable)
+	public Object toRhinoValue(IFoundSetInternal webComponentValue, PropertyDescription pd, IWebObjectContext componentOrService, Scriptable startScriptable)
 	{
 		return webComponentValue;
 	}
 
 	@Override
 	public IFoundSetInternal toSabloComponentValue(Object rhinoValue, IFoundSetInternal previousComponentValue, PropertyDescription pd,
-		BaseWebObject componentOrService)
+		IWebObjectContext componentOrService)
 	{
 		if (rhinoValue instanceof IFoundSetInternal)
 		{
